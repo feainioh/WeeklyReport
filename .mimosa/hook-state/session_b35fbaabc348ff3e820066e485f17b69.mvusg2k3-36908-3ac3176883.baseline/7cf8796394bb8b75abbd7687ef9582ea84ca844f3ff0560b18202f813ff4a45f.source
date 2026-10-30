@@ -1,0 +1,131 @@
+using System.Text;
+using WeeklyReport.Application;
+
+namespace WeeklyReport.Infrastructure.Backup;
+
+public sealed class BackupFileService(JsonBackupCodec json, ExcelBackupCodec excel)
+{
+    public async Task ExportAsync(
+        string path,
+        BackupFileFormat format,
+        BackupDocument document,
+        bool overwrite,
+        CancellationToken cancellationToken = default)
+    {
+        BackupValidator.Validate(document);
+        var target = ValidatePath(path, format);
+        if (format == BackupFileFormat.Markdown && document.Reports.Count != 1)
+        {
+            throw new ArgumentException("Markdown 导出必须且只能选择一份周报。", nameof(document));
+        }
+
+        var directory = Path.GetDirectoryName(target)
+            ?? throw new ArgumentException("无法确定导出目录。", nameof(path));
+        if (!Directory.Exists(directory))
+        {
+            throw new DirectoryNotFoundException("导出目录不存在。");
+        }
+
+        var temporary = Path.Combine(directory, $".weeklyreport-{Guid.NewGuid():N}.tmp");
+        try
+        {
+            await using (var stream = new FileStream(
+                temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, useAsync: true))
+            {
+                switch (format)
+                {
+                    case BackupFileFormat.Json:
+                        await json.WriteAsync(document, stream, cancellationToken);
+                        break;
+                    case BackupFileFormat.Excel:
+                        await excel.WriteAsync(document, stream, cancellationToken);
+                        break;
+                    case BackupFileFormat.Markdown:
+                        var bytes = Encoding.UTF8.GetBytes(ToMarkdown(document.Reports[0]));
+                        await stream.WriteAsync(bytes, cancellationToken);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(format));
+                }
+
+                await stream.FlushAsync(cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, target, overwrite);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    public async Task<BackupDocument> ImportAsync(
+        string path, BackupFileFormat format, CancellationToken cancellationToken = default)
+    {
+        if (format == BackupFileFormat.Markdown)
+        {
+            throw new ArgumentException("Markdown 不支持导入。", nameof(format));
+        }
+
+        var source = ValidatePath(path, format);
+        await using var stream = new FileStream(
+            source, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        return format switch
+        {
+            BackupFileFormat.Json => await json.ReadAsync(stream, cancellationToken),
+            BackupFileFormat.Excel => await excel.ReadAsync(stream, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    private static string ValidatePath(string path, BackupFileFormat format)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (!Path.IsPathFullyQualified(path)
+            || (OperatingSystem.IsWindows() && path.StartsWith(@"\\", StringComparison.Ordinal)))
+        {
+            throw new ArgumentException("请选择本机的文件绝对路径。", nameof(path));
+        }
+
+        var fullPath = Path.GetFullPath(path);
+        if (OperatingSystem.IsWindows())
+        {
+            var root = Path.GetPathRoot(fullPath)
+                ?? throw new ArgumentException("无法确定文件所在磁盘。", nameof(path));
+            if (new DriveInfo(root).DriveType == DriveType.Network)
+            {
+                throw new ArgumentException("不支持直接读写网络磁盘，请选择本机文件。", nameof(path));
+            }
+        }
+
+        var extension = format switch
+        {
+            BackupFileFormat.Json => ".json",
+            BackupFileFormat.Excel => ".xlsx",
+            BackupFileFormat.Markdown => ".md",
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+        if (!Path.GetExtension(fullPath).Equals(extension, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"文件扩展名必须为 {extension}。", nameof(path));
+        }
+
+        return fullPath;
+    }
+
+    private static string ToMarkdown(BackupReport report)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"# 周报：{report.WeekStart:yyyy-MM-dd} 至 {report.WeekEnd:yyyy-MM-dd}");
+        builder.AppendLine();
+        builder.AppendLine($"已确认：{WorkHourParser.Format(report.ConfirmedMinutes, System.Globalization.CultureInfo.InvariantCulture)} 小时；" +
+            $"估算：{WorkHourParser.Format(report.EstimatedMinutes, System.Globalization.CultureInfo.InvariantCulture)} 小时；" +
+            $"未填写：{report.UnknownHoursCount} 项。");
+        builder.AppendLine();
+        builder.AppendLine("## 本周工作").AppendLine().AppendLine(report.WorkSummary);
+        builder.AppendLine().AppendLine("## 下周计划").AppendLine().AppendLine(report.NextWeekPlan);
+        builder.AppendLine().AppendLine("## 问题与风险").AppendLine().AppendLine(report.Risks);
+        return builder.ToString();
+    }
+}

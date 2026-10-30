@@ -1,0 +1,49 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using WeeklyReport.Application;
+
+namespace WeeklyReport.Infrastructure.Backup;
+
+public sealed class JsonBackupCodec : IBackupCodec
+{
+    private static readonly JsonSerializerOptions Options = CreateOptions();
+
+    public async Task WriteAsync(
+        BackupDocument document, Stream destination, CancellationToken cancellationToken = default)
+    {
+        BackupValidator.Validate(document);
+        ArgumentNullException.ThrowIfNull(destination);
+        await JsonSerializer.SerializeAsync(destination, document, Options, cancellationToken);
+    }
+
+    public async Task<BackupDocument> ReadAsync(Stream source, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        try
+        {
+            var document = await JsonSerializer.DeserializeAsync<BackupDocument>(source, Options, cancellationToken)
+                ?? throw new BackupFormatException("JSON 备份为空。");
+            BackupValidator.Validate(document);
+            return document;
+        }
+        catch (JsonException exception)
+        {
+            throw new BackupFormatException("JSON 备份格式无效或缺少必要字段。", exception);
+        }
+    }
+
+    private static JsonSerializerOptions CreateOptions()
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            MaxDepth = 16,
+            AllowDuplicateProperties = false,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+            RespectRequiredConstructorParameters = true,
+            RespectNullableAnnotations = true
+        };
+        options.Converters.Add(new JsonStringEnumConverter<BackupEntryKind>(null, allowIntegerValues: false));
+        return options;
+    }
+}

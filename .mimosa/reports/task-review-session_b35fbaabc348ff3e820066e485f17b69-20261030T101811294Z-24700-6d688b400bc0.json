@@ -1,0 +1,227 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261030T101811294Z-24700-6d688b400bc0",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "candidate-select",
+      "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-migrate/Program.cs",
+      "reason": "changed_file_unreadable: observed changed file no longer exists or cannot be read"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 219,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 1
+    },
+    "change_tracking": {
+      "touched_observed": 2,
+      "touched_retained": 2,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 1,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 1,
+      "selected_files": 1,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 1,
+      "scanned_files": 1,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 1,
+      "detailed_findings": 1,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "changed_file_unreadable": 1,
+      "project_check_failed": 1
+    },
+    "reasons": [
+      {
+        "code": "changed_file_unreadable",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-migrate/Program.cs",
+        "detail": "observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-migrate/Program.cs",
+        "detail": "changed_file_unreadable: observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-10-30T10:18:11.294Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "1ba9ad57fea1b8f70b595c2d30a158a75f5d4b4c",
+  "rules_version": "unavailable",
+  "diff_hash": "ae3552de030bdaa893095843a9c4a9d0452d27e725dccf6684486fcf3f727e58",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 1,
+    "changed_files": [
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/GitCliCommitReaderTests.cs",
+        "ranges": [
+          {
+            "start": 21,
+            "end": 25
+          },
+          {
+            "start": 132,
+            "end": 137
+          },
+          {
+            "start": 144,
+            "end": 144
+          },
+          {
+            "start": 153,
+            "end": 153
+          },
+          {
+            "start": 156,
+            "end": 202
+          },
+          {
+            "start": 216,
+            "end": 216
+          },
+          {
+            "start": 224,
+            "end": 224
+          },
+          {
+            "start": 228,
+            "end": 228
+          },
+          {
+            "start": 255,
+            "end": 259
+          }
+        ],
+        "before_hash": "6a7c0780ed6194268a9c20d2cc3b19fe9697eebe5808e747ae3021af75b73c87",
+        "after_hash": "4cad1c928dc262e30369bdc8c46dc2ed9428d36ebc8321c9298c3064591495c1"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-10-30T10:18:10.274Z",
+    "completed_at": "2026-10-30T10:18:11.294Z",
+    "duration_ms": 1020,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 1020,
+    "peakMemoryBytes": 220508160,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 1,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 1,
+  "rewake_finding_count": 1,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [
+    {
+      "finding_id": "mimosa-9dc8ff1d56146bbfd3be8c93",
+      "file": "tests/WeeklyReport.IntegrationTests/GitCliCommitReaderTests.cs",
+      "line": 259,
+      "severity": "high",
+      "category": "命令注入",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-10-30T10:18:11.294Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime_oracle": false
+      }
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "mimosa-9dc8ff1d56146bbfd3be8c93",
+      "file": "tests/WeeklyReport.IntegrationTests/GitCliCommitReaderTests.cs",
+      "line": 259,
+      "end_line": 259,
+      "severity": "high",
+      "category": "命令注入",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "tests/WeeklyReport.IntegrationTests/GitCliCommitReaderTests.cs",
+          "line": 259,
+          "evidence_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    }
+  ],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261030T101811294Z-24700-6d688b400bc0.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261030T101811294Z-24700-6d688b400bc0.json"
+  }
+}

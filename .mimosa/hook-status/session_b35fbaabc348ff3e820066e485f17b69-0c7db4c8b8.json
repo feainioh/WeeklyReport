@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-10-30T10:13:55.679Z",
+  "sessionId": "session_b35fbaabc348ff3e820066e485f17b69",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "tests/WeeklyReport.IntegrationTests/GitCliCommitReaderTests.cs",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 14,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

@@ -1,0 +1,471 @@
+using System.Globalization;
+using System.IO.Compression;
+using ClosedXML.Excel;
+using WeeklyReport.Application;
+
+namespace WeeklyReport.Infrastructure.Backup;
+
+public sealed class ExcelBackupCodec : IBackupCodec
+{
+    public const int MaximumCellCharacters = 32_767;
+    public const int MaximumWorkbookBytes = 64 * 1024 * 1024;
+    public const long MaximumUncompressedBytes = 256L * 1024 * 1024;
+    private const int MaximumRows = 1_048_576;
+    private const int MaximumZipEntries = 10_000;
+
+    private static readonly string[] SheetNames = ["格式信息", "项目", "工作记录", "Git提交来源", "周报"];
+    private static readonly string[] ProjectHeaders = ["项目标识", "项目名称"];
+    private static readonly string[] EntryHeaders =
+    [
+        "工作项标识", "类型", "项目标识", "工作日期", "描述", "估算分钟", "确认分钟", "已删除", "创建时间UTC", "更新时间UTC"
+    ];
+    private static readonly string[] CommitHeaders =
+    [
+        "项目标识", "工作项标识", "提交哈希", "作者姓名", "作者邮箱", "作者时间", "提交摘要"
+    ];
+    private static readonly string[] ReportHeaders =
+    [
+        "周报标识", "周起始日期", "周结束日期", "本周工作", "下周计划", "问题与风险",
+        "确认分钟", "估算分钟", "未填写数量", "创建时间UTC", "更新时间UTC"
+    ];
+
+    public Task WriteAsync(BackupDocument document, Stream destination, CancellationToken cancellationToken = default)
+    {
+        BackupValidator.Validate(document);
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.CanRead || !destination.CanWrite || !destination.CanSeek
+            || destination.Position != 0 || destination.Length != 0)
+        {
+            throw new ArgumentException("Excel 输出流必须为空，并支持读取、写入和定位。", nameof(destination));
+        }
+
+        ValidateRows(document);
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var workbook = new XLWorkbook();
+            var metadata = workbook.Worksheets.Add(SheetNames[0]);
+            WriteRow(metadata, 1, ["格式版本", document.FormatVersion.ToString(CultureInfo.InvariantCulture)]);
+            WriteRow(metadata, 2, ["导出时间UTC", FormatTime(document.ExportedAtUtc)]);
+            WriteRow(metadata, 3, ["类型", "WeeklyReport"]);
+            var projects = CreateSheet(workbook, SheetNames[1], ProjectHeaders);
+            var entries = CreateSheet(workbook, SheetNames[2], EntryHeaders);
+            var commits = CreateSheet(workbook, SheetNames[3], CommitHeaders);
+            var reports = CreateSheet(workbook, SheetNames[4], ReportHeaders);
+
+            var row = 2;
+            foreach (var project in document.Projects)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                WriteRow(projects, row++, [project.Id.ToString("D"), project.Name]);
+            }
+
+            row = 2;
+            foreach (var entry in document.Entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                WriteRow(entries, row++,
+                [
+                    entry.Id.ToString("D"), entry.Kind.ToString(), entry.ProjectId?.ToString("D") ?? "",
+                    FormatDate(entry.WorkDate), entry.Description, FormatNumber(entry.EstimatedMinutes),
+                    FormatNumber(entry.ConfirmedMinutes), entry.IsDeleted ? "true" : "false",
+                    FormatTime(entry.CreatedAtUtc), FormatTime(entry.UpdatedAtUtc)
+                ]);
+            }
+
+            row = 2;
+            foreach (var commit in document.Commits)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                WriteRow(commits, row++,
+                [
+                    commit.ProjectId.ToString("D"), commit.WorkItemId.ToString("D"), commit.Hash,
+                    commit.AuthorName, commit.AuthorEmail, FormatTime(commit.AuthoredAt), commit.Subject
+                ]);
+            }
+
+            row = 2;
+            foreach (var report in document.Reports)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                WriteRow(reports, row++,
+                [
+                    report.Id.ToString("D"), FormatDate(report.WeekStart), FormatDate(report.WeekEnd),
+                    report.WorkSummary, report.NextWeekPlan, report.Risks,
+                    FormatNumber(report.ConfirmedMinutes), FormatNumber(report.EstimatedMinutes),
+                    FormatNumber(report.UnknownHoursCount), FormatTime(report.CreatedAtUtc), FormatTime(report.UpdatedAtUtc)
+                ]);
+            }
+
+            workbook.SaveAs(destination);
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidateArchive(destination);
+            destination.Position = destination.Length;
+        }, cancellationToken);
+    }
+
+    public Task<BackupDocument> ReadAsync(Stream source, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!source.CanRead || !source.CanSeek)
+        {
+            throw new ArgumentException("Excel 文件必须支持读取和定位。", nameof(source));
+        }
+
+        return Task.Run(() => Read(source, cancellationToken), cancellationToken);
+    }
+
+    private static BackupDocument Read(Stream source, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateArchive(source);
+        source.Position = 0;
+        try
+        {
+            using var workbook = new XLWorkbook(source);
+            cancellationToken.ThrowIfCancellationRequested();
+            var names = workbook.Worksheets.Select(sheet => sheet.Name).ToHashSet(StringComparer.Ordinal);
+            if (names.Count != SheetNames.Length || !names.SetEquals(SheetNames))
+            {
+                throw new BackupFormatException("Excel 工作表与模板不一致。");
+            }
+
+            var metadata = workbook.Worksheet(SheetNames[0]);
+            ValidateMetadata(metadata);
+            var version = ReadRequiredInt(metadata.Cell(1, 2));
+            var exportedAt = ReadRequiredTime(metadata.Cell(2, 2));
+            var projects = ReadRows(workbook.Worksheet(SheetNames[1]), ProjectHeaders, cancellationToken,
+                cells => new BackupProject(ReadGuid(cells[0]), ReadRequiredText(cells[1])));
+            var entries = ReadRows(workbook.Worksheet(SheetNames[2]), EntryHeaders, cancellationToken,
+                cells => new BackupEntry(
+                    ReadGuid(cells[0]), ReadEntryKind(cells[1]), ReadOptionalGuid(cells[2]),
+                    ReadDate(cells[3]), ReadRequiredText(cells[4]), ReadOptionalInt(cells[5]),
+                    ReadOptionalInt(cells[6]), ReadBool(cells[7]), ReadOptionalTime(cells[8]), ReadOptionalTime(cells[9])));
+            var commits = ReadRows(workbook.Worksheet(SheetNames[3]), CommitHeaders, cancellationToken,
+                cells => new BackupCommit(
+                    ReadGuid(cells[0]), ReadGuid(cells[1]), ReadRequiredText(cells[2]), ReadText(cells[3]),
+                    ReadText(cells[4]), ReadRequiredTime(cells[5]), ReadText(cells[6])));
+            var reports = ReadRows(workbook.Worksheet(SheetNames[4]), ReportHeaders, cancellationToken,
+                cells => new BackupReport(
+                    ReadGuid(cells[0]), ReadDate(cells[1]), ReadDate(cells[2]), ReadText(cells[3]),
+                    ReadText(cells[4]), ReadText(cells[5]), ReadRequiredInt(cells[6]), ReadRequiredInt(cells[7]),
+                    ReadRequiredInt(cells[8]), ReadRequiredTime(cells[9]), ReadRequiredTime(cells[10])));
+
+            var document = new BackupDocument(version, exportedAt, projects, entries, commits, reports);
+            BackupValidator.Validate(document);
+            return document;
+        }
+        catch (InvalidDataException exception)
+        {
+            throw new BackupFormatException("Excel 文件损坏或不符合模板。", exception);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new BackupFormatException("Excel 文件内容无效。", exception);
+        }
+    }
+
+    private static void ValidateArchive(Stream source)
+    {
+        if (source.Length > MaximumWorkbookBytes)
+        {
+            throw new BackupFormatException("Excel 文件超过 64 MB，请使用 JSON 备份。");
+        }
+
+        source.Position = 0;
+        try
+        {
+            using var archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
+            if (archive.Entries.Count > MaximumZipEntries)
+            {
+                throw new BackupFormatException("Excel 文件包含过多内部条目。");
+            }
+
+            long total = 0;
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.FullName.EndsWith("vbaProject.bin", StringComparison.OrdinalIgnoreCase)
+                    || entry.FullName.StartsWith("xl/externalLinks/", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new BackupFormatException("不支持含宏或外部链接的 Excel 文件。");
+                }
+
+                if (entry.Length > MaximumUncompressedBytes - total)
+                {
+                    throw new BackupFormatException("Excel 文件解压后的大小超过 256 MB。");
+                }
+
+                total += entry.Length;
+            }
+        }
+        catch (InvalidDataException exception)
+        {
+            throw new BackupFormatException("Excel 文件不是有效的 XLSX 压缩包。", exception);
+        }
+    }
+
+    private static void ValidateRows(BackupDocument document)
+    {
+        if (document.Projects.Count >= MaximumRows || document.Entries.Count >= MaximumRows
+            || document.Commits.Count >= MaximumRows || document.Reports.Count >= MaximumRows)
+        {
+            throw new BackupFormatException("Excel 工作表行数超限，请使用 JSON 备份。");
+        }
+    }
+
+    private static IXLWorksheet CreateSheet(XLWorkbook workbook, string name, IReadOnlyList<string> headers)
+    {
+        var sheet = workbook.Worksheets.Add(name);
+        WriteRow(sheet, 1, headers);
+        sheet.Row(1).Style.Font.Bold = true;
+        sheet.SheetView.FreezeRows(1);
+        return sheet;
+    }
+
+    private static void WriteRow(IXLWorksheet sheet, int row, IReadOnlyList<string> values)
+    {
+        for (var index = 0; index < values.Count; index++)
+        {
+            if (values[index].Length > MaximumCellCharacters)
+            {
+                throw new BackupFormatException($"Excel 工作表“{sheet.Name}”第 {row} 行包含超长单元格，请使用 JSON 备份。");
+            }
+
+            var cell = sheet.Cell(row, index + 1);
+            cell.Style.NumberFormat.Format = "@";
+            if (values[index].StartsWith('\''))
+            {
+                // Setting Value directly strips a leading apostrophe as an Excel quote prefix.
+                cell.CreateRichText().AddText(values[index]);
+            }
+            else
+            {
+                cell.Value = values[index];
+            }
+        }
+    }
+
+    private static void ValidateMetadata(IXLWorksheet sheet)
+    {
+        if (sheet.LastRowUsed(XLCellsUsedOptions.Contents)?.RowNumber() != 3
+            || sheet.LastColumnUsed(XLCellsUsedOptions.Contents)?.ColumnNumber() != 2
+            || ReadText(sheet.Cell(1, 1)) != "格式版本"
+            || ReadText(sheet.Cell(2, 1)) != "导出时间UTC"
+            || ReadText(sheet.Cell(3, 1)) != "类型"
+            || ReadText(sheet.Cell(3, 2)) != "WeeklyReport")
+        {
+            throw new BackupFormatException("Excel 格式信息工作表无效。");
+        }
+    }
+
+    private static IReadOnlyList<T> ReadRows<T>(
+        IXLWorksheet sheet,
+        IReadOnlyList<string> headers,
+        CancellationToken cancellationToken,
+        Func<IXLCell[], T> parse)
+    {
+        var lastRow = sheet.LastRowUsed(XLCellsUsedOptions.Contents)?.RowNumber() ?? 0;
+        var lastColumn = sheet.LastColumnUsed(XLCellsUsedOptions.Contents)?.ColumnNumber() ?? 0;
+        if (lastRow == 0 || lastRow > MaximumRows || lastColumn != headers.Count)
+        {
+            throw new BackupFormatException($"Excel 工作表“{sheet.Name}”的结构无效。");
+        }
+
+        for (var index = 0; index < headers.Count; index++)
+        {
+            if (ReadText(sheet.Cell(1, index + 1)) != headers[index])
+            {
+                throw CellError(sheet.Cell(1, index + 1), "列名与模板不一致");
+            }
+        }
+
+        var result = new List<T>();
+        for (var row = 2; row <= lastRow; row++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var cells = Enumerable.Range(1, headers.Count).Select(column => sheet.Cell(row, column)).ToArray();
+            var formula = cells.FirstOrDefault(cell => cell.HasFormula);
+            if (formula is not null)
+            {
+                throw CellError(formula, "不支持公式");
+            }
+
+            if (cells.All(cell => cell.IsEmpty()))
+            {
+                continue;
+            }
+
+            result.Add(parse(cells));
+        }
+
+        return result;
+    }
+
+    private static string ReadText(IXLCell cell)
+    {
+        if (cell.HasFormula)
+        {
+            throw CellError(cell, "不支持公式");
+        }
+
+        if (cell.IsEmpty())
+        {
+            return string.Empty;
+        }
+
+        if (cell.DataType != XLDataType.Text)
+        {
+            throw CellError(cell, "必须是文本");
+        }
+
+        var value = cell.GetString();
+        if (value.Length > MaximumCellCharacters)
+        {
+            throw CellError(cell, "内容超过 Excel 单元格限制");
+        }
+
+        return value;
+    }
+
+    private static string ReadRequiredText(IXLCell cell)
+    {
+        var value = ReadText(cell);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw CellError(cell, "不能为空");
+        }
+
+        return value;
+    }
+
+    private static Guid ReadGuid(IXLCell cell)
+    {
+        if (!Guid.TryParseExact(ReadRequiredText(cell), "D", out var value) || value == Guid.Empty)
+        {
+            throw CellError(cell, "标识格式无效");
+        }
+
+        return value;
+    }
+
+    private static Guid? ReadOptionalGuid(IXLCell cell) =>
+        string.IsNullOrEmpty(ReadText(cell)) ? null : ReadGuid(cell);
+
+    private static int ReadRequiredInt(IXLCell cell) =>
+        ReadOptionalInt(cell) ?? throw CellError(cell, "不能为空");
+
+    private static int? ReadOptionalInt(IXLCell cell)
+    {
+        if (cell.HasFormula)
+        {
+            throw CellError(cell, "不支持公式");
+        }
+
+        if (cell.IsEmpty())
+        {
+            return null;
+        }
+
+        if (cell.DataType == XLDataType.Number)
+        {
+            var number = cell.GetDouble();
+            if (number >= 0 && number <= int.MaxValue && number == Math.Truncate(number))
+            {
+                return (int)number;
+            }
+
+            throw CellError(cell, "必须是非负整数");
+        }
+
+        if (!int.TryParse(ReadText(cell), NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+        {
+            throw CellError(cell, "必须是非负整数");
+        }
+
+        return value;
+    }
+
+    private static DateOnly ReadDate(IXLCell cell)
+    {
+        if (cell.HasFormula)
+        {
+            throw CellError(cell, "不支持公式");
+        }
+
+        if (cell.DataType == XLDataType.DateTime)
+        {
+            var value = cell.GetDateTime();
+            if (value.TimeOfDay == TimeSpan.Zero)
+            {
+                return DateOnly.FromDateTime(value);
+            }
+
+            throw CellError(cell, "日期不能包含时间");
+        }
+
+        if (!DateOnly.TryParseExact(ReadRequiredText(cell), "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var date))
+        {
+            throw CellError(cell, "日期必须为 yyyy-MM-dd");
+        }
+
+        return date;
+    }
+
+    private static DateTimeOffset ReadRequiredTime(IXLCell cell) =>
+        ReadOptionalTime(cell) ?? throw CellError(cell, "不能为空");
+
+    private static DateTimeOffset? ReadOptionalTime(IXLCell cell)
+    {
+        var text = ReadText(cell);
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        if (!DateTimeOffset.TryParseExact(text, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+        {
+            throw CellError(cell, "时间必须使用 ISO 8601 往返格式");
+        }
+
+        return time;
+    }
+
+    private static bool ReadBool(IXLCell cell)
+    {
+        if (cell.HasFormula)
+        {
+            throw CellError(cell, "不支持公式");
+        }
+
+        if (cell.DataType == XLDataType.Boolean)
+        {
+            return cell.GetBoolean();
+        }
+
+        if (!bool.TryParse(ReadRequiredText(cell), out var value))
+        {
+            throw CellError(cell, "必须是 true 或 false");
+        }
+
+        return value;
+    }
+
+    private static BackupEntryKind ReadEntryKind(IXLCell cell)
+    {
+        var text = ReadRequiredText(cell);
+        if (!Enum.TryParse<BackupEntryKind>(text, out var kind) || !Enum.IsDefined(kind) || kind.ToString() != text)
+        {
+            throw CellError(cell, "类型必须是 Manual 或 Git");
+        }
+
+        return kind;
+    }
+
+    private static BackupFormatException CellError(IXLCell cell, string message) =>
+        new($"Excel 工作表“{cell.Worksheet.Name}”第 {cell.Address.RowNumber} 行第 {cell.Address.ColumnNumber} 列：{message}。");
+
+    private static string FormatDate(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    private static string FormatNumber(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "";
+    private static string FormatTime(DateTimeOffset? value) => value?.ToString("O", CultureInfo.InvariantCulture) ?? "";
+}
