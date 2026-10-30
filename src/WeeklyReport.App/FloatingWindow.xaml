@@ -1,0 +1,30 @@
+<Window x:Class="WeeklyReport.App.FloatingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="周报悬浮窗" Width="320" Height="165"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
+        Background="Transparent" ShowInTaskbar="False" Topmost="True">
+    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource MutedBrush}"
+            BorderThickness="1" CornerRadius="10" Padding="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DockPanel MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="SizeAll">
+                <TextBlock Text="周报" FontSize="17" FontWeight="SemiBold" />
+                <TextBlock Text="拖动" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right" />
+            </DockPanel>
+            <TextBlock x:Name="WeekText" Grid.Row="1" Margin="0,10,0,0" />
+            <TextBlock x:Name="ReminderStatusText" Grid.Row="2" Text="提醒正在初始化。"
+                       Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
+            <StackPanel Grid.Row="3" Orientation="Horizontal">
+                <Button Content="打开记录" Click="Open_Click" Background="{DynamicResource AccentBrush}"
+                        Foreground="{DynamicResource AccentTextBrush}" />
+                <Button Content="收起" Click="Hide_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

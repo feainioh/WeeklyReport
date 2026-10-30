@@ -1,0 +1,122 @@
+<UserControl x:Class="WeeklyReport.App.Views.WeeklyReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="0,14,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TabControl Background="{DynamicResource WindowBrush}" SelectedIndex="{Binding SelectedTabIndex}">
+            <TabItem Header="编辑周报">
+                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <DatePicker AutomationProperties.Name="周报日期" SelectedDate="{Binding SelectedDate}"
+                                        Width="150" IsEnabled="{Binding CanInteract}" />
+                            <Button Content="打开或生成周报" Command="{Binding OpenOrCreateCommand}"
+                                    IsEnabled="{Binding CanInteract}" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Margin="0,14,0,12">
+                            <TextBlock Text="{Binding EditorTitle}" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding HoursDisplay}" Foreground="{DynamicResource MutedBrush}"
+                                       TextWrapping="Wrap" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Grid Grid.Row="2" IsEnabled="{Binding CanEdit}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="本周工作" Margin="0,0,0,6" />
+                                <TextBox Grid.Row="1" AutomationProperties.Name="周报本周工作"
+                                         Text="{Binding WorkSummary, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                            </Grid>
+                            <Grid Grid.Column="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="下周计划" Margin="0,0,0,6" />
+                                <TextBox Grid.Row="1" AutomationProperties.Name="周报下周计划"
+                                         Text="{Binding NextWeekPlan, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                                <TextBlock Grid.Row="2" Text="问题与风险" Margin="0,12,0,6" />
+                                <TextBox Grid.Row="3" AutomationProperties.Name="周报问题与风险"
+                                         Text="{Binding Risks, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                            </Grid>
+                        </Grid>
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="保存周报" Command="{Binding SaveCommand}" IsEnabled="{Binding CanEdit}"
+                                    Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
+                            <Button Content="DeepSeek 生成总结" Command="{Binding GenerateWithAiCommand}" IsEnabled="{Binding CanEdit}" />
+                            <Button Content="关闭编辑" Command="{Binding CloseReportCommand}" IsEnabled="{Binding CanEdit}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </TabItem>
+            <TabItem Header="历史周报">
+                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="刷新历史" Command="{Binding RefreshHistoryCommand}"
+                                    IsEnabled="{Binding CanInteract}" />
+                            <TextBlock Text="历史周报" FontSize="18" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding History}" IsEnabled="{Binding CanInteract}"
+                                 Background="Transparent" BorderThickness="0" Margin="0,12,0,0">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource MutedBrush}" BorderThickness="0,0,0,1" Padding="4,10">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button Content="打开"
+                                                        Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Content="删除"
+                                                        Command="{Binding DataContext.DeleteHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding WeekDisplay}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding HoursDisplay}" Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </TabItem>
+        </TabControl>
+        <DockPanel Grid.Row="1" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="取消当前操作" Command="{Binding CancelOperationCommand}"
+                    IsEnabled="{Binding IsCancellable}" />
+            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" />
+        </DockPanel>
+    </Grid>
+</UserControl>

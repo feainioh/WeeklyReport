@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WeeklyReport.App/WeeklyReport.App.csproj" />
+    <Project Path="src/WeeklyReport.Application/WeeklyReport.Application.csproj" />
+    <Project Path="src/WeeklyReport.Domain/WeeklyReport.Domain.csproj" />
+    <Project Path="src/WeeklyReport.Infrastructure/WeeklyReport.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WeeklyReport.DesktopTests/WeeklyReport.DesktopTests.csproj" />
+    <Project Path="tests/WeeklyReport.IntegrationTests/WeeklyReport.IntegrationTests.csproj" />
+    <Project Path="tests/WeeklyReport.UnitTests/WeeklyReport.UnitTests.csproj" />
+  </Folder>
+</Solution>

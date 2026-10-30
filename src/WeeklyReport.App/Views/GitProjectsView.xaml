@@ -1,0 +1,205 @@
+<UserControl x:Class="WeeklyReport.App.Views.GitProjectsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="0,14,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TabControl Background="{DynamicResource WindowBrush}">
+            <TabItem Header="项目与同步">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="350" />
+                    </Grid.ColumnDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="2*" />
+                            <RowDefinition Height="12" />
+                            <RowDefinition Height="3*" />
+                        </Grid.RowDefinitions>
+                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="刷新" Command="{Binding RefreshCommand}"
+                                            IsEnabled="{Binding CanInteract}" />
+                                    <TextBlock Text="选择要同步的项目" FontSize="17" FontWeight="SemiBold" />
+                                </DockPanel>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding Projects}" IsEnabled="{Binding CanInteract}"
+                                         Background="Transparent" BorderThickness="0" Margin="0,10,0,0">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="2,6">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button Content="编辑"
+                                                            Command="{Binding DataContext.EditProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="删除"
+                                                            Command="{Binding DataContext.DeleteProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                                <CheckBox Content="{Binding Project.Name}" IsChecked="{Binding IsSelected}"
+                                                          Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="同步预览" FontSize="17" FontWeight="SemiBold" />
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,10">
+                                    <DatePicker AutomationProperties.Name="Git 同步开始日期"
+                                                SelectedDate="{Binding StartDate}" Width="135" IsEnabled="{Binding CanInteract}" />
+                                    <TextBlock Text="至" Margin="8,0" VerticalAlignment="Center" />
+                                    <DatePicker AutomationProperties.Name="Git 同步结束日期"
+                                                SelectedDate="{Binding EndDate}" Width="135" IsEnabled="{Binding CanInteract}" />
+                                    <Button Content="预览同步" Margin="10,0,8,0" Command="{Binding PrepareSyncCommand}"
+                                            IsEnabled="{Binding CanInteract}" />
+                                </StackPanel>
+                                <TextBox Grid.Row="2" AutomationProperties.Name="Git 同步预览"
+                                         Text="{Binding PreviewText}" IsReadOnly="True" TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto" />
+                                <Button Grid.Row="3" Content="确认并应用" Command="{Binding ApplySyncCommand}"
+                                        IsEnabled="{Binding CanApplyPreview}" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                        Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel IsEnabled="{Binding CanInteract}">
+                                <TextBlock Text="{Binding ProjectEditorTitle}" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="项目名称" Margin="0,14,0,5" />
+                                <TextBox AutomationProperties.Name="Git 项目名称" Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="本地仓库" Margin="0,14,0,5" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="浏览" Click="BrowseRepository_Click" Margin="8,0,0,0" />
+                                    <TextBox AutomationProperties.Name="Git 仓库路径"
+                                             Text="{Binding RepositoryPath, UpdateSourceTrigger=PropertyChanged}" />
+                                </DockPanel>
+                                <TextBlock Text="作者匹配方式" Margin="0,14,0,5" />
+                                <ComboBox ItemsSource="{Binding AuthorOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding AuthorField}" />
+                                <TextBlock Text="作者姓名或邮箱" Margin="0,14,0,5" />
+                                <TextBox AutomationProperties.Name="Git 作者"
+                                         Text="{Binding Author, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="仅同步当前 HEAD 可达且作者精确匹配的提交。" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                    <Button Content="保存项目" Command="{Binding SaveProjectCommand}"
+                                            Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
+                                    <Button Content="新建项目" Command="{Binding NewProjectCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Git 工作项">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="350" />
+                    </Grid.ColumnDefinitions>
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <DatePicker AutomationProperties.Name="Git 工作项查询日期" SelectedDate="{Binding WorkWeek}"
+                                            Width="140" IsEnabled="{Binding CanInteract}" />
+                                <Button Content="查询工作项" Command="{Binding RefreshCommand}"
+                                        IsEnabled="{Binding CanInteract}" Margin="10,0,0,0" />
+                                <Button Content="重算所选日期" Command="{Binding RecalculateDateCommand}"
+                                        IsEnabled="{Binding CanInteract}" Margin="8,0,0,0" />
+                            </StackPanel>
+                            <ListBox Grid.Row="1" ItemsSource="{Binding WorkItems}" IsEnabled="{Binding CanInteract}"
+                                     Background="Transparent" BorderThickness="0" Margin="0,12,0,0">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{DynamicResource MutedBrush}" BorderThickness="0,0,0,1" Padding="4,10">
+                                            <DockPanel>
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button Content="编辑"
+                                                            Command="{Binding DataContext.EditWorkItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="删除"
+                                                            Command="{Binding DataContext.DeleteWorkItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Item.ProjectName}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Item.WorkDate, StringFormat={}{0:yyyy-MM-dd}}" />
+                                                    <TextBlock Text="{Binding Item.Description}" TextWrapping="Wrap" Margin="0,5,8,0" />
+                                                    <TextBlock Text="{Binding HoursDisplay}" Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16">
+                        <Grid IsEnabled="{Binding CanEditWorkItem}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding WorkEditorTitle}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" Text="工作项描述" Margin="0,14,0,5" />
+                            <TextBox Grid.Row="2" AutomationProperties.Name="Git 工作项描述"
+                                     Text="{Binding WorkDescription, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                            <TextBlock Grid.Row="3" Text="确认工时（小时，留空使用估算）" Margin="0,12,0,5" />
+                            <TextBox Grid.Row="4" AutomationProperties.Name="Git 确认工时"
+                                     Text="{Binding WorkHours, UpdateSourceTrigger=PropertyChanged}" />
+                            <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button Content="保存工作项" Command="{Binding SaveWorkItemCommand}"
+                                        Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
+                                <Button Content="DeepSeek 润色" Command="{Binding PolishWorkItemCommand}" />
+                                <Button Content="取消编辑" Command="{Binding CancelWorkEditCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <DockPanel Grid.Row="1" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="取消当前操作" Command="{Binding CancelSyncCommand}"
+                    IsEnabled="{Binding IsSyncing}" />
+            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" />
+        </DockPanel>
+    </Grid>
+</UserControl>
