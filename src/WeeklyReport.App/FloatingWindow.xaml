@@ -4,6 +4,7 @@
         Title="周报悬浮窗" Width="320" Height="165"
         WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
         Background="Transparent" ShowInTaskbar="False" Topmost="True">
+    <!-- [旧代码-悬浮精灵] 原内联卡片整体迁往 Controls/FloatingCard.xaml（切片 1），由下方宿主按样式装载
     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource MutedBrush}"
             BorderThickness="1" CornerRadius="10" Padding="16">
         <Grid>
@@ -27,4 +28,7 @@
             </StackPanel>
         </Grid>
     </Border>
+    -->
+    <!-- [新增-悬浮精灵] 按样式宿主 FloatingCard / FloatingSprite（切片 1） -->
+    <Grid x:Name="FloatingContentHost" />
 </Window>

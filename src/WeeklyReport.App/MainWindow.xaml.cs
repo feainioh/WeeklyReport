@@ -65,6 +65,10 @@ public partial class MainWindow : Window
                 MainTabs.IsEnabled = !_backup.IsNavigationLocked;
             }
         };
+
+        // [新增-悬浮精灵] 切片 6：按当前悬浮窗样式初始化设置页选中项
+        // （Loaded 时机调用：此时 FloatingWindow 已创建并完成样式读取）
+        Loaded += (_, _) => InitializeFloatingStyleRadioButtons();
     }
 
     public async Task InitializeAsync()
@@ -289,5 +293,31 @@ public partial class MainWindow : Window
             _logger.LogWarning("Autostart update failed: {ErrorType}", exception.GetType().Name);
             _dialogs.Error(ErrorMessages.Describe(exception), "自启动设置");
         }
+    }
+
+    // [新增-悬浮精灵] 切片 6：悬浮窗样式切换处理器与初始选中状态（Loaded 时悬浮窗已创建，读取其当前样式）
+    private void InitializeFloatingStyleRadioButtons()
+    {
+        // [新增-悬浮精灵] 完全限定 Application：避免与 WeeklyReport.Application 命名空间二义性
+        var style = (System.Windows.Application.Current as App)?.GetFloatingStyle() ?? (int)FloatingStyle.Card;
+        if (style == (int)FloatingStyle.Sprite)
+        {
+            FloatingSpriteRadio.IsChecked = true;
+        }
+        else
+        {
+            FloatingCardRadio.IsChecked = true;
+        }
+    }
+
+    private void FloatingCard_Checked(object sender, RoutedEventArgs e)
+    {
+        // [新增-悬浮精灵] 同值重复触发为无操作（初始化选中时也会走到这里）
+        (System.Windows.Application.Current as App)?.SetFloatingStyle((int)FloatingStyle.Card);
+    }
+
+    private void FloatingSprite_Checked(object sender, RoutedEventArgs e)
+    {
+        (System.Windows.Application.Current as App)?.SetFloatingStyle((int)FloatingStyle.Sprite);
     }
 }

@@ -1,0 +1,932 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261102T025502158Z-19856-2d901f334e6d",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "candidate-select",
+      "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-reflect/Program.cs",
+      "reason": "changed_file_unreadable: observed changed file no longer exists or cannot be read"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Controls/FloatingCard.xaml.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Services/FloatingWindowPreferences.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Services/FloatingSpriteStateMachine.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Controls/FloatingSprite.xaml.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Services/ThemeService.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/App.xaml.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/MainWindow.xaml.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.DesktopTests/FloatingSpriteStateMachineTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.DesktopTests/FloatingPreferencesTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 226,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 14
+    },
+    "change_tracking": {
+      "touched_observed": 11,
+      "touched_retained": 11,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 18,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 18,
+      "selected_files": 18,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 18,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 18,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "changed_file_unreadable": 1,
+      "baseline_snapshot_unreadable": 4,
+      "scanner_failed": 18,
+      "project_check_failed": 23
+    },
+    "reasons": [
+      {
+        "code": "changed_file_unreadable",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-reflect/Program.cs",
+        "detail": "observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Controls/FloatingCard.xaml.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/FloatingWindowPreferences.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/FloatingSpriteStateMachine.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Controls/FloatingSprite.xaml.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/ThemeService.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/App.xaml.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.DesktopTests/FloatingSpriteStateMachineTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.DesktopTests/FloatingPreferencesTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-reflect/Program.cs",
+        "detail": "changed_file_unreadable: observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Controls/FloatingCard.xaml.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/FloatingWindowPreferences.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/FloatingSpriteStateMachine.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Controls/FloatingSprite.xaml.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/ThemeService.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/App.xaml.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.DesktopTests/FloatingSpriteStateMachineTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.DesktopTests/FloatingPreferencesTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-02T02:55:02.158Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "rules_version": "unavailable",
+  "diff_hash": "982b377f3bf4a8b57560edff42b4f05845888139d17f0cfc1cf8e7bdb4b09c3f",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 18,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/App.xaml.cs",
+        "ranges": [
+          {
+            "start": 183,
+            "end": 195
+          }
+        ],
+        "before_hash": "f844060caae10566b59b604d0fe728f940f30693516553764323fb990c016350",
+        "after_hash": "cd35774372dda81a2faf428b57ebdf0f4a8abbed9daf2fcef954df39a6630872"
+      },
+      {
+        "file": "src/WeeklyReport.App/Controls/FloatingCard.xaml.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 49
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "adb9ddebe9389c0dd37b2ce3e9d4540523aa88b4fe8b98810e249814649cef94"
+      },
+      {
+        "file": "src/WeeklyReport.App/Controls/FloatingSprite.xaml.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 206
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "badbd89bbcaedceba31c145abd268c1845b78c59fa8b992672f6d2247c96d0b6"
+      },
+      {
+        "file": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 10,
+            "end": 11
+          },
+          {
+            "start": 25,
+            "end": 34
+          },
+          {
+            "start": 41,
+            "end": 46
+          },
+          {
+            "start": 54,
+            "end": 57
+          },
+          {
+            "start": 62,
+            "end": 82
+          },
+          {
+            "start": 85,
+            "end": 86
+          },
+          {
+            "start": 93,
+            "end": 105
+          },
+          {
+            "start": 112,
+            "end": 132
+          },
+          {
+            "start": 150,
+            "end": 164
+          },
+          {
+            "start": 170,
+            "end": 171
+          },
+          {
+            "start": 176,
+            "end": 176
+          },
+          {
+            "start": 230,
+            "end": 231
+          },
+          {
+            "start": 233,
+            "end": 235
+          },
+          {
+            "start": 237,
+            "end": 241
+          },
+          {
+            "start": 245,
+            "end": 260
+          },
+          {
+            "start": 262,
+            "end": 269
+          },
+          {
+            "start": 271,
+            "end": 315
+          }
+        ],
+        "before_hash": "43efcb652341b760d17851334c4dae7ee748a5da4bb66ae8e9f45d6c83b25ef9",
+        "after_hash": "506e7ce3ab852eed612d534f29773ebae1588aac32d3f4269c26b94cc0cdca0c"
+      },
+      {
+        "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 68,
+            "end": 71
+          },
+          {
+            "start": 297,
+            "end": 322
+          }
+        ],
+        "before_hash": "415aed267ca356d5db66491113f1ca5c6a5f87c1c312fb92ef6c1b8c1abcb341",
+        "after_hash": "4d85e744328c23a47bcda7b5491e342c37b924a7dfb7bd3cd7c925fb31223a4c"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 124
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "cd012dc15aaa9f3dda68cee5e0c76d7cea24ad983ff3903a7673b33cfe835e28"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 182
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "1900eeb01ec1c88484edcab00a148fdd227cec5f986f2f575ae87aada1dc5555"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 44,
+            "end": 44
+          },
+          {
+            "start": 46,
+            "end": 46
+          },
+          {
+            "start": 82,
+            "end": 82
+          }
+        ],
+        "before_hash": "116bd7236d597a7c2e9f2503a914bdebe4bf82c03d3a957c802c15ad194cd5d6",
+        "after_hash": "4446f6a9df80abe717f98ba112142dd0d935fdceec359b3af392ecaa49c27951"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 124,
+            "end": 140
+          },
+          {
+            "start": 148,
+            "end": 148
+          },
+          {
+            "start": 260,
+            "end": 266
+          },
+          {
+            "start": 269,
+            "end": 275
+          },
+          {
+            "start": 278,
+            "end": 283
+          },
+          {
+            "start": 285,
+            "end": 285
+          },
+          {
+            "start": 291,
+            "end": 291
+          },
+          {
+            "start": 293,
+            "end": 293
+          },
+          {
+            "start": 299,
+            "end": 299
+          },
+          {
+            "start": 301,
+            "end": 301
+          }
+        ],
+        "before_hash": "174ce5df318d9f6c32bae84e7629a097467005cdcf36e59d97807464c268a739",
+        "after_hash": "7f7a55eb70783f512908a41546d4dde627c51e06bf32c2cd995524505721d0c3"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 124
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "cd012dc15aaa9f3dda68cee5e0c76d7cea24ad983ff3903a7673b33cfe835e28"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 182
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "1900eeb01ec1c88484edcab00a148fdd227cec5f986f2f575ae87aada1dc5555"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 44,
+            "end": 44
+          },
+          {
+            "start": 46,
+            "end": 46
+          },
+          {
+            "start": 82,
+            "end": 82
+          }
+        ],
+        "before_hash": "116bd7236d597a7c2e9f2503a914bdebe4bf82c03d3a957c802c15ad194cd5d6",
+        "after_hash": "4446f6a9df80abe717f98ba112142dd0d935fdceec359b3af392ecaa49c27951"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 124,
+            "end": 140
+          },
+          {
+            "start": 148,
+            "end": 148
+          },
+          {
+            "start": 260,
+            "end": 266
+          },
+          {
+            "start": 269,
+            "end": 275
+          },
+          {
+            "start": 278,
+            "end": 283
+          },
+          {
+            "start": 285,
+            "end": 285
+          },
+          {
+            "start": 291,
+            "end": 291
+          },
+          {
+            "start": 293,
+            "end": 293
+          },
+          {
+            "start": 299,
+            "end": 299
+          },
+          {
+            "start": 301,
+            "end": 301
+          }
+        ],
+        "before_hash": "174ce5df318d9f6c32bae84e7629a097467005cdcf36e59d97807464c268a739",
+        "after_hash": "7f7a55eb70783f512908a41546d4dde627c51e06bf32c2cd995524505721d0c3"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/FloatingSpriteStateMachine.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 93
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "14b509758c8c85c4937fcbc67b3d7643d573f0cbbcdf2408ea5f26913b1c8923"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/FloatingWindowPreferences.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 73
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e1d3e8722355d15fa38247d6475cdf5f9d786e483431810202518a0c50949b94"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/ThemeService.cs",
+        "ranges": [
+          {
+            "start": 32,
+            "end": 34
+          },
+          {
+            "start": 45,
+            "end": 47
+          }
+        ],
+        "before_hash": "85d88a9846176e2ea42b674f8c9de9caea1692c1327a180336036954fe1d3622",
+        "after_hash": "ffc647e5174fdceb2bca7eba016ac6ca62ba2c3edbfb2d461df7e8bc87230be2"
+      },
+      {
+        "file": "tests/WeeklyReport.DesktopTests/FloatingPreferencesTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 75
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e366b38219eedc298c2478566803a6e39085b8e5fafdfe1cfc43abff54c48d3a"
+      },
+      {
+        "file": "tests/WeeklyReport.DesktopTests/FloatingSpriteStateMachineTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 207
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "025fbe3b30f4445a4e9e68372c7d6978acf38a756a5b518fe5de560b157e2b00"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-02T02:54:59.411Z",
+    "completed_at": "2026-11-02T02:55:02.158Z",
+    "duration_ms": 2747,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2747,
+    "peakMemoryBytes": 99340288,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T025502158Z-19856-2d901f334e6d.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261102T025502158Z-19856-2d901f334e6d.json"
+  }
+}

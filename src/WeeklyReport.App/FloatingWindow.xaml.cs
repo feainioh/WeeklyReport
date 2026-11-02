@@ -7,6 +7,8 @@ using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using WeeklyReport.App.Services;
+// [新增-悬浮精灵] 卡片与精灵内容控件所在命名空间
+using WeeklyReport.App.Controls;
 using WeeklyReport.Domain;
 using Forms = System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
@@ -20,12 +22,32 @@ public partial class FloatingWindow : Window
     private readonly ILogger<FloatingWindow> _logger;
     private readonly DispatcherTimer _timer;
 
+    // [新增-悬浮精灵] 样式偏好与内容控件：卡片（FloatingCard）或精灵（FloatingSprite）二选一宿主
+    private readonly FloatingSpriteStateMachine _machine;
+    private FloatingStyle _style;
+    private FloatingCard? _card;
+    private FloatingSprite? _sprite;
+
+    // [新增-悬浮精灵] 精灵形态窗口尺寸（含跳动空间）；卡片形态沿用 320x165
+    // [旧代码-机器人化] 原文档精灵尺寸 150x190，机器人化缩小 50% 后改为 75x95
+    // private const double SpriteWidth = 150;
+    // private const double SpriteHeight = 190;
+    // [新增-机器人化] 机器人精灵窗口尺寸（原尺寸 50%）
+    private const double SpriteWidth = 75;
+    private const double SpriteHeight = 95;
+
     public FloatingWindow(string positionPath, Action openMain, ILogger<FloatingWindow> logger)
     {
         InitializeComponent();
         _positionPath = positionPath;
         _openMain = openMain;
         _logger = logger;
+
+        // [新增-悬浮精灵] 启动时读取样式偏好（旧文件缺 Style 字段时默认卡片），并按样式构建内容（切片 2/3）
+        _machine = new FloatingSpriteStateMachine();
+        _style = FloatingWindowPreferencesStore.TryLoad(_positionPath)?.Style ?? FloatingStyle.Card;
+        BuildContent();
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _timer.Tick += (_, _) => UpdateWeek();
         Loaded += OnLoaded;
@@ -33,42 +55,85 @@ public partial class FloatingWindow : Window
         {
             _timer.Stop();
             SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+
+            // [新增-悬浮精灵] 释放精灵与状态机资源
+            _sprite?.Dispose();
+            _machine.Dispose();
         };
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
 
+    /// <summary>当前样式值（0=卡片，1=精灵），供设置页初始化选中项。</summary>
+    public int CurrentStyleValue => (int)_style;
+
+    // [新增-悬浮精灵] 切片 6：设置页切换样式的运行时入口——重建内容、按需找回可见性并持久化（含新样式）
+    public void ApplyStyle(FloatingStyle style)
+    {
+        if (_style == style)
+        {
+            return;
+        }
+
+        _style = style;
+        BuildContent();
+        if (!IsVisibleOnScreen())
+        {
+            MoveToPrimaryWorkArea();
+        }
+
+        SavePosition();
+    }
+
     public void HideWithPosition()
     {
+        // [新增-悬浮精灵] 隐藏前收起精灵气泡并复位状态，避免托盘恢复时残留
+        _sprite?.OnWindowHidden();
         SavePosition();
         Hide();
     }
 
     public void SetReminderStatus(string message)
     {
-        ReminderStatusText.Text = message;
-        ReminderStatusText.ToolTip = message;
+        // [旧代码-悬浮精灵] 卡片文本直写逻辑，卡片元素已迁往 FloatingCard，现按样式路由
+        // ReminderStatusText.Text = message;
+        // ReminderStatusText.ToolTip = message;
+
+        // [新增-悬浮精灵] 切片 5：按样式路由提醒状态（精灵侧触发跳动 + 气泡）
+        if (_style == FloatingStyle.Sprite)
+        {
+            _sprite?.SetReminderStatus(message);
+        }
+        else
+        {
+            _card?.SetReminderStatus(message);
+        }
     }
 
     public void SavePosition()
     {
         try
         {
-            var directory = Path.GetDirectoryName(Path.GetFullPath(_positionPath))
-                ?? throw new InvalidOperationException("无法确定悬浮窗配置目录。");
-            Directory.CreateDirectory(directory);
-            var temporary = Path.Combine(directory, $".floating-{Guid.NewGuid():N}.tmp");
-            try
-            {
-                File.WriteAllText(temporary, JsonSerializer.Serialize(new FloatingPosition(Left, Top)));
-                File.Move(temporary, _positionPath, overwrite: true);
-            }
-            finally
-            {
-                if (File.Exists(temporary))
-                {
-                    File.Delete(temporary);
-                }
-            }
+            // [旧代码-悬浮精灵] 原内联原子写位置逻辑，改由 FloatingWindowPreferencesStore 统一承载（含样式字段）
+            // var directory = Path.GetDirectoryName(Path.GetFullPath(_positionPath))
+            //     ?? throw new InvalidOperationException("无法确定悬浮窗配置目录。");
+            // Directory.CreateDirectory(directory);
+            // var temporary = Path.Combine(directory, $".floating-{Guid.NewGuid():N}.tmp");
+            // try
+            // {
+            //     File.WriteAllText(temporary, JsonSerializer.Serialize(new FloatingPosition(Left, Top)));
+            //     File.Move(temporary, _positionPath, overwrite: true);
+            // }
+            // finally
+            // {
+            //     if (File.Exists(temporary))
+            //     {
+            //         File.Delete(temporary);
+            //     }
+            // }
+
+            // [新增-悬浮精灵] 切片 2：偏好写入改为位置 + 样式
+            FloatingWindowPreferencesStore.Save(
+                _positionPath, new FloatingWindowPreferences(Left, Top, _style));
         }
         catch (Exception exception) when (ErrorMessages.IsExpected(exception))
         {
@@ -86,19 +151,33 @@ public partial class FloatingWindow : Window
 
         try
         {
+            // [旧代码-悬浮精灵] 原内联读取与校验逻辑，改由 FloatingWindowPreferencesStore.TryLoad 承载
+            // if (!File.Exists(_positionPath))
+            // {
+            //     return;
+            // }
+            //
+            // var position = JsonSerializer.Deserialize<FloatingPosition>(File.ReadAllText(_positionPath))
+            //     ?? throw new InvalidDataException("悬浮窗位置配置为空。");
+            // if (!double.IsFinite(position.Left) || !double.IsFinite(position.Top)
+            //     || Math.Abs(position.Left) > 100000 || Math.Abs(position.Top) > 100000)
+            // {
+            //     throw new InvalidDataException("悬浮窗位置配置无效。");
+            // }
+
+            // [新增-悬浮精灵] 切片 2：读取位置 + 样式；文件存在但无效时保持原有提示行为
             if (!File.Exists(_positionPath))
             {
                 return;
             }
 
-            var position = JsonSerializer.Deserialize<FloatingPosition>(File.ReadAllText(_positionPath))
-                ?? throw new InvalidDataException("悬浮窗位置配置为空。");
-            if (!double.IsFinite(position.Left) || !double.IsFinite(position.Top)
-                || Math.Abs(position.Left) > 100000 || Math.Abs(position.Top) > 100000)
+            var preferences = FloatingWindowPreferencesStore.TryLoad(_positionPath);
+            if (preferences is null)
             {
                 throw new InvalidDataException("悬浮窗位置配置无效。");
             }
 
+            var position = preferences;
             Left = position.Left;
             Top = position.Top;
             if (!IsVisibleOnScreen())
@@ -152,21 +231,90 @@ public partial class FloatingWindow : Window
     private void UpdateWeek()
     {
         var week = WeekPeriod.FromDate(DateOnly.FromDateTime(DateTime.Today));
-        WeekText.Text = $"本周：{week.Start:MM-dd} 至 {week.EndInclusive:MM-dd}";
-    }
+        // [旧代码-悬浮精灵] 卡片文本直写逻辑，卡片元素已迁往 FloatingCard，现按样式路由
+        // WeekText.Text = $"本周：{week.Start:MM-dd} 至 {week.EndInclusive:MM-dd}";
 
-    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ButtonState == MouseButtonState.Pressed)
+        // [新增-悬浮精灵] 按样式路由本周文本（精灵侧用于悬停提示）
+        var weekText = $"本周：{week.Start:MM-dd} 至 {week.EndInclusive:MM-dd}";
+        if (_style == FloatingStyle.Sprite)
         {
-            DragMove();
-            SavePosition();
+            _sprite?.SetWeek(weekText);
+        }
+        else
+        {
+            _card?.SetWeek(weekText);
         }
     }
 
-    private void Open_Click(object sender, RoutedEventArgs e) => _openMain();
+    // [旧代码-悬浮精灵] 原内联卡片事件处理器，随卡片迁往 FloatingCard 并由事件接线替代
+    // private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    // {
+    //     if (e.ButtonState == MouseButtonState.Pressed)
+    //     {
+    //         DragMove();
+    //         SavePosition();
+    //     }
+    // }
+    //
+    // private void Open_Click(object sender, RoutedEventArgs e) => _openMain();
+    //
+    // private void Hide_Click(object sender, RoutedEventArgs e) => HideWithPosition();
 
-    private void Hide_Click(object sender, RoutedEventArgs e) => HideWithPosition();
+    // [旧代码-悬浮精灵] 原位置记录类型，被 FloatingWindowPreferences（含样式字段）替代
+    // private sealed record FloatingPosition(double Left, double Top);
 
-    private sealed record FloatingPosition(double Left, double Top);
+    // [新增-悬浮精灵] 按样式构建内容并接线交互：拖动与原卡片标题栏行为一致（DragMove + 保存位置），
+    // 打开/收起与原按钮行为一致；精灵另支持双击打开与右键菜单。
+    private void BuildContent()
+    {
+        _sprite?.Dispose();
+        _sprite = null;
+        _card = null;
+        FloatingContentHost.Children.Clear();
+
+        if (_style == FloatingStyle.Sprite)
+        {
+            var sprite = new FloatingSprite(_machine);
+            sprite.DragPressed += () =>
+            {
+                DragMove();
+                SavePosition();
+            };
+            sprite.OpenRequested += _openMain;
+            sprite.HideRequested += HideWithPosition;
+            _sprite = sprite;
+            FloatingContentHost.Children.Add(sprite);
+        }
+        else
+        {
+            var card = new FloatingCard();
+            card.HeaderDragPressed += (_, _) =>
+            {
+                DragMove();
+                SavePosition();
+            };
+            card.OpenRequested += (_, _) => _openMain();
+            card.HideRequested += (_, _) => HideWithPosition();
+            _card = card;
+            FloatingContentHost.Children.Add(card);
+        }
+
+        ApplyWindowSize();
+        UpdateWeek();
+    }
+
+    // [新增-悬浮精灵] 按样式调整窗口尺寸：卡片 320x165（XAML 默认），精灵 150x190（含跳动空间）
+    private void ApplyWindowSize()
+    {
+        if (_style == FloatingStyle.Sprite)
+        {
+            Width = SpriteWidth;
+            Height = SpriteHeight;
+        }
+        else
+        {
+            Width = 320;
+            Height = 165;
+        }
+    }
 }

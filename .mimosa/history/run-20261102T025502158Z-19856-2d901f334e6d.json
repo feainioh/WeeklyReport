@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261102T025502158Z-19856-2d901f334e6d",
+  "runStatus": "inconclusive",
+  "errors": [
+    "candidate-select:C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-reflect/Program.cs: changed_file_unreadable: observed changed file no longer exists or cannot be read",
+    "baseline-read:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "scan:src/WeeklyReport.App/Controls/FloatingCard.xaml.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/Services/FloatingWindowPreferences.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/Services/FloatingSpriteStateMachine.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/Controls/FloatingSprite.xaml.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/FloatingWindow.xaml.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/Services/ThemeService.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/App.xaml.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/MainWindow.xaml.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.DesktopTests/FloatingSpriteStateMachineTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.DesktopTests/FloatingPreferencesTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+  ],
+  "target": ".",
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "diffHash": "982b377f3bf4a8b57560edff42b4f05845888139d17f0cfc1cf8e7bdb4b09c3f",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-02T02:55:02.158Z",
+  "timing": {
+    "startedAt": "2026-11-02T02:54:59.411Z",
+    "completedAt": "2026-11-02T02:55:02.158Z",
+    "durationMs": 2747
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "changed_file_unreadable": 1,
+      "baseline_snapshot_unreadable": 4,
+      "scanner_failed": 18,
+      "project_check_failed": 23
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T025502158Z-19856-2d901f334e6d.json"
+}

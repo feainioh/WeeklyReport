@@ -1,0 +1,225 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261102T050850553Z-27704-63d075de2c42",
+  "run_status": "completed",
+  "errors": [],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "complete",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 230,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 5
+    },
+    "change_tracking": {
+      "touched_observed": 3,
+      "touched_retained": 3,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 5,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 5,
+      "selected_files": 5,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 5,
+      "scanned_files": 5,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {},
+    "reasons": [],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-02T05:08:50.553Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "rules_version": "unavailable",
+  "diff_hash": "cf0a4d882891a64e52592fd762af4d1406c50b0ee4bfc05a40f87d19279d56eb",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 5,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/App.xaml.cs",
+        "ranges": [
+          {
+            "start": 196,
+            "end": 217
+          },
+          {
+            "start": 230,
+            "end": 244
+          },
+          {
+            "start": 248,
+            "end": 265
+          },
+          {
+            "start": 333,
+            "end": 342
+          }
+        ],
+        "before_hash": "cd35774372dda81a2faf428b57ebdf0f4a8abbed9daf2fcef954df39a6630872",
+        "after_hash": "434e7a40a69c0f6410af1471f1c47ff03c20e7ca2d7d56b90d8d08c3a4d21c59"
+      },
+      {
+        "file": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 32,
+            "end": 37
+          }
+        ],
+        "before_hash": "506e7ce3ab852eed612d534f29773ebae1588aac32d3f4269c26b94cc0cdca0c",
+        "after_hash": "2e1fe9721d1af630b097875245ee3b9a77ac7c914de7333826e5612f5064325b"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "2c9266d854fb769caff98dbbfb06b9e437bf0a5a83899823a008a8fcdff0c606",
+        "after_hash": "7561339656b64067bb439eccf68ddb1678830b1f62677aead625df39e3a2a75c"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 44,
+            "end": 44
+          },
+          {
+            "start": 52,
+            "end": 52
+          },
+          {
+            "start": 60,
+            "end": 60
+          },
+          {
+            "start": 68,
+            "end": 68
+          },
+          {
+            "start": 76,
+            "end": 76
+          },
+          {
+            "start": 84,
+            "end": 84
+          },
+          {
+            "start": 92,
+            "end": 92
+          },
+          {
+            "start": 100,
+            "end": 100
+          },
+          {
+            "start": 139,
+            "end": 139
+          },
+          {
+            "start": 147,
+            "end": 147
+          }
+        ],
+        "before_hash": "1900eeb01ec1c88484edcab00a148fdd227cec5f986f2f575ae87aada1dc5555",
+        "after_hash": "86e8599d80e304537f93b6081ff52344a47ebb6a828ffaa88519e378af81f8ff"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/ThemeService.cs",
+        "ranges": [
+          {
+            "start": 35,
+            "end": 37
+          },
+          {
+            "start": 51,
+            "end": 55
+          }
+        ],
+        "before_hash": "ffc647e5174fdceb2bca7eba016ac6ca62ba2c3edbfb2d461df7e8bc87230be2",
+        "after_hash": "316446b46dc602769a3263a5770f84b22645b2eca2ec460df452917c274b1ac3"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-02T05:08:48.984Z",
+    "completed_at": "2026-11-02T05:08:50.553Z",
+    "duration_ms": 1569,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "complete",
+    "latencyMs": 1569,
+    "peakMemoryBytes": 144068608,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 5,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T050850553Z-27704-63d075de2c42.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261102T050850553Z-27704-63d075de2c42.json"
+  }
+}

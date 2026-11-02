@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261102T050850553Z-27704-63d075de2c42",
+  "runId": "20261102T050850553Z-27704-63d075de2c42",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "diffHash": "cf0a4d882891a64e52592fd762af4d1406c50b0ee4bfc05a40f87d19279d56eb",
+  "rulesVersion": "unavailable",
+  "sessionHash": "0c7db4c8b88ff24e7d6983e0bf03001534096ecbce78bb338988f9b5dfc44cc8",
+  "reportRef": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T050850553Z-27704-63d075de2c42.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.App/App.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/FloatingWindow.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/Services/ThemeService.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-02T05:08:50.870Z"
+}

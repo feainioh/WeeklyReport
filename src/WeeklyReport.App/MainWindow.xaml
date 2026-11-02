@@ -1,7 +1,7 @@
 <Window x:Class="WeeklyReport.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="周报" Height="720" Width="1080" MinHeight="560" MinWidth="780"
+        Title="周报" Height="720" Width="1080" MinHeight="560" MinWidth="780" Icon="/Assets/app.ico"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource WindowBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -181,6 +181,18 @@
                                        TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,8" />
                             <Button x:Name="AcknowledgeReminderButton" Content="确认提醒状态"
                                     Click="AcknowledgeReminder_Click" HorizontalAlignment="Left" />
+                            <Separator Margin="0,20,0,16" />
+                            <!-- [新增-悬浮精灵] 切片 6：悬浮窗样式设置小节，卡片 / 精灵切换，选择后立即生效并持久化 -->
+                            <TextBlock Text="悬浮窗" FontSize="18" FontWeight="SemiBold" />
+                            <RadioButton x:Name="FloatingCardRadio" GroupName="FloatingStyle"
+                                         Content="信息卡片（默认）" Margin="0,12,0,0"
+                                         Foreground="{DynamicResource TextBrush}" Checked="FloatingCard_Checked" />
+                            <RadioButton x:Name="FloatingSpriteRadio" GroupName="FloatingStyle"
+                                         Content="悬浮精灵（双击打开周报，右键菜单收起，悬停查看本周与提醒）"
+                                         Margin="0,8,0,0"
+                                         Foreground="{DynamicResource TextBrush}" Checked="FloatingSprite_Checked" />
+                            <TextBlock Text="两种样式都会保存位置并在重启后恢复；精灵形态下本周信息与提醒状态通过气泡和菜单展示。"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,8" />
                             <Separator Margin="0,20,0,16" />
                             <StackPanel x:Name="AiSettingsRoot" IsEnabled="{Binding CanInteract}">
                                 <TextBlock Text="DeepSeek" FontSize="18" FontWeight="SemiBold" />

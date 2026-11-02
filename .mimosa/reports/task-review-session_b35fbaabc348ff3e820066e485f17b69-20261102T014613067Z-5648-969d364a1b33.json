@@ -1,0 +1,657 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261102T014613067Z-5648-969d364a1b33",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "scan",
+      "target": "scripts/generate-icon.py",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/Services/TrayService.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 219,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 17
+    },
+    "change_tracking": {
+      "touched_observed": 2,
+      "touched_retained": 2,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 17,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 17,
+      "selected_files": 17,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 17,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 17,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "scanner_failed": 17,
+      "project_check_failed": 17
+    },
+    "reasons": [
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "scripts/generate-icon.py",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/TrayService.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "scripts/generate-icon.py",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/Services/TrayService.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-02T01:46:13.067Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "rules_version": "unavailable",
+  "diff_hash": "808f0db7905a7d0fcb5925fa0e406f176f99ce8c43a8f78c5f547e6d43859fa5",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 17,
+    "changed_files": [
+      {
+        "file": "scripts/generate-icon.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 152
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8bfe596b597294e19ac5f5cab34864c205dda03731f7ef6f2708bd824a681690"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "ranges": [
+          {
+            "start": 55,
+            "end": 55
+          }
+        ],
+        "before_hash": "c649da3b4cbecaf8f163120093f8fd8c7d2d278176f14304a2b65a8d1f27415e",
+        "after_hash": "2c9266d854fb769caff98dbbfb06b9e437bf0a5a83899823a008a8fcdff0c606"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+        "ranges": [
+          {
+            "start": 71,
+            "end": 71
+          }
+        ],
+        "before_hash": "4499d7afe4af8d40725686f6db35f054a5aa54e6bf0463e570c179506332aac2",
+        "after_hash": "116bd7236d597a7c2e9f2503a914bdebe4bf82c03d3a957c802c15ad194cd5d6"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 151,
+            "end": 151
+          }
+        ],
+        "before_hash": "98bea15978c36ea59ba3c0459a050601d45d1ac8242799e5f628dccd575868c6",
+        "after_hash": "174ce5df318d9f6c32bae84e7629a097467005cdcf36e59d97807464c268a739"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 79,
+            "end": 79
+          }
+        ],
+        "before_hash": "2b15417292cd5a5c17909947ee081c6f7d771a6578316c53ca1a3584418c26e2",
+        "after_hash": "97491ca3d526ed02e1211b1ee0e0a17cfcb044fb0fe8c0329828c08a47c1a79c"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 63,
+            "end": 63
+          }
+        ],
+        "before_hash": "1f3c1fc1741f7bc4994cb548ef0bd6833b13fed4e21a95adb564e6ab6f3010ba",
+        "after_hash": "eea685e8ca487550b001a5bd0d5e6dc6d99eb3660d164f104be1e9bbeefd0c4e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+        "ranges": [
+          {
+            "start": 55,
+            "end": 55
+          }
+        ],
+        "before_hash": "c7ed2178a0ef3939585062551d502d61b375a288dac81d6ab886f70a758fb855",
+        "after_hash": "6d75ff92358f3af5219086d286a53ae065580122840017915faa6a571a588335"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+        "ranges": [
+          {
+            "start": 55,
+            "end": 55
+          }
+        ],
+        "before_hash": "23fb4b6eef8f42106f050dafbe3e1ed02345c7ca0f842a49873049682e1b3867",
+        "after_hash": "2699866a40d7079a2fef6f66f1f7d7027bbd764a719824bd6e6b666552e372af"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+        "ranges": [
+          {
+            "start": 55,
+            "end": 55
+          }
+        ],
+        "before_hash": "4c19d195a30eb37b0a1a4478fac9bdcd53f4d759876f70c840f19f9f9b60a7aa",
+        "after_hash": "8242d84d6eef3dbba89ac03c6d1c7ecccec6259d297ab6ab5b9d8fc0e77985b4"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "a61b6ed683c596a9b74fbcc6da793bf9ffaf53d55f33afafb02d4a8d89100464",
+        "after_hash": "174ce5df318d9f6c32bae84e7629a097467005cdcf36e59d97807464c268a739"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "1b33fb461a3c7b95e23ddd4f884c7081d1451b3ce3fac2de2f0f462fabd6c2d4",
+        "after_hash": "97491ca3d526ed02e1211b1ee0e0a17cfcb044fb0fe8c0329828c08a47c1a79c"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "5ec7b91f2110d2ddd1470a40e3b8ccbf70207512d9d2d32d9f73043a9d5a2eb2",
+        "after_hash": "eea685e8ca487550b001a5bd0d5e6dc6d99eb3660d164f104be1e9bbeefd0c4e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          }
+        ],
+        "before_hash": "d0ec58b17ef621ea510f711459c886a90de4a8189f4e2ad0c8c0cfb07eb94de9",
+        "after_hash": "ed9b425d1138f2f444cd32629e73be5bf7ca3306fe9ce7a94c2377702694469f"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/TrayService.cs",
+        "ranges": [
+          {
+            "start": 2,
+            "end": 2
+          },
+          {
+            "start": 11,
+            "end": 11
+          },
+          {
+            "start": 21,
+            "end": 28
+          },
+          {
+            "start": 31,
+            "end": 31
+          },
+          {
+            "start": 44,
+            "end": 44
+          }
+        ],
+        "before_hash": "94d480b08bfe91de31b488ac00b3a2b774dc1a6f04040a857647e489a6acf678",
+        "after_hash": "e179aca1d90322366682f0d17c4a9632893fb75c419c2ea42c7a7b6fe19c1f56"
+      },
+      {
+        "file": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          }
+        ],
+        "before_hash": "6560ed64bd8d676298aced5abee5c19dd0ac1df7feb0ce9ca6102500569b288a",
+        "after_hash": "4fe7d1427d8b3d8122bf5ae1dfa34547312b89c06228cca224b359f277692c8b"
+      },
+      {
+        "file": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          }
+        ],
+        "before_hash": "a38454f9c82a32d26109d0f908f252e0fd91c22faea98abbd9db464309a57725",
+        "after_hash": "45ae90b98ad1bce76078cf60bef55575791121da9ab88890723fb699a73a8456"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          }
+        ],
+        "before_hash": "c2a6a5b6d1e7946d7587a3b20e6557a49b121ef259e55fb5581ef79f55a032ff",
+        "after_hash": "2da9e144ba406cbc2d137d22ed9796c7e017c7a56f29f102ac057b3d72940f45"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-02T01:46:10.591Z",
+    "completed_at": "2026-11-02T01:46:13.067Z",
+    "duration_ms": 2476,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2476,
+    "peakMemoryBytes": 98660352,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T014613067Z-5648-969d364a1b33.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261102T014613067Z-5648-969d364a1b33.json"
+  }
+}

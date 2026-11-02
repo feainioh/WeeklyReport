@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261102T014613067Z-5648-969d364a1b33",
+  "runStatus": "inconclusive",
+  "errors": [
+    "scan:scripts/generate-icon.py: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/Services/TrayService.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/AiReviewWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupImportReviewWindow.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+  ],
+  "target": ".",
+  "revision": "cf22fe20e769ae6829240406b5337b9c7c3d76d4",
+  "diffHash": "808f0db7905a7d0fcb5925fa0e406f176f99ce8c43a8f78c5f547e6d43859fa5",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-02T01:46:13.067Z",
+  "timing": {
+    "startedAt": "2026-11-02T01:46:10.591Z",
+    "completedAt": "2026-11-02T01:46:13.067Z",
+    "durationMs": 2476
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "scanner_failed": 17,
+      "project_check_failed": 17
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T014613067Z-5648-969d364a1b33.json"
+}

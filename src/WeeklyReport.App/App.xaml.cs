@@ -180,7 +180,41 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void ExitApplication()
+    // [新增-悬浮精灵] 切片 6：设置页悬浮窗样式读写入口（0=卡片，1=精灵）
+    public int GetFloatingStyle() => _floatingWindow?.CurrentStyleValue ?? (int)FloatingStyle.Card;
+
+    public void SetFloatingStyle(int style)
+    {
+        if (_floatingWindow is null)
+        {
+            return;
+        }
+
+        _floatingWindow.ApplyStyle((FloatingStyle)style);
+    }
+
+    // [旧代码-退出修复] 原同步退出实现：直接 Shutdown()，OnExit 中同步阻塞等待
+    // ReminderMonitor.DisposeAsync 造成 UI 线程死锁（await 续体投递回被阻塞的 Dispatcher），
+    // 表现为窗口关闭但进程残留并持有单实例互斥量。
+    // private void ExitApplication()
+    // {
+    //     if (MainWindow is MainWindow mainWindow)
+    //     {
+    //         if (!mainWindow.CanExit())
+    //         {
+    //             return;
+    //         }
+    //
+    //         mainWindow.PrepareForExit();
+    //     }
+    //
+    //     _floatingWindow?.SavePosition();
+    //     Shutdown();
+    // }
+
+    // [新增-退出修复] 托盘退出：先在 UI 线程空闲状态下异步释放提醒监视器（避免 OnExit 同步等待死锁），
+    // 再启动退出看门狗并 Shutdown；监视器释放后置空，OnExit 不会重复释放。
+    private async void ExitApplication()
     {
         if (MainWindow is MainWindow mainWindow)
         {
@@ -193,7 +227,40 @@ public partial class App : System.Windows.Application
         }
 
         _floatingWindow?.SavePosition();
+        if (_reminderMonitor is not null)
+        {
+            try
+            {
+                await _reminderMonitor.DisposeAsync();
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                Log.Warning("Reminder monitor disposal failed: {ErrorType}", exception.GetType().Name);
+            }
+
+            _reminderMonitor = null;
+        }
+
+        StartExitWatchdog();
         Shutdown();
+    }
+
+    // [新增-退出修复] 退出看门狗：后台线程 5 秒后若进程仍存活则记录日志并强制退出，
+    // 兜底保证任何未预见的清理阻塞都不会让进程残留（后台线程在正常退出时随之终止）。
+    private void StartExitWatchdog()
+    {
+        var watchdog = new Thread(() =>
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+            Log.Warning("exit: watchdog forced exit after timeout");
+            Log.CloseAndFlush();
+            Environment.Exit(0);
+        })
+        {
+            IsBackground = true,
+            Name = "WeeklyReport.ExitWatchdog"
+        };
+        watchdog.Start();
     }
 
     private void StartReminders()
@@ -263,7 +330,16 @@ public partial class App : System.Windows.Application
     {
         if (_reminderMonitor is not null)
         {
-            _reminderMonitor.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            // [旧代码-退出修复] 同步阻塞等待异步释放，UI 线程死锁根因（诊断日志已确认停在 monitor dispose begin）
+            // _reminderMonitor.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            // [新增-退出修复] 兜底路径（如系统会话结束直接触发退出）：限时等待而非无限阻塞，
+            // 超时记录警告继续退出；托盘路径已在 ExitApplication 中完成异步释放并置空。
+            var disposal = _reminderMonitor.DisposeAsync().AsTask();
+            if (!disposal.Wait(TimeSpan.FromSeconds(3)))
+            {
+                Log.Warning("exit: reminder monitor disposal timed out, continuing shutdown");
+            }
         }
 
         if (_reminderNotifier is not null)
