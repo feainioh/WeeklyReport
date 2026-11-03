@@ -11,7 +11,15 @@ public enum FloatingStyle
     Sprite = 1
 }
 
-public sealed record FloatingWindowPreferences(double Left, double Top, FloatingStyle Style = FloatingStyle.Card);
+// [旧代码-机器人交互] 原偏好仅包含位置与样式
+// public sealed record FloatingWindowPreferences(double Left, double Top, FloatingStyle Style = FloatingStyle.Card);
+
+// [新增-机器人交互] 增加精灵行为设置；旧文件缺省时由 Store 归一化为默认值
+public sealed record FloatingWindowPreferences(
+    double Left,
+    double Top,
+    FloatingStyle Style = FloatingStyle.Card,
+    SpriteBehaviorSettings? Sprite = null);
 
 public static class FloatingWindowPreferencesStore
 {
@@ -25,7 +33,8 @@ public static class FloatingWindowPreferencesStore
 
         try
         {
-            var preferences = JsonSerializer.Deserialize<FloatingWindowPreferences>(File.ReadAllText(filePath));
+            var json = File.ReadAllText(filePath);
+            var preferences = JsonSerializer.Deserialize<FloatingWindowPreferences>(json);
             if (preferences is null
                 || !double.IsFinite(preferences.Left) || !double.IsFinite(preferences.Top)
                 || Math.Abs(preferences.Left) > 100000 || Math.Abs(preferences.Top) > 100000
@@ -34,7 +43,21 @@ public static class FloatingWindowPreferencesStore
                 return null;
             }
 
-            return preferences;
+            // [旧代码-机器人交互] 原样返回偏好
+            // return preferences;
+
+            // [新增-机器人交互] 归一化精灵行为设置：旧文件/未知档位回退默认值
+            var sprite = preferences.Sprite;
+            if (sprite is null || !Enum.IsDefined(sprite.Preset))
+            {
+                sprite = SpriteBehaviorSettings.Default;
+            }
+            else if (!HasDataAdviceSetting(json))
+            {
+                sprite = sprite with { DataAdvice = sprite.Preset != SpriteBehaviorPreset.Quiet };
+            }
+
+            return preferences with { Sprite = sprite };
         }
         catch (JsonException)
         {
@@ -48,6 +71,14 @@ public static class FloatingWindowPreferencesStore
         {
             return null;
         }
+    }
+
+    private static bool HasDataAdviceSetting(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.TryGetProperty(nameof(FloatingWindowPreferences.Sprite), out var sprite)
+            && sprite.ValueKind == JsonValueKind.Object
+            && sprite.TryGetProperty(nameof(SpriteBehaviorSettings.DataAdvice), out _);
     }
 
     /// <summary>原子写入偏好；失败时抛出，由调用方按原有方式提示。</summary>

@@ -20,6 +20,9 @@ public sealed class ReminderMonitor(
     private Task? _loop;
     private string? _lastSent;
 
+    // [新增-机器人交互] 仅在系统通知实际发送成功时触发，供悬浮精灵显示带保存状态的提醒
+    public event Action<ReminderKey>? ReminderSent;
+
     public void Start()
     {
         if (_loop is not null)
@@ -62,6 +65,8 @@ public sealed class ReminderMonitor(
                         {
                             var latest = result.Sent[^1];
                             _lastSent = $"已向系统提交 {latest.Key.WeekStart:yyyy-MM-dd} 所在周的提醒；实际显示受系统设置影响。";
+                            // [新增-机器人交互] 实际提醒事件（区别于普通状态文本）
+                            ReminderSent?.Invoke(latest.Key);
                         }
 
                         reportStatus(_lastSent ?? "提醒已启用：周四 17:00、周五 10:00；应用退出后不会准点提醒。");

@@ -208,6 +208,25 @@ public partial class WorkEntriesViewModel(
     public bool CanDiscardChanges() =>
         !IsDirty || dialogs.Confirm("当前工作记录有未保存的修改，确定放弃吗？", "未保存的修改");
 
+    public async Task<bool> NavigateToWeekAsync(DateOnly weekStart)
+    {
+        if (IsBusy || !CanDiscardChanges())
+        {
+            return false;
+        }
+
+        var selected = weekStart.ToDateTime(TimeOnly.MinValue);
+        SelectedWeek = selected;
+        await RunAsync(async () =>
+        {
+            await ReloadAsync();
+            ResetEditor();
+            EditDate = selected;
+            _baselineDate = selected.Date;
+        });
+        return true;
+    }
+
     private async Task ReloadAsync()
     {
         if (SelectedWeek is not DateTime selected)

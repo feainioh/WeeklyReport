@@ -3,31 +3,56 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="周报" Height="720" Width="1080" MinHeight="560" MinWidth="780" Icon="/Assets/app.ico"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource WindowBrush}">
-    <Grid Margin="24">
+    <!-- [旧代码-界面现代化2] 原内容区外边距 24，现扩大至 28 增加留白 -->
+    <!-- <Grid Margin="24"> -->
+    <!-- [新增-界面现代化2] 内容区外边距 28，配合卡片阴影留出呼吸空间 -->
+    <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <DockPanel Margin="0,0,0,18">
+        <!-- [旧代码-界面现代化2] 原标题区间距 18 -->
+        <!-- <DockPanel Margin="0,0,0,18"> -->
+        <DockPanel Margin="0,0,0,20">
+            <!-- [旧代码-界面现代化2] 原顶部按钮直接使用默认按钮样式
             <Button DockPanel.Dock="Right" Content="显示或隐藏悬浮窗" Click="ToggleFloating_Click" />
             <Button DockPanel.Dock="Right" Content="测试提醒" Click="TestReminder_Click" />
+            -->
+            <!-- [新增-界面现代化2] 顶部操作区：次要按钮（透明底 + 悬停 HoverBrush） -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="测试提醒" Click="TestReminder_Click" Style="{StaticResource SecondaryButton}" />
+                <Button Content="显示或隐藏悬浮窗" Click="ToggleFloating_Click"
+                        Style="{StaticResource SecondaryButton}" Margin="0" />
+            </StackPanel>
+            <!-- [新增-界面现代化2] 应用图标 + 主标题 + 副标题的一体化标题区 -->
+            <Image Source="/Assets/app.ico" Width="36" Height="36" Margin="0,0,12,0"
+                   VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality" />
             <StackPanel>
-                <TextBlock Text="周报" FontSize="26" FontWeight="SemiBold" />
-                <TextBlock Text="记录每一天，轻松整理每一周。" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
-                <TextBlock x:Name="ReminderStatusText" Text="提醒正在初始化。" Foreground="{DynamicResource MutedBrush}"
-                           TextWrapping="Wrap" Margin="0,4,0,0" />
+                <!-- [旧代码-界面现代化2] 原主标题 FontSize="26" FontWeight="SemiBold" -->
+                <TextBlock Text="周报" Style="{StaticResource SectionTitleText}" />
+                <!-- [旧代码-界面现代化2] 原副标题 Foreground="{DynamicResource MutedBrush}" -->
+                <TextBlock Text="记录每一天，轻松整理每一周。" Style="{StaticResource CaptionText}"
+                           Margin="0,4,0,0" />
+                <!-- [旧代码-界面现代化2] 原提醒状态 Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" -->
+                <TextBlock x:Name="ReminderStatusText" Text="提醒正在初始化。"
+                           Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
             </StackPanel>
         </DockPanel>
 
         <TabControl x:Name="MainTabs" Grid.Row="1" Background="{DynamicResource WindowBrush}">
             <TabItem Header="工作记录">
-                <Grid Margin="0,14,0,0">
+                <!-- [旧代码-界面现代化2] 原页签内容上边距 14，现与卡片节奏统一为 16 -->
+                <!-- <Grid Margin="0,14,0,0"> -->
+                <Grid Margin="0,16,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="18" />
+                        <!-- [旧代码-界面现代化2] 原卡片间距 18，现统一为 16 -->
+                        <!-- <ColumnDefinition Width="18" /> -->
+                        <ColumnDefinition Width="16" />
                         <ColumnDefinition Width="350" />
                     </Grid.ColumnDefinitions>
-                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18">
+                    <!-- [旧代码-界面现代化2] 原卡片：Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" -->
+                    <Border Style="{StaticResource ModernCard}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -35,7 +60,8 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Text="本周记录" FontSize="18" FontWeight="SemiBold" />
+                            <!-- [旧代码-界面现代化2] 原区域标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="本周记录" Style="{StaticResource SectionTitleText}" />
                             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,14,0,14">
                                 <DatePicker AutomationProperties.Name="查询日期" IsEnabled="{Binding CanInteract}"
                                             SelectedDate="{Binding SelectedWeek, UpdateSourceTrigger=PropertyChanged}"
@@ -47,9 +73,22 @@
                             <Grid Grid.Row="2">
                                 <TextBlock Text="暂无工作记录，或请先在设置中连接数据库。"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource MutedBrush}">
+                                           Foreground="{DynamicResource MutedBrush}" Margin="0,24,0,0">
+                                    <!-- [旧代码-界面现代化2] 原空状态样式仅控制显隐，视觉沿用默认 12pt
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Entries.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                    -->
+                                    <!-- [新增-界面现代化2] 空状态沿用 CaptionText（14pt Muted），放大留白 -->
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Entries.Count}" Value="0">
@@ -61,20 +100,39 @@
                                 </TextBlock>
                                 <ListBox ItemsSource="{Binding Entries}" Background="Transparent" BorderThickness="0"
                                          IsEnabled="{Binding CanInteract}">
+                                    <!-- [旧代码-界面现代化2] 原本地行样式仅拉伸内容，覆盖全局行样式导致无悬停/选中反馈
                                     <ListBox.ItemContainerStyle>
                                         <Style TargetType="ListBoxItem">
                                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                         </Style>
                                     </ListBox.ItemContainerStyle>
+                                    -->
+                                    <!-- [新增-界面现代化2] 基于全局行样式，仅补充内容拉伸 -->
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem"
+                                               BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="{DynamicResource MutedBrush}" BorderThickness="0,0,0,1" Padding="4,10">
+                                            <!-- [旧代码-界面现代化2] 原行分隔线 BorderBrush="{DynamicResource MutedBrush}" -->
+                                            <Border BorderBrush="{DynamicResource RowSeparatorBrush}" BorderThickness="0,0,0,1" Padding="4,10">
                                                 <DockPanel>
                                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <!-- [旧代码-界面现代化2] 原行内按钮使用默认按钮样式
                                                         <Button Content="编辑"
                                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}" />
                                                         <Button Content="删除"
+                                                                Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}" />
+                                                        -->
+                                                        <!-- [新增-界面现代化2] 行内操作改为紧凑次要按钮 -->
+                                                        <Button Content="编辑" Style="{StaticResource CompactButton}"
+                                                                Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}" />
+                                                        <Button Content="删除" Style="{StaticResource CompactButton}" Margin="0"
                                                                 Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}" />
                                                     </StackPanel>
@@ -91,11 +149,13 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
                             </Grid>
-                            <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,0" />
+                            <!-- [旧代码-界面现代化2] 原状态行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
+                            <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Style="{StaticResource CaptionText}"
+                                       Margin="0,12,0,0" />
                         </Grid>
                     </Border>
-                    <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18"
+                    <!-- [旧代码-界面现代化2] 原卡片：Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" -->
+                    <Border Grid.Column="2" Style="{StaticResource ModernCard}"
                             IsEnabled="{Binding CanInteract}">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -105,7 +165,8 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Text="{Binding EditorTitle}" FontSize="18" FontWeight="SemiBold" />
+                            <!-- [旧代码-界面现代化2] 原区域标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitleText}" />
                             <TextBlock Grid.Row="1" Text="工作日期" Margin="0,16,0,6" />
                             <DatePicker Grid.Row="2" AutomationProperties.Name="工作日期"
                                         SelectedDate="{Binding EditDate, UpdateSourceTrigger=PropertyChanged}"
@@ -134,7 +195,7 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="Git 工作项">
+            <TabItem x:Name="GitTab" Header="Git 工作项">
                 <ContentControl x:Name="GitContent" />
             </TabItem>
             <TabItem x:Name="WeeklyReportTab" Header="周报">
@@ -143,14 +204,18 @@
             <TabItem Header="导入导出">
                 <ContentControl x:Name="BackupContent" />
             </TabItem>
-            <TabItem Header="设置">
+            <TabItem x:Name="SettingsTab" Header="设置">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <Border x:Name="SettingsRoot" Background="{DynamicResource SurfaceBrush}" CornerRadius="10"
-                            Padding="20" Margin="0,14,0,0" HorizontalAlignment="Left" Width="560">
+                    <!-- [旧代码-界面现代化2] 原设置卡片：Background="{DynamicResource SurfaceBrush}" CornerRadius="10"
+                         Padding="20" Margin="0,14,0,0" -->
+                    <Border x:Name="SettingsRoot" Style="{StaticResource ModernCard}"
+                            Margin="0,20,20,24" HorizontalAlignment="Left" Width="560">
                         <StackPanel IsEnabled="{Binding CanInteract}">
-                            <TextBlock Text="本地 MySQL" FontSize="18" FontWeight="SemiBold" />
+                            <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="本地 MySQL" Style="{StaticResource SectionTitleText}" />
+                            <!-- [旧代码-界面现代化2] 原说明行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
                             <TextBlock Text="请先创建周报专用数据库。初始化会执行数据库迁移，不会安装或升级 MySQL。"
-                                       TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,16" />
+                                       Style="{StaticResource CaptionText}" Margin="0,8,0,16" />
                             <TextBlock Text="主机（仅限本机）" />
                             <TextBox AutomationProperties.Name="MySQL 主机"
                                      Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,12" />
@@ -171,19 +236,25 @@
                                 <Button Content="初始化并保存" Click="InitializeDatabase_Click"
                                         Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
                             </StackPanel>
-                            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,12,0,0"
-                                       Foreground="{DynamicResource MutedBrush}" />
+                            <!-- [旧代码-界面现代化2] 原状态行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionText}"
+                                       Margin="0,12,0,0" />
+                            <TextBlock x:Name="WeeklyStorageStatusText" Text="周报数据状态：尚未读取"
+                                       Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
                             <Separator Margin="0,20,0,16" />
-                            <TextBlock Text="启动方式" FontSize="18" FontWeight="SemiBold" />
+                            <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="启动方式" Style="{StaticResource SectionTitleText}" />
                             <CheckBox x:Name="AutoStartCheck" Content="登录 Windows 时启动周报" Margin="0,12,0,0"
                                       Foreground="{DynamicResource TextBrush}" Click="AutoStart_Click" />
+                            <!-- [旧代码-界面现代化2] 原说明行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
                             <TextBlock Text="若提示提醒状态不确定，请先手动检查周报；确认后不会自动重发。"
-                                       TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,8" />
+                                       Style="{StaticResource CaptionText}" Margin="0,12,0,8" />
                             <Button x:Name="AcknowledgeReminderButton" Content="确认提醒状态"
                                     Click="AcknowledgeReminder_Click" HorizontalAlignment="Left" />
                             <Separator Margin="0,20,0,16" />
                             <!-- [新增-悬浮精灵] 切片 6：悬浮窗样式设置小节，卡片 / 精灵切换，选择后立即生效并持久化 -->
-                            <TextBlock Text="悬浮窗" FontSize="18" FontWeight="SemiBold" />
+                            <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="悬浮窗" Style="{StaticResource SectionTitleText}" />
                             <RadioButton x:Name="FloatingCardRadio" GroupName="FloatingStyle"
                                          Content="信息卡片（默认）" Margin="0,12,0,0"
                                          Foreground="{DynamicResource TextBrush}" Checked="FloatingCard_Checked" />
@@ -191,13 +262,55 @@
                                          Content="悬浮精灵（双击打开周报，右键菜单收起，悬停查看本周与提醒）"
                                          Margin="0,8,0,0"
                                          Foreground="{DynamicResource TextBrush}" Checked="FloatingSprite_Checked" />
+                            <!-- [旧代码-界面现代化2] 原说明行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
                             <TextBlock Text="两种样式都会保存位置并在重启后恢复；精灵形态下本周信息与提醒状态通过气泡和菜单展示。"
-                                       TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,12,0,8" />
+                                       Style="{StaticResource CaptionText}" Margin="0,12,0,8" />
+
+                            <!-- [新增-机器人交互] 精灵性格与行为开关 -->
+                            <TextBlock Text="精灵性格" Margin="0,16,0,8" />
+                            <Border Background="{DynamicResource HoverBrush}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="3" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="SpriteQuietRadio" Content="安静" Tag="Quiet"
+                                                 GroupName="SpriteBehaviorPreset"
+                                                 Style="{StaticResource SegmentRadioButton}"
+                                                 Checked="SpritePreset_Checked" />
+                                    <RadioButton x:Name="SpriteGentleRadio" Content="温和" Tag="Gentle"
+                                                 GroupName="SpriteBehaviorPreset"
+                                                 Style="{StaticResource SegmentRadioButton}"
+                                                 Checked="SpritePreset_Checked" />
+                                    <RadioButton x:Name="SpriteLivelyRadio" Content="活泼" Tag="Lively"
+                                                 GroupName="SpriteBehaviorPreset"
+                                                 Style="{StaticResource SegmentRadioButton}"
+                                                 Checked="SpritePreset_Checked" />
+                                </StackPanel>
+                            </Border>
+                            <CheckBox x:Name="SpriteGreetingsCheck" Content="启动与时段问候"
+                                      Margin="0,10,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteChatterCheck" Content="空闲闲聊与戳一戳气泡"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteHoverCheck" Content="悬停眼睛跟随"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteReminderCheck" Content="提醒气泡与动画"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteCelebrationCheck" Content="保存成功庆祝"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteQuietHoursCheck" Content="夜间免打扰（22:00–08:00）"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteDataAdviceCheck" Content="低频本周进展建议（每天最多一次）"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <Button Content="打个招呼" Click="SpriteGreet_Click"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
+                            <TextBlock Text="仅悬浮精灵样式生效；切换性格会恢复该档位的默认开关，之后可继续微调。"
+                                       Style="{StaticResource CaptionText}" Margin="0,8,0,0" />
                             <Separator Margin="0,20,0,16" />
                             <StackPanel x:Name="AiSettingsRoot" IsEnabled="{Binding CanInteract}">
-                                <TextBlock Text="DeepSeek" FontSize="18" FontWeight="SemiBold" />
+                                <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
+                                <TextBlock Text="DeepSeek" Style="{StaticResource SectionTitleText}" />
+                                <!-- [旧代码-界面现代化2] 原说明行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
                                 <TextBlock Text="调用前会显示发送内容供确认，使用服务可能产生费用。"
-                                           TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,14" />
+                                           Style="{StaticResource CaptionText}" Margin="0,8,0,14" />
                                 <TextBlock Text="模型" />
                                 <TextBox AutomationProperties.Name="DeepSeek 模型"
                                          Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,12" />
@@ -210,8 +323,9 @@
                                             Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
                                     <Button Content="删除 DeepSeek 配置" Click="DeleteDeepSeek_Click" />
                                 </StackPanel>
-                                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,12,0,0"
-                                           Foreground="{DynamicResource MutedBrush}" />
+                                <!-- [旧代码-界面现代化2] 原状态行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
+                                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionText}"
+                                           Margin="0,12,0,0" />
                             </StackPanel>
                         </StackPanel>
                     </Border>

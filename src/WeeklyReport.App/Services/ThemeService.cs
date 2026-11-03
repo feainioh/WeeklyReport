@@ -10,6 +10,9 @@ namespace WeeklyReport.App.Services;
 
 public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispatcher) : IDisposable
 {
+    // [新增-界面现代化2] 主题应用完成通知：MainWindow 借此刷新 Win11 标题栏着色
+    public event Action? ThemeChanged;
+
     public void Start()
     {
         Apply();
@@ -35,6 +38,13 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
 
             // [新增-样式现代化] 高对比度悬停底色
             resources["HoverBrush"] = SystemColors.HighlightBrush;
+
+            // [新增-界面现代化2] 高对比度：卡片边框、列表选中与分隔线改用系统颜色保证可读
+            resources["CardBorderBrush"] = SystemColors.WindowTextBrush;
+            resources["ListSelectionBrush"] = SystemColors.HighlightBrush;
+            resources["ListSelectionTextBrush"] = SystemColors.HighlightTextBrush;
+            resources["RowSeparatorBrush"] = SystemColors.WindowTextBrush;
+            ThemeChanged?.Invoke();
             return;
         }
 
@@ -58,6 +68,21 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
         resources["AccentBrush"] = new SolidColorBrush(accent);
         var luminance = (0.2126 * Linear(accent.R) + 0.7152 * Linear(accent.G) + 0.0722 * Linear(accent.B));
         resources["AccentTextBrush"] = luminance > 0.179 ? Brushes.Black : Brushes.White;
+
+        // [新增-界面现代化2] 卡片弱边框：浅色 8% 黑、深色 12% 白，替代 1px 实色
+        resources["CardBorderBrush"] = new SolidColorBrush(light
+            ? Color.FromArgb(0x14, 0x00, 0x00, 0x00)
+            : Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF));
+
+        // [新增-界面现代化2] 列表选中底色：10% 强调色；文字在正常主题下沿用正文色
+        resources["ListSelectionBrush"] = new SolidColorBrush(Color.FromArgb(0x1A, accent.R, accent.G, accent.B));
+        resources["ListSelectionTextBrush"] = resources["TextBrush"];
+
+        // [新增-界面现代化2] 列表行分隔线：Muted 色降到 40% 透明度，减少视觉噪音
+        var muted = ((SolidColorBrush)resources["MutedBrush"]).Color;
+        resources["RowSeparatorBrush"] = new SolidColorBrush(Color.FromArgb(0x66, muted.R, muted.G, muted.B));
+
+        ThemeChanged?.Invoke();
     }
 
     private static SolidColorBrush Brush(byte red, byte green, byte blue) =>

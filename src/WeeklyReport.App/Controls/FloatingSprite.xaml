@@ -5,6 +5,7 @@
     <!-- [新增-悬浮精灵] 机器人化改版（缩小到原尺寸 50%，窗口 75x95）：天线 + 强调色面罩（白色 LED 眼）+
          嘴部格栅 + 两侧手臂 + 绿色对勾徽章；动画与提醒气泡同前，位移幅度随尺寸减半。
          旧文档形态几何体已按修改规范注释保留于下方（其内部注释因 XAML 注释不可嵌套而随块移除）。 -->
+    <!-- [新增-天线状态] 绿色对勾徽章已由天线颜色/动画状态系统替代，徽章几何体注释保留于下方。 -->
     <UserControl.Resources>
         <Storyboard x:Key="BobStoryboard">
             <!-- [新增-机器人化] 浮动幅度由 4px 减半至 2px -->
@@ -50,11 +51,103 @@
                 </EasingDoubleKeyFrame>
             </DoubleAnimationUsingKeyFrames>
         </Storyboard>
+        <!-- [旧代码-天线状态] 原徽章放大庆祝动画；绿色对勾徽章已移除，庆祝改由天线摆动与球弹跳承担
         <Storyboard x:Key="CelebrateStoryboard">
             <DoubleAnimation Storyboard.TargetName="BadgeScale" Storyboard.TargetProperty="ScaleX"
                              From="1" To="1.35" Duration="0:0:0.18" AutoReverse="True" RepeatBehavior="2x" />
             <DoubleAnimation Storyboard.TargetName="BadgeScale" Storyboard.TargetProperty="ScaleY"
                              From="1" To="1.35" Duration="0:0:0.18" AutoReverse="True" RepeatBehavior="2x" />
+        </Storyboard>
+        -->
+
+        <!-- [新增-天线状态] 待机呼吸：球透明度与缩放 3 秒周期缓慢起伏 -->
+        <Storyboard x:Key="AntennaBreatheStoryboard">
+            <DoubleAnimation Storyboard.TargetName="AntennaBall" Storyboard.TargetProperty="Opacity"
+                             From="1" To="0.55" Duration="0:0:1.5" AutoReverse="True" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleX"
+                             From="1" To="0.85" Duration="0:0:1.5" AutoReverse="True" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleY"
+                             From="1" To="0.85" Duration="0:0:1.5" AutoReverse="True" RepeatBehavior="Forever" />
+        </Storyboard>
+
+        <!-- [新增-天线状态] 提醒：球以 0.5 秒周期快闪 6 次；光环持续放大淡出直至状态结束 -->
+        <Storyboard x:Key="AntennaAlertBlinkStoryboard">
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleX"
+                             From="1" To="1.4" Duration="0:0:0.25" AutoReverse="True" RepeatBehavior="6x" />
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleY"
+                             From="1" To="1.4" Duration="0:0:0.25" AutoReverse="True" RepeatBehavior="6x" />
+            <DoubleAnimation Storyboard.TargetName="AntennaHalo" Storyboard.TargetProperty="Opacity"
+                             From="0.85" To="0" Duration="0:0:1" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="AntennaHaloScale" Storyboard.TargetProperty="ScaleX"
+                             From="0.5" To="1.8" Duration="0:0:1" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="AntennaHaloScale" Storyboard.TargetProperty="ScaleY"
+                             From="0.5" To="1.8" Duration="0:0:1" RepeatBehavior="Forever" />
+        </Storyboard>
+
+        <!-- [新增-天线状态] 庆祝：球弹跳放大 + 天线杆左右摆动 3 次后自停 -->
+        <Storyboard x:Key="AntennaWiggleStoryboard">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="AntennaRotate"
+                                           Storyboard.TargetProperty="Angle" Duration="0:0:0.6"
+                                           RepeatBehavior="3x">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.15" Value="-12" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.45" Value="12" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleX"
+                             From="1" To="1.35" Duration="0:0:0.3" AutoReverse="True" RepeatBehavior="3x">
+                <DoubleAnimation.EasingFunction>
+                    <BounceEase EasingMode="EaseOut" Bounces="1" Bounciness="2" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="AntennaBallScale" Storyboard.TargetProperty="ScaleY"
+                             From="1" To="1.35" Duration="0:0:0.3" AutoReverse="True" RepeatBehavior="3x">
+                <DoubleAnimation.EasingFunction>
+                    <BounceEase EasingMode="EaseOut" Bounces="1" Bounciness="2" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- [新增-机器人交互] 空闲东张西望：身体轻摆 + 眼神左右移动，1.2 秒自停 -->
+        <Storyboard x:Key="LookAroundStoryboard">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="BodyRotate"
+                                           Storyboard.TargetProperty="Angle" Duration="0:0:1.2">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="4" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.7" Value="-4" />
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="LeftEyeLook"
+                                           Storyboard.TargetProperty="X" Duration="0:0:1.2">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.5" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.7" Value="-1.5" />
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="RightEyeLook"
+                                           Storyboard.TargetProperty="X" Duration="0:0:1.2">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.5" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.7" Value="-1.5" />
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <!-- [新增-机器人交互] 戳一戳：身体回弹 + 天线轻摆，短促自停 -->
+        <Storyboard x:Key="PokeStoryboard">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="BodyScale"
+                                           Storyboard.TargetProperty="ScaleY" Duration="0:0:0.3">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="1" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.12" Value="0.9" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="AntennaRotate"
+                                           Storyboard.TargetProperty="Angle" Duration="0:0:0.3">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.1" Value="-8" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="8" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
         </Storyboard>
     </UserControl.Resources>
 
@@ -62,6 +155,10 @@
         <!-- [新增-悬浮精灵] 右键菜单承载卡片按钮的等价功能：打开周报 / 收起 -->
         <ContextMenu>
             <MenuItem Header="打开周报" Click="OpenMenu_Click" />
+            <MenuItem Header="查看本周进展" Click="WeeklyProgressMenu_Click" />
+            <!-- [新增-机器人交互] 主动招呼与临时静音 -->
+            <MenuItem Header="打个招呼" Click="GreetMenu_Click" />
+            <MenuItem x:Name="MuteMenuItem" Header="安静 1 小时" Click="MuteMenu_Click" />
             <MenuItem Header="收起精灵" Click="HideMenu_Click" />
         </ContextMenu>
     </UserControl.ContextMenu>
@@ -107,20 +204,61 @@
     -->
 
     <Grid>
+        <!-- [新增-机器人交互] 柔和落地阴影：不随身体浮动，给机器人一点重量感 -->
+        <Ellipse Width="46" Height="8" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                 Margin="0,0,0,2" Opacity="0.12" IsHitTestVisible="False">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#000000" Offset="0.15" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
         <!-- [新增-机器人化] 机器人身体层：60x70，窗口 75x95，上方留天线与跳动空间 -->
         <Grid x:Name="BodyRoot" Width="60" Height="70" Margin="7.5,17,7.5,8" RenderTransformOrigin="0.5,1">
             <Grid.RenderTransform>
                 <TransformGroup>
                     <TranslateTransform x:Name="BodyTranslate" />
                     <ScaleTransform x:Name="BodyScale" />
+                    <!-- [新增-机器人交互] 悬停时身体轻微倾斜，围绕底部中心旋转 -->
+                    <RotateTransform x:Name="BodyRotate" />
                 </TransformGroup>
             </Grid.RenderTransform>
 
-            <!-- [新增-机器人化] 天线：顶部强调色小球 + 天线杆（位于身体上方，超出网格范围显示） -->
+            <!-- [旧代码-天线状态] 原静态天线：强调色小球 + 天线杆，现由 AntennaGroup 统一承载颜色与动画
             <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
                      HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-13,0,0" />
             <Rectangle Width="2" Height="8" Fill="{DynamicResource MutedBrush}"
                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-7,0,0" RadiusX="1" />
+            -->
+            <!-- [新增-天线状态] 天线三件套：AntennaGroup（杆 + 球 + 光环，含旋转供前倾/摆动）、
+                 AntennaBall（Fill 由状态驱动）、AntennaHalo（默认隐藏，仅提醒态启用） -->
+            <Grid x:Name="AntennaGroup" Width="18" Height="14"
+                  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-14,0,0"
+                  RenderTransformOrigin="0.5,1">
+                <Grid.RenderTransform>
+                    <RotateTransform x:Name="AntennaRotate" />
+                </Grid.RenderTransform>
+                <Rectangle Width="2" Height="9" RadiusX="1" RadiusY="1"
+                           Fill="{DynamicResource MutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                <Ellipse x:Name="AntennaBall" Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Top"
+                         RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform>
+                        <ScaleTransform x:Name="AntennaBallScale" />
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+                <Ellipse x:Name="AntennaHalo" Width="12" Height="12" Opacity="0"
+                         Stroke="{DynamicResource AntennaAlertBrush}" StrokeThickness="1.2"
+                         HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-3,0,0"
+                         RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform>
+                        <ScaleTransform x:Name="AntennaHaloScale" />
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+            </Grid>
 
             <!-- [新增-机器人化] 两侧手臂：圆角短臂，随身体一起浮动 -->
             <Rectangle Width="5" Height="16" RadiusX="2.5" RadiusY="2.5"
@@ -140,28 +278,71 @@
             <Rectangle Fill="{DynamicResource AccentBrush}" RadiusX="7" RadiusY="7"
                        Width="44" Height="14" HorizontalAlignment="Center" VerticalAlignment="Top"
                        Margin="0,9,0,0" />
-            <Ellipse Width="5" Height="6" Fill="White" HorizontalAlignment="Left" VerticalAlignment="Top"
+            <!-- [新增-机器人交互] 正常/困倦/惊讶共用的 LED 眼，保持原有眨眼动画目标 -->
+            <Ellipse x:Name="LeftEyeNormal" Width="5" Height="6" Fill="White"
+                     HorizontalAlignment="Left" VerticalAlignment="Top"
                      Margin="17,13,0,0" RenderTransformOrigin="0.5,0.5">
                 <Ellipse.RenderTransform>
-                    <ScaleTransform x:Name="LeftEyeScale" />
+                    <TransformGroup>
+                        <ScaleTransform x:Name="LeftEyeScale" />
+                        <!-- [新增-机器人交互] 悬停时瞳孔轻微跟随鼠标 -->
+                        <TranslateTransform x:Name="LeftEyeLook" />
+                    </TransformGroup>
                 </Ellipse.RenderTransform>
             </Ellipse>
-            <Ellipse Width="5" Height="6" Fill="White" HorizontalAlignment="Right" VerticalAlignment="Top"
+            <Ellipse x:Name="RightEyeNormal" Width="5" Height="6" Fill="White"
+                     HorizontalAlignment="Right" VerticalAlignment="Top"
                      Margin="0,13,17,0" RenderTransformOrigin="0.5,0.5">
                 <Ellipse.RenderTransform>
-                    <ScaleTransform x:Name="RightEyeScale" />
+                    <TransformGroup>
+                        <ScaleTransform x:Name="RightEyeScale" />
+                        <!-- [新增-机器人交互] 悬停时瞳孔轻微跟随鼠标 -->
+                        <TranslateTransform x:Name="RightEyeLook" />
+                    </TransformGroup>
                 </Ellipse.RenderTransform>
             </Ellipse>
+            <!-- [新增-机器人交互] 开心弯眼与眩晕 X 眼，默认隐藏，由 SetFace 切换 -->
+            <Path x:Name="LeftEyeHappy" Data="M 0,4 Q 3,1 6,4" Stroke="White" StrokeThickness="1.4"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  HorizontalAlignment="Left" VerticalAlignment="Top" Margin="17,12,0,0"
+                  Visibility="Collapsed" />
+            <Path x:Name="RightEyeHappy" Data="M 0,4 Q 3,1 6,4" Stroke="White" StrokeThickness="1.4"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,17,0"
+                  Visibility="Collapsed" />
+            <Path x:Name="LeftEyeDizzy" Data="M 0,0 L 5,5 M 5,0 L 0,5" Stroke="White" StrokeThickness="1.2"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  HorizontalAlignment="Left" VerticalAlignment="Top" Margin="17,13,0,0"
+                  Visibility="Collapsed" />
+            <Path x:Name="RightEyeDizzy" Data="M 0,0 L 5,5 M 5,0 L 0,5" Stroke="White" StrokeThickness="1.2"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,13,17,0"
+                  Visibility="Collapsed" />
 
-            <!-- [新增-机器人化] 嘴部格栅：三根短竖条 -->
-            <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="-6.5,31,0,0" />
-            <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,31,0,0" />
-            <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="6.5,31,0,0" />
+            <!-- [新增-机器人交互] 中性嘴部格栅容器，供表情切换整体显隐 -->
+            <Grid x:Name="MouthGrille">
+                <!-- [新增-机器人化] 嘴部格栅：三根短竖条 -->
+                <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="-6.5,31,0,0" />
+                <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,31,0,0" />
+                <Rectangle Width="1.6" Height="4.5" RadiusX="0.8" Fill="{DynamicResource MutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="6.5,31,0,0" />
+            </Grid>
+            <!-- [新增-机器人交互] 微笑与惊讶嘴型，默认隐藏 -->
+            <Path x:Name="MouthSmile" Data="M 0,0 Q 5,4 10,0" Stroke="{DynamicResource MutedBrush}"
+                  StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,31,0,0"
+                  Visibility="Collapsed" />
+            <Ellipse x:Name="MouthSurprised" Width="4" Height="5" Fill="{DynamicResource MutedBrush}"
+                     HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,31,0,0"
+                     Visibility="Collapsed" />
 
-            <!-- [新增-机器人化] 对勾徽章：绿底白勾，与图标一致（18x18 缩小版） -->
+            <!-- [新增-机器人交互] 胸口状态灯：跟随天线蓝/橙/绿 -->
+            <Ellipse x:Name="ChestLed" Width="4" Height="4" Fill="{DynamicResource AccentBrush}"
+                     HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,42,0,0" />
+
+            <!-- [旧代码-天线状态] 机器人身体右下角绿色对勾徽章整体停用，状态改由天线颜色 + 形状/动画表达
             <Grid Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                   Margin="0,0,1,1" RenderTransformOrigin="0.5,0.5">
                 <Grid.RenderTransform>
@@ -171,15 +352,38 @@
                 <Path Data="M 5,9.5 L 8,12.5 L 13,6" Stroke="White" StrokeThickness="2.2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Grid>
+            -->
+
         </Grid>
 
         <!-- [新增-悬浮精灵] 提醒气泡：提醒触发时在精灵头顶弹出，6 秒自动收起或点击关闭 -->
         <Popup x:Name="ReminderBubble" Placement="Top" PlacementTarget="{Binding ElementName=BodyRoot}"
                AllowsTransparency="True" StaysOpen="False">
+            <!-- [旧代码-机器人交互] 原气泡仅显示文本
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource MutedBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="10,8" MaxWidth="240" Margin="0,0,0,6">
                 <TextBlock x:Name="BubbleText" TextWrapping="Wrap" />
             </Border>
+            -->
+            <!-- [新增-机器人交互] 气泡容器：文本 + 可选“打开周报”动作 + 指向机器人的小尖角 -->
+            <Grid Margin="0,0,0,6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource MutedBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="10,8" MaxWidth="240">
+                    <StackPanel>
+                        <TextBlock x:Name="BubbleText" TextWrapping="Wrap" />
+                        <Button x:Name="BubbleAction" Content="打开周报" Style="{StaticResource CompactButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="Collapsed"
+                                Click="BubbleAction_Click" />
+                    </StackPanel>
+                </Border>
+                <Path Grid.Row="1" Data="M 0,0 L 10,0 L 5,6 Z"
+                      Fill="{DynamicResource SurfaceBrush}" Stroke="{DynamicResource MutedBrush}"
+                      StrokeThickness="1" HorizontalAlignment="Center" Margin="0,-1,0,0" />
+            </Grid>
         </Popup>
     </Grid>
 </UserControl>

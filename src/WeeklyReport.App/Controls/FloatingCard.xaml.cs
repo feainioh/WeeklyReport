@@ -16,6 +16,8 @@ public partial class FloatingCard : System.Windows.Controls.UserControl
     /// <summary>用户在标题栏按下鼠标（由宿主窗口执行 DragMove 与位置保存）。</summary>
     public event EventHandler? HeaderDragPressed;
 
+    public event EventHandler? WeeklyProgressRequested;
+
     public FloatingCard()
     {
         InitializeComponent();
@@ -32,6 +34,12 @@ public partial class FloatingCard : System.Windows.Controls.UserControl
         ReminderStatusText.ToolTip = message;
     }
 
+    public void SetStorageStatus(string message)
+    {
+        StorageStatusText.Text = message;
+        StorageStatusText.ToolTip = message;
+    }
+
     private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         HeaderDragPressed?.Invoke(this, EventArgs.Empty);
@@ -45,5 +53,10 @@ public partial class FloatingCard : System.Windows.Controls.UserControl
     private void Hide_Click(object sender, RoutedEventArgs e)
     {
         HideRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void WeeklyProgress_Click(object sender, RoutedEventArgs e)
+    {
+        WeeklyProgressRequested?.Invoke(this, EventArgs.Empty);
     }
 }

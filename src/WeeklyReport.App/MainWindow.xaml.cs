@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly WorkEntriesViewModel _entries;
     private readonly DatabaseSettingsViewModel _settings;
     private readonly GitProjectsViewModel _gitProjects;
+    private readonly GitProjectsView _gitView;
     private readonly AiSettingsViewModel _aiSettings;
     private readonly WeeklyReportsViewModel _weeklyReports;
     private readonly BackupViewModel _backup;
@@ -22,8 +23,10 @@ public partial class MainWindow : Window
     private readonly ReminderEngine _reminderEngine;
     private readonly IUserDialogs _dialogs;
     private readonly ILogger<MainWindow> _logger;
+    private readonly IWeeklyProgressContextProvider _weeklyProgress;
     private bool _allowClose;
     private bool _autoStartEnabled;
+    private bool _initializingSpriteBehavior;
 
     public MainWindow(
         WorkEntriesViewModel entries,
@@ -35,6 +38,7 @@ public partial class MainWindow : Window
         AutoStartService autoStart,
         WindowsReminderNotifier reminderNotifier,
         ReminderEngine reminderEngine,
+        IWeeklyProgressContextProvider weeklyProgress,
         IUserDialogs dialogs,
         ILogger<MainWindow> logger)
     {
@@ -42,6 +46,7 @@ public partial class MainWindow : Window
         _entries = entries;
         _settings = settings;
         _gitProjects = gitProjects;
+        _weeklyProgress = weeklyProgress;
         _aiSettings = aiSettings;
         _weeklyReports = weeklyReports;
         _backup = backup;
@@ -53,11 +58,18 @@ public partial class MainWindow : Window
         DataContext = entries;
         SettingsRoot.DataContext = settings;
         AiSettingsRoot.DataContext = aiSettings;
-        GitContent.Content = new GitProjectsView(gitProjects);
+        _gitView = new GitProjectsView(gitProjects);
+        GitContent.Content = _gitView;
         _weeklyView = new WeeklyReportsView(weeklyReports);
         WeeklyReportContent.Content = _weeklyView;
         BackupContent.Content = new BackupView(backup, CanStartImport, RefreshAfterImportAsync);
-        _entries.DataChanged += (_, _) => _gitProjects.InvalidateForExternalChange();
+        _entries.DataChanged += (_, _) =>
+        {
+            _gitProjects.InvalidateForExternalChange();
+            _weeklyProgress.Invalidate();
+        };
+        _gitProjects.DataChanged += (_, _) => _weeklyProgress.Invalidate();
+        _weeklyReports.DataChanged += () => _weeklyProgress.Invalidate();
         _backup.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(BackupViewModel.IsNavigationLocked))
@@ -68,7 +80,25 @@ public partial class MainWindow : Window
 
         // [新增-悬浮精灵] 切片 6：按当前悬浮窗样式初始化设置页选中项
         // （Loaded 时机调用：此时 FloatingWindow 已创建并完成样式读取）
-        Loaded += (_, _) => InitializeFloatingStyleRadioButtons();
+        // [旧代码-机器人交互] 原仅初始化悬浮窗样式
+        // Loaded += (_, _) => InitializeFloatingStyleRadioButtons();
+
+        // [新增-机器人交互] 样式与精灵行为一起初始化
+        Loaded += (_, _) =>
+        {
+            InitializeFloatingStyleRadioButtons();
+            InitializeSpriteBehaviorControls();
+        };
+
+        // [新增-天线状态] 周报保存成功 → 请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 忽略）
+        _weeklyReports.ReportSaved += OnReportSaved;
+    }
+
+    // [新增-界面现代化2] Win11 标题栏着色：窗口句柄创建后按当前主题底色刷新一次
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        WindowChromeHelper.ApplyCaptionColor(this);
     }
 
     public async Task InitializeAsync()
@@ -123,6 +153,51 @@ public partial class MainWindow : Window
         await _weeklyReports.OpenWeekAsync(weekStart);
     }
 
+    public async Task NavigateToWeeklyAdviceAsync(WeeklyAdviceAction action, DateOnly weekStart)
+    {
+        await WaitForBackupAsync();
+
+        switch (action)
+        {
+            case WeeklyAdviceAction.WorkEntries:
+                if (!await _entries.NavigateToWeekAsync(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedIndex = 0;
+                break;
+            case WeeklyAdviceAction.GitWorkItems:
+                if (!await _gitView.NavigateToWorkItemsAsync(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedItem = GitTab;
+                break;
+            case WeeklyAdviceAction.WeeklyReport:
+                await _weeklyView.EnsureInitializedAsync();
+                if (!_weeklyReports.SelectDateForNavigation(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedItem = WeeklyReportTab;
+                break;
+            case WeeklyAdviceAction.SyncStatus:
+            case WeeklyAdviceAction.StorageSettings:
+                MainTabs.SelectedItem = SettingsTab;
+                break;
+            case WeeklyAdviceAction.None:
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action), action, "未知的周报建议导航目标。");
+        }
+    }
+
+    public void SetWeeklyProgressContext(WeeklyProgressContext context) =>
+        WeeklyStorageStatusText.Text = $"周报数据状态：{WeeklyProgressStatusFormatter.FormatStorage(context)}";
+
     private Task WaitForBackupAsync()
     {
         if (!_backup.IsNavigationLocked)
@@ -172,6 +247,10 @@ public partial class MainWindow : Window
         }
     }
 
+    // [新增-天线状态] 保存成功事件：转交 App 触发悬浮精灵庆祝动画
+    private void OnReportSaved() =>
+        ((App)System.Windows.Application.Current).RequestFloatingCelebration();
+
     private void ToggleFloating_Click(object sender, RoutedEventArgs e) =>
         ((App)System.Windows.Application.Current).ToggleFloatingWindow();
 
@@ -180,7 +259,16 @@ public partial class MainWindow : Window
         try
         {
             await _reminderNotifier.SendTestAsync(DateOnly.FromDateTime(DateTime.Today));
-            SetReminderStatus("已向系统提交测试提醒；实际显示受系统通知和勿扰设置影响。");
+            // [旧代码-天线状态] 原测试提醒仅更新主窗口标题区，悬浮精灵收不到提醒
+            // SetReminderStatus("已向系统提交测试提醒；实际显示受系统通知和勿扰设置影响。");
+
+            // [新增-天线状态] 经 App 统一广播提醒状态，主窗口与悬浮精灵同时进入提醒态
+            ((App)System.Windows.Application.Current).ReportReminderStatus(
+                "已向系统提交测试提醒；实际显示受系统通知和勿扰设置影响。");
+
+            // [新增-机器人交互] 查询本周保存状态并显示精灵提醒气泡
+            await ((App)System.Windows.Application.Current).PreviewReminderAsync(
+                DateOnly.FromDateTime(DateTime.Today));
         }
         catch (ReminderNotificationException exception)
         {
@@ -224,10 +312,12 @@ public partial class MainWindow : Window
     {
         if (await _settings.InitializeAndSaveAsync(DatabasePassword.Password))
         {
+            ((App)System.Windows.Application.Current).InvalidateWeeklyProgressContext();
             await _entries.RefreshAsync();
             await _gitProjects.RefreshAsync();
             await _weeklyReports.RefreshHistoryAsync();
             await _backup.RefreshWeeksAsync();
+            await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
         }
     }
 
@@ -251,6 +341,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAfterImportAsync()
     {
+        _weeklyProgress.Invalidate();
         MainTabs.IsEnabled = false;
         try
         {
@@ -258,6 +349,7 @@ public partial class MainWindow : Window
             await _gitProjects.RefreshAfterImportAsync();
             await _weeklyReports.RefreshAfterImportAsync();
             await _backup.RefreshAfterImportAsync();
+            await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
         }
         finally
         {
@@ -320,4 +412,95 @@ public partial class MainWindow : Window
     {
         (System.Windows.Application.Current as App)?.SetFloatingStyle((int)FloatingStyle.Sprite);
     }
+
+    // [新增-机器人交互] 读取当前精灵行为并填充设置页（初始化期间不保存）
+    private void InitializeSpriteBehaviorControls()
+    {
+        var settings = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        _initializingSpriteBehavior = true;
+
+        switch (settings.Preset)
+        {
+            case SpriteBehaviorPreset.Quiet:
+                SpriteQuietRadio.IsChecked = true;
+                break;
+            case SpriteBehaviorPreset.Lively:
+                SpriteLivelyRadio.IsChecked = true;
+                break;
+            default:
+                SpriteGentleRadio.IsChecked = true;
+                break;
+        }
+
+        ApplySpriteBehaviorToControls(settings);
+        _initializingSpriteBehavior = false;
+    }
+
+    private void ApplySpriteBehaviorToControls(SpriteBehaviorSettings settings)
+    {
+        SpriteGreetingsCheck.IsChecked = settings.Greetings;
+        SpriteChatterCheck.IsChecked = settings.Chatter;
+        SpriteHoverCheck.IsChecked = settings.HoverReaction;
+        SpriteReminderCheck.IsChecked = settings.ReminderBubble;
+        SpriteCelebrationCheck.IsChecked = settings.Celebration;
+        SpriteQuietHoursCheck.IsChecked = settings.QuietHours;
+        SpriteDataAdviceCheck.IsChecked = settings.DataAdvice;
+    }
+
+    // [新增-机器人交互] 切换性格档位：恢复该档位默认开关，保留引导/问候历史
+    private void SpritePreset_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_initializingSpriteBehavior
+            || sender is not System.Windows.FrameworkElement { Tag: string tag }
+            || !Enum.TryParse<SpriteBehaviorPreset>(tag, out var preset))
+        {
+            return;
+        }
+
+        var current = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        var next = SpriteBehaviorSettings.ForPreset(preset, current);
+
+        _initializingSpriteBehavior = true;
+        ApplySpriteBehaviorToControls(next);
+        _initializingSpriteBehavior = false;
+
+        ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+    }
+
+    // [新增-机器人交互] 细项开关：保留当前档位与引导/问候历史
+    private void SpriteToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_initializingSpriteBehavior)
+        {
+            return;
+        }
+
+        var current = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        var preset = SpriteLivelyRadio.IsChecked == true
+            ? SpriteBehaviorPreset.Lively
+            : SpriteQuietRadio.IsChecked == true
+                ? SpriteBehaviorPreset.Quiet
+                : SpriteBehaviorPreset.Gentle;
+
+        var next = new SpriteBehaviorSettings
+        {
+            Preset = preset,
+            Greetings = SpriteGreetingsCheck.IsChecked == true,
+            Chatter = SpriteChatterCheck.IsChecked == true,
+            HoverReaction = SpriteHoverCheck.IsChecked == true,
+            ReminderBubble = SpriteReminderCheck.IsChecked == true,
+            Celebration = SpriteCelebrationCheck.IsChecked == true,
+            QuietHours = SpriteQuietHoursCheck.IsChecked == true,
+            DataAdvice = SpriteDataAdviceCheck.IsChecked == true,
+            GuideShown = current.GuideShown,
+            LastGreetingDate = current.LastGreetingDate,
+            LastAdviceDate = current.LastAdviceDate
+        };
+
+        ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+    }
+
+    // [新增-机器人交互] 设置页预览一次问候
+    private void SpriteGreet_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current).PreviewSpriteGreeting();
 }

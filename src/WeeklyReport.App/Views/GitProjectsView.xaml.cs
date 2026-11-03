@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using WeeklyReport.Domain;
 using WeeklyReport.App.ViewModels;
 using Forms = System.Windows.Forms;
 using UserControl = System.Windows.Controls.UserControl;
@@ -17,6 +18,17 @@ public partial class GitProjectsView : UserControl
         _viewModel = viewModel;
         DataContext = viewModel;
         Loaded += OnLoaded;
+    }
+
+    public async Task<bool> NavigateToWorkItemsAsync(DateOnly weekStart)
+    {
+        if (!await _viewModel.NavigateToWorkWeekAsync(weekStart))
+        {
+            return false;
+        }
+
+        WorkItemsSegment.IsChecked = true;
+        return true;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

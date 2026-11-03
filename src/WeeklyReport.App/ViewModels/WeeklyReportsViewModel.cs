@@ -36,6 +36,10 @@ public partial class WeeklyReportsViewModel(
 
     public ObservableCollection<WeeklyReportHistoryItem> History { get; } = [];
 
+    // [新增-天线状态] 周报保存成功事件：供主窗口请求悬浮精灵进入庆祝态
+    public event Action? ReportSaved;
+    public event Action? DataChanged;
+
     [ObservableProperty] private DateTime? _selectedDate = DateTime.Today;
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private string _editorTitle = "打开或生成周报";
@@ -93,6 +97,24 @@ public partial class WeeklyReportsViewModel(
         await OpenOrCreateCoreAsync();
     }
 
+    public bool SelectDateForNavigation(DateOnly weekStart)
+    {
+        if (!CanDiscardChanges())
+        {
+            return false;
+        }
+
+        var editorWeek = _existing?.Week.Start ?? _draft?.Week.Start;
+        SelectedDate = weekStart.ToDateTime(TimeOnly.MinValue);
+        if (editorWeek != weekStart)
+        {
+            ResetEditor();
+            StatusMessage = "已选择日期；请手动打开或生成周报。";
+        }
+
+        return true;
+    }
+
     private async Task OpenOrCreateCoreAsync() =>
         await RunAsync(async () =>
         {
@@ -145,6 +167,9 @@ public partial class WeeklyReportsViewModel(
             }
 
             saved = true;
+            DataChanged?.Invoke();
+            // [新增-天线状态] 保存成功即通知（历史刷新失败不影响庆祝触发）
+            ReportSaved?.Invoke();
             LoadExisting(report);
             await LoadHistoryAsync();
             StatusMessage = "周报已保存。";
@@ -182,6 +207,7 @@ public partial class WeeklyReportsViewModel(
         {
             await service.DeleteAsync(item.Report);
             deleted = true;
+            DataChanged?.Invoke();
             if (_existing?.Id == item.Report.Id)
             {
                 ResetEditor();

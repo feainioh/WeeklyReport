@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using WeeklyReport.App.Services;
 // [新增-悬浮精灵] 卡片与精灵内容控件所在命名空间
 using WeeklyReport.App.Controls;
+using WeeklyReport.Application;
 using WeeklyReport.Domain;
 using Forms = System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
@@ -27,6 +28,8 @@ public partial class FloatingWindow : Window
     private FloatingStyle _style;
     private FloatingCard? _card;
     private FloatingSprite? _sprite;
+    private SpriteBehaviorSettings _spriteBehavior = SpriteBehaviorSettings.Default;
+    private string _weeklyProgressStatus = "存储状态：正在读取";
 
     // [新增-悬浮精灵] 精灵形态窗口尺寸（含跳动空间）；卡片形态沿用 320x165
     // [旧代码-机器人化] 原文档精灵尺寸 150x190，机器人化缩小 50% 后改为 75x95
@@ -45,8 +48,27 @@ public partial class FloatingWindow : Window
 
         // [新增-悬浮精灵] 启动时读取样式偏好（旧文件缺 Style 字段时默认卡片），并按样式构建内容（切片 2/3）
         _machine = new FloatingSpriteStateMachine();
-        _style = FloatingWindowPreferencesStore.TryLoad(_positionPath)?.Style ?? FloatingStyle.Card;
+        // [旧代码-机器人交互] 原只读取样式
+        // _style = FloatingWindowPreferencesStore.TryLoad(_positionPath)?.Style ?? FloatingStyle.Card;
+
+        // [新增-机器人交互] 同时读取精灵行为设置
+        var preferences = FloatingWindowPreferencesStore.TryLoad(_positionPath);
+        _style = preferences?.Style ?? FloatingStyle.Card;
+        _spriteBehavior = preferences?.Sprite ?? SpriteBehaviorSettings.Default;
         BuildContent();
+
+        // [新增-机器人交互] 显示/隐藏时启停精灵问候与空闲计时
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible)
+            {
+                _sprite?.OnWindowShown();
+            }
+            else
+            {
+                _sprite?.OnWindowHidden();
+            }
+        };
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _timer.Tick += (_, _) => UpdateWeek();
@@ -109,6 +131,77 @@ public partial class FloatingWindow : Window
         }
     }
 
+    public void SetWeeklyProgressContext(WeeklyProgressContext context)
+    {
+        _weeklyProgressStatus = $"存储状态：{WeeklyProgressStatusFormatter.FormatStorage(context)}";
+        _card?.SetStorageStatus(_weeklyProgressStatus);
+        _sprite?.SetWeeklyProgressStatus(_weeklyProgressStatus);
+    }
+
+    public void ShowWeeklyAdvice(WeeklyAdvice advice, DateOnly weekStart, bool userInitiated)
+    {
+        if (_style == FloatingStyle.Sprite)
+        {
+            _sprite?.ShowWeeklyAdvice(advice, weekStart, userInitiated);
+        }
+    }
+
+    // [新增-机器人交互] 当前精灵行为设置（设置页初始化读取）
+    public SpriteBehaviorSettings CurrentSpriteBehavior => _spriteBehavior;
+
+    // [新增-机器人交互] 用户点击提醒气泡中的“打开周报”
+    public event Action<DateOnly>? OpenWeekRequested;
+
+    public event Action<bool>? WeeklyProgressRequested;
+
+    public event Action<WeeklyAdviceAction, DateOnly>? AdviceActionRequested;
+
+    // [新增-机器人交互] 设置页保存行为设置：立即应用并持久化
+    public void ApplySpriteBehavior(SpriteBehaviorSettings settings)
+    {
+        _spriteBehavior = settings;
+        _sprite?.ApplyBehavior(settings);
+        SavePosition();
+    }
+
+    // [新增-机器人交互] 周报提醒路由：精灵走气泡/动画，卡片只更新文本
+    public void ShowWeeklyReminder(DateOnly weekStart, WeeklyReportSavedState state)
+    {
+        if (_style == FloatingStyle.Sprite)
+        {
+            _sprite?.ShowWeeklyReminder(weekStart, state);
+            return;
+        }
+
+        _card?.SetReminderStatus(SpriteMessagePolicy.CreateReminder(state, weekStart).Text);
+    }
+
+    // [新增-机器人交互] 设置页“打个招呼”预览
+    public void PreviewGreeting()
+    {
+        if (_style == FloatingStyle.Sprite)
+        {
+            _sprite?.PreviewGreeting();
+        }
+    }
+
+    // [新增-天线状态] 周报保存成功：仅精灵形态进入庆祝态，卡片形态忽略
+    public void Celebrate()
+    {
+        if (_style == FloatingStyle.Sprite)
+        {
+            // [新增-机器人交互] 关闭庆祝开关时忽略
+            if (!_spriteBehavior.Celebration)
+            {
+                return;
+            }
+
+            _machine.Celebrate();
+            // [新增-机器人交互] 保存成功气泡
+            _sprite?.ShowCelebration();
+        }
+    }
+
     public void SavePosition()
     {
         try
@@ -131,9 +224,13 @@ public partial class FloatingWindow : Window
             //     }
             // }
 
-            // [新增-悬浮精灵] 切片 2：偏好写入改为位置 + 样式
+            // [旧代码-机器人交互] 原偏好仅位置 + 样式
+            // FloatingWindowPreferencesStore.Save(
+            //     _positionPath, new FloatingWindowPreferences(Left, Top, _style));
+
+            // [新增-机器人交互] 同时保存精灵行为设置
             FloatingWindowPreferencesStore.Save(
-                _positionPath, new FloatingWindowPreferences(Left, Top, _style));
+                _positionPath, new FloatingWindowPreferences(Left, Top, _style, _spriteBehavior));
         }
         catch (Exception exception) when (ErrorMessages.IsExpected(exception))
         {
@@ -275,6 +372,29 @@ public partial class FloatingWindow : Window
         if (_style == FloatingStyle.Sprite)
         {
             var sprite = new FloatingSprite(_machine);
+            // [新增-机器人交互] 应用当前行为设置并转发气泡“打开周报”动作
+            sprite.ApplyBehavior(_spriteBehavior);
+            sprite.OpenWeekRequested += week => OpenWeekRequested?.Invoke(week);
+            sprite.WeeklyProgressRequested += userInitiated =>
+                WeeklyProgressRequested?.Invoke(userInitiated);
+            sprite.AdviceActionRequested += (action, week) =>
+                AdviceActionRequested?.Invoke(action, week);
+            sprite.AdviceShown += date =>
+            {
+                _spriteBehavior = _spriteBehavior with { LastAdviceDate = date };
+                SavePosition();
+            };
+            // [新增-机器人交互] 持久化首次引导与每日问候日期
+            sprite.GreetingShown += date =>
+            {
+                _spriteBehavior = _spriteBehavior with { LastGreetingDate = date };
+                SavePosition();
+            };
+            sprite.GuideShown += () =>
+            {
+                _spriteBehavior = _spriteBehavior with { GuideShown = true };
+                SavePosition();
+            };
             sprite.DragPressed += () =>
             {
                 DragMove();
@@ -288,6 +408,7 @@ public partial class FloatingWindow : Window
         else
         {
             var card = new FloatingCard();
+            card.SetStorageStatus(_weeklyProgressStatus);
             card.HeaderDragPressed += (_, _) =>
             {
                 DragMove();
@@ -295,6 +416,7 @@ public partial class FloatingWindow : Window
             };
             card.OpenRequested += (_, _) => _openMain();
             card.HideRequested += (_, _) => HideWithPosition();
+            card.WeeklyProgressRequested += (_, _) => WeeklyProgressRequested?.Invoke(true);
             _card = card;
             FloatingContentHost.Children.Add(card);
         }

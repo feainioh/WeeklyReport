@@ -25,6 +25,8 @@ public partial class App : System.Windows.Application
     private FloatingWindow? _floatingWindow;
     private WindowsReminderNotifier? _reminderNotifier;
     private ReminderMonitor? _reminderMonitor;
+    private WeeklyReportStatusProvider? _weeklyReportStatus;
+    private IWeeklyProgressContextProvider? _weeklyProgressContext;
     private bool _ownsMutex;
 
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
@@ -112,7 +114,10 @@ public partial class App : System.Windows.Application
             services.AddSingleton<GitSyncService>();
             services.AddSingleton<WorkEntryService>();
             services.AddSingleton<IWeeklyReportRepository, SqlSugarWeeklyReportRepository>();
+            // [新增-机器人交互] 本周周报保存状态查询（提醒文案区分已保存/未保存）
+            services.AddSingleton<WeeklyReportStatusProvider>();
             services.AddSingleton<WeeklyReportDraftBuilder>();
+            services.AddSingleton<IWeeklyProgressContextProvider, WeeklyProgressContextProvider>();
             services.AddSingleton<WeeklyReportService>();
             services.AddSingleton<IUserDialogs, UserDialogs>();
             services.AddSingleton<WorkEntriesViewModel>();
@@ -124,22 +129,35 @@ public partial class App : System.Windows.Application
             services.AddSingleton<AutoStartService>();
             services.AddSingleton<MainWindow>();
             _services = services.BuildServiceProvider();
+            // [新增-机器人交互] 提醒事件与周报保存状态查询服务
+            _weeklyReportStatus = _services.GetRequiredService<WeeklyReportStatusProvider>();
+            _weeklyProgressContext = _services.GetRequiredService<IWeeklyProgressContextProvider>();
 
             _theme = new ThemeService(Resources, Dispatcher);
             _theme.Start();
 
             var mainWindow = _services.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
+
+            // [新增-界面现代化2] 系统主题切换后同步刷新 Win11 标题栏底色
+            _theme.ThemeChanged += () => WindowChromeHelper.ApplyCaptionColor(mainWindow);
             _floatingWindow = new FloatingWindow(
                 Path.Combine(dataDirectory, "floating-window.json"),
                 () => ShowMainWindow(),
                 _services.GetRequiredService<ILogger<FloatingWindow>>());
+            // [新增-机器人交互] 提醒气泡“打开周报”动作
+            _floatingWindow.OpenWeekRequested += week => _ = OpenReminderWeekAsync(week);
+            _floatingWindow.WeeklyProgressRequested += userInitiated =>
+                _ = ShowWeeklyProgressAsync(userInitiated);
+            _floatingWindow.AdviceActionRequested += (action, week) =>
+                _ = NavigateFromWeeklyAdviceAsync(action, week);
             _tray = new TrayService(ShowMainWindow, ToggleFloatingWindow, ExitApplication);
 
             mainWindow.Show();
             _floatingWindow.Show();
             StartReminders();
             await mainWindow.InitializeAsync();
+            await RefreshWeeklyProgressStatusAsync();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -179,6 +197,94 @@ public partial class App : System.Windows.Application
             _floatingWindow.Activate();
         }
     }
+
+    // [新增-天线状态] 周报保存成功：请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 自行忽略）
+    public void RequestFloatingCelebration()
+    {
+        // [新增-机器人交互] 保存成功后失效状态缓存，下一次提醒能读到最新保存状态
+        _weeklyReportStatus?.Invalidate();
+        _weeklyProgressContext?.Invalidate();
+        _floatingWindow?.Celebrate();
+    }
+
+    public void InvalidateWeeklyProgressContext() => _weeklyProgressContext?.Invalidate();
+
+    public async Task RefreshWeeklyProgressStatusAsync()
+    {
+        if (_weeklyProgressContext is null || _services is null)
+        {
+            return;
+        }
+
+        var context = await _weeklyProgressContext.GetCurrentWeekAsync();
+        _services.GetRequiredService<MainWindow>().SetWeeklyProgressContext(context);
+        _floatingWindow?.SetWeeklyProgressContext(context);
+    }
+
+    private async Task ShowWeeklyProgressAsync(bool userInitiated)
+    {
+        var provider = _weeklyProgressContext;
+        if (provider is null || _services is null)
+        {
+            return;
+        }
+
+        WeeklyProgressContext context;
+        try
+        {
+            context = await provider.GetCurrentWeekAsync(forceRefresh: userInitiated);
+        }
+        catch (Exception exception)
+        {
+            Log.Warning("Weekly progress retrieval failed: {ErrorType}", exception.GetType().Name);
+            var weekStart = WeekPeriod.FromDate(
+                DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().DateTime)).Start;
+            context = new WeeklyProgressContext(
+                weekStart, null, null, null, null, WeeklyStorageStatus.Unknown, 0, 0, null,
+                exception.GetType().Name);
+        }
+
+        var mainWindow = _services.GetRequiredService<MainWindow>();
+        mainWindow.SetWeeklyProgressContext(context);
+        _floatingWindow?.SetWeeklyProgressContext(context);
+        var advice = WeeklyAdvicePolicy.Create(context);
+        if (_floatingWindow?.CurrentStyleValue == (int)FloatingStyle.Sprite)
+        {
+            _floatingWindow.ShowWeeklyAdvice(advice, context.WeekStart, userInitiated);
+        }
+        else if (userInitiated)
+        {
+            await mainWindow.NavigateToWeeklyAdviceAsync(advice.Action, context.WeekStart);
+        }
+    }
+
+    private async Task NavigateFromWeeklyAdviceAsync(WeeklyAdviceAction action, DateOnly weekStart)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _services.GetRequiredService<MainWindow>()
+                .NavigateToWeeklyAdviceAsync(action, weekStart);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            Log.Warning("Weekly advice navigation failed: {ErrorType}", exception.GetType().Name);
+        }
+    }
+
+    // [新增-机器人交互] 设置页读取/保存精灵行为与预览问候
+    public SpriteBehaviorSettings GetSpriteBehavior() =>
+        _floatingWindow?.CurrentSpriteBehavior ?? SpriteBehaviorSettings.Default;
+
+    public void SetSpriteBehavior(SpriteBehaviorSettings settings) =>
+        _floatingWindow?.ApplySpriteBehavior(settings);
+
+    public void PreviewSpriteGreeting() =>
+        _floatingWindow?.PreviewGreeting();
 
     // [新增-悬浮精灵] 切片 6：设置页悬浮窗样式读写入口（0=卡片，1=精灵）
     public int GetFloatingStyle() => _floatingWindow?.CurrentStyleValue ?? (int)FloatingStyle.Card;
@@ -277,6 +383,8 @@ public partial class App : System.Windows.Application
                 TimeProvider.System,
                 ReportReminderStatus,
                 services.GetRequiredService<ILogger<ReminderMonitor>>());
+            // [新增-机器人交互] 订阅实际发送成功的提醒事件
+            _reminderMonitor.ReminderSent += OnReminderSent;
             _reminderMonitor.Start();
         }
         catch (Exception exception) when (exception is ReminderNotificationException or InvalidOperationException)
@@ -307,23 +415,89 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // [旧代码-机器人交互] 原系统通知点击的内联打开逻辑，已提取为 OpenReminderWeekAsync 供气泡动作复用
+        // Dispatcher.BeginInvoke(new Action(async () =>
+        // {
+        //     try
+        //     {
+        //         ShowMainWindow();
+        //         if (MainWindow is MainWindow mainWindow)
+        //         {
+        //             await mainWindow.OpenWeekFromReminderAsync(weekStart);
+        //         }
+        //     }
+        //     catch (Exception exception)
+        //     {
+        //         Log.Error("Reminder activation failed: {ErrorType}", exception.GetType().Name);
+        //         MessageBox.Show("无法打开提醒对应的周报，请从主界面手动打开并检查日志。", "周报提醒",
+        //             System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        //     }
+        // }));
+
+        // [新增-机器人交互] 系统通知与精灵气泡共用同一条打开周报路径
+        Dispatcher.BeginInvoke(new Action(() => _ = OpenReminderWeekAsync(weekStart)));
+    }
+
+    // [新增-机器人交互] 打开提醒对应周；供系统通知点击与精灵气泡动作共用
+    private async Task OpenReminderWeekAsync(DateOnly weekStart)
+    {
+        try
+        {
+            ShowMainWindow();
+            if (MainWindow is MainWindow mainWindow)
+            {
+                await mainWindow.OpenWeekFromReminderAsync(weekStart);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.Error("Reminder activation failed: {ErrorType}", exception.GetType().Name);
+            MessageBox.Show("无法打开提醒对应的周报，请从主界面手动打开并检查日志。", "周报提醒",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    // [新增-机器人交互] 实际提醒事件：查询本周保存状态后交给悬浮精灵显示
+    private void OnReminderSent(ReminderKey key)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
         Dispatcher.BeginInvoke(new Action(async () =>
         {
             try
             {
-                ShowMainWindow();
-                if (MainWindow is MainWindow mainWindow)
-                {
-                    await mainWindow.OpenWeekFromReminderAsync(weekStart);
-                }
+                var state = _weeklyReportStatus is null
+                    ? WeeklyReportSavedState.Unknown
+                    : await _weeklyReportStatus.GetWeekAsync(key.WeekStart);
+                _floatingWindow?.ShowWeeklyReminder(key.WeekStart, state);
             }
             catch (Exception exception)
             {
-                Log.Error("Reminder activation failed: {ErrorType}", exception.GetType().Name);
-                MessageBox.Show("无法打开提醒对应的周报，请从主界面手动打开并检查日志。", "周报提醒",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                Log.Warning("Sprite reminder display failed: {ErrorType}", exception.GetType().Name);
             }
         }));
+    }
+
+    // [新增-机器人交互] 测试提醒按钮：查询状态并显示精灵提醒（不触发定时提醒去重）
+    public async Task PreviewReminderAsync(DateOnly weekStart)
+    {
+        WeeklyReportSavedState state;
+        try
+        {
+            state = _weeklyReportStatus is null
+                ? WeeklyReportSavedState.Unknown
+                : await _weeklyReportStatus.GetWeekAsync(weekStart);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            Log.Warning("Reminder preview status failed: {ErrorType}", exception.GetType().Name);
+            state = WeeklyReportSavedState.Unknown;
+        }
+
+        _floatingWindow?.ShowWeeklyReminder(weekStart, state);
     }
 
     protected override void OnExit(System.Windows.ExitEventArgs e)

@@ -65,6 +65,73 @@ public sealed class FloatingPreferencesTests : IDisposable
         Assert.Null(FloatingWindowPreferencesStore.TryLoad(_path));
     }
 
+    // [新增-机器人交互] 旧文件缺少 Sprite 设置时回退默认行为
+    [Fact]
+    public void LegacyFileWithoutSpriteSettings_LoadsDefaultBehavior()
+    {
+        File.WriteAllText(_path, """{"Left":100,"Top":200,"Style":1}""");
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(SpriteBehaviorSettings.Default, loaded!.Sprite);
+    }
+
+    // [新增-机器人交互] 精灵行为设置完整往返
+    [Fact]
+    public void SaveThenLoad_RoundTripsSpriteBehavior()
+    {
+        var behavior = new SpriteBehaviorSettings
+        {
+            Preset = SpriteBehaviorPreset.Lively,
+            Greetings = false,
+            Chatter = true,
+            HoverReaction = false,
+            ReminderBubble = true,
+            Celebration = false,
+            QuietHours = false,
+            GuideShown = true,
+            LastGreetingDate = new DateOnly(2026, 11, 2),
+            DataAdvice = false,
+            LastAdviceDate = new DateOnly(2026, 11, 1)
+        };
+
+        FloatingWindowPreferencesStore.Save(_path,
+            new FloatingWindowPreferences(12.5, -30, FloatingStyle.Sprite, behavior));
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(behavior, loaded!.Sprite);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public void LegacySpriteSettingsWithoutAdviceUsePresetDefault(int preset, bool expected)
+    {
+        File.WriteAllText(_path,
+            "{\"Left\":1,\"Top\":2,\"Style\":1,\"Sprite\":{\"Preset\":" + preset + "}}");
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(expected, loaded!.Sprite!.DataAdvice);
+    }
+
+    // [新增-机器人交互] 未知档位值回退默认行为，不丢失位置/样式
+    [Fact]
+    public void UnknownSpritePreset_FallsBackToDefaultBehavior()
+    {
+        File.WriteAllText(_path, """{"Left":1,"Top":2,"Style":1,"Sprite":{"Preset":99}}""");
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(SpriteBehaviorSettings.Default, loaded!.Sprite);
+    }
+
     public void Dispose()
     {
         if (File.Exists(_path))

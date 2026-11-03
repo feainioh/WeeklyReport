@@ -1,15 +1,91 @@
 <UserControl x:Class="WeeklyReport.App.Views.WeeklyReportsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="0,14,0,0">
+    <!-- [旧代码-界面现代化2] 原视图上边距 14，现与全局卡片节奏统一为 16 -->
+    <!-- <Grid Margin="0,14,0,0"> -->
+    <Grid Margin="0,16,0,0">
+        <!-- [旧代码-去嵌套] 原两行布局（内容 + 状态栏）
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TabControl Background="{DynamicResource WindowBrush}" SelectedIndex="{Binding SelectedTabIndex}">
-            <TabItem Header="编辑周报">
-                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,12,0,0">
-                    <Grid>
+        -->
+        <!-- [新增-去嵌套] 三段布局：分段开关 / 内容 / 状态栏 -->
+        <!-- [旧代码-去嵌套2] 二次去嵌套后恢复两行（分段开关并入卡片头部，不再独占一行）
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        -->
+        <!-- [新增-去嵌套2] 两行布局：单卡片内容 + 状态栏 -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- [旧代码-去嵌套2] 原页面级分段开关（卡外悬浮的双层盒子结构）：
+             外框 Border(HoverBrush 底 + CardBorderBrush 边框) 内嵌带边框的按钮，与下方大卡形成盒上叠盒。
+             二次去嵌套后分段开关移入卡片内部作为头部，轨道去边框，整页仅一层卡片边界。
+        <Border Background="{DynamicResource HoverBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="3" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="EditReportSegment" Content="编辑周报" GroupName="WeeklyReportMode"
+                             Style="{StaticResource SegmentRadioButton}"
+                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IndexToBoolConverter},
+                                                 ConverterParameter=0, Mode=TwoWay}" />
+                <RadioButton x:Name="HistoryReportSegment" Content="历史周报" GroupName="WeeklyReportMode"
+                             Style="{StaticResource SegmentRadioButton}"
+                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IndexToBoolConverter},
+                                                 ConverterParameter=1, Mode=TwoWay}" />
+            </StackPanel>
+        </Border>
+        -->
+
+        <!-- [旧代码-去嵌套2] 原编辑卡片外壳（与历史卡片分离、按可见性切换，构成第二层盒子）；
+             内容原样迁入下方单卡片编辑面板
+        <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,16,0,0"
+                Visibility="{Binding IsChecked, ElementName=EditReportSegment,
+                                     Converter={StaticResource BoolToVisibility}}">
+            ...
+        </Border>
+        -->
+        <!-- [旧代码-去嵌套2] 原历史卡片外壳（同上，迁入单卡片历史面板）
+        <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,16,0,0"
+                Visibility="{Binding IsChecked, ElementName=HistoryReportSegment,
+                                     Converter={StaticResource BoolToVisibility}}">
+            ...
+        </Border>
+        -->
+
+        <!-- [新增-去嵌套2] 单卡片布局：分段开关作为卡片头部（轨道无外框），编辑/历史两个面板同卡切换 -->
+        <Border Style="{StaticResource ModernCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- [新增-去嵌套2] 卡片头部分段开关：轨道仅保留极淡底色，无边框（控件不再是盒子） -->
+                <Border Background="{DynamicResource HoverBrush}" CornerRadius="8" Padding="3"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="EditReportSegment" Content="编辑周报" GroupName="WeeklyReportMode"
+                                     Style="{StaticResource SegmentRadioButton}"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IndexToBoolConverter},
+                                                         ConverterParameter=0, Mode=TwoWay}" />
+                        <RadioButton x:Name="HistoryReportSegment" Content="历史周报" GroupName="WeeklyReportMode"
+                                     Style="{StaticResource SegmentRadioButton}"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IndexToBoolConverter},
+                                                         ConverterParameter=1, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- [新增-去嵌套2] 内容区：编辑 / 历史两个面板同格互斥显示 -->
+                <Grid Grid.Row="1" Margin="0,16,0,0">
+                    <!-- [新增-去嵌套2] 编辑面板（原编辑卡片内部内容原样迁入） -->
+                    <Grid Visibility="{Binding IsChecked, ElementName=EditReportSegment,
+                                               Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -22,10 +98,12 @@
                             <Button Content="打开或生成周报" Command="{Binding OpenOrCreateCommand}"
                                     IsEnabled="{Binding CanInteract}" Margin="10,0,0,0" />
                         </StackPanel>
-                        <StackPanel Grid.Row="1" Margin="0,14,0,12">
-                            <TextBlock Text="{Binding EditorTitle}" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding HoursDisplay}" Foreground="{DynamicResource MutedBrush}"
-                                       TextWrapping="Wrap" Margin="0,5,0,0" />
+                        <StackPanel Grid.Row="1" Margin="0,16,0,16">
+                            <!-- [旧代码-界面现代化2] 原区域标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitleText}" />
+                            <!-- [旧代码-界面现代化2] 原说明行 Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" -->
+                            <TextBlock Text="{Binding HoursDisplay}" Style="{StaticResource CaptionText}"
+                                       Margin="0,5,0,0" />
                         </StackPanel>
                         <Grid Grid.Row="2" IsEnabled="{Binding CanEdit}">
                             <Grid.ColumnDefinitions>
@@ -67,42 +145,45 @@
                             <Button Content="关闭编辑" Command="{Binding CloseReportCommand}" IsEnabled="{Binding CanEdit}" />
                         </StackPanel>
                     </Grid>
-                </Border>
-            </TabItem>
-            <TabItem Header="历史周报">
-                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,12,0,0">
-                    <Grid>
+
+                    <!-- [新增-去嵌套2] 历史面板（原历史卡片内部内容原样迁入） -->
+                    <Grid Visibility="{Binding IsChecked, ElementName=HistoryReportSegment,
+                                               Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="刷新历史" Command="{Binding RefreshHistoryCommand}"
-                                    IsEnabled="{Binding CanInteract}" />
-                            <TextBlock Text="历史周报" FontSize="18" FontWeight="SemiBold" />
+                                    IsEnabled="{Binding CanInteract}" Style="{StaticResource SecondaryButton}" />
+                            <!-- [旧代码-界面现代化2] 原区域标题 FontSize="18" FontWeight="SemiBold" -->
+                            <TextBlock Text="历史周报" Style="{StaticResource SectionTitleText}" />
                         </DockPanel>
                         <ListBox Grid.Row="1" ItemsSource="{Binding History}" IsEnabled="{Binding CanInteract}"
-                                 Background="Transparent" BorderThickness="0" Margin="0,12,0,0">
+                                 Background="Transparent" BorderThickness="0" Margin="0,16,0,0">
+                            <!-- [新增-界面现代化2] 基于全局行样式，仅补充内容拉伸 -->
                             <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
+                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 </Style>
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{DynamicResource MutedBrush}" BorderThickness="0,0,0,1" Padding="4,10">
+                                    <!-- [旧代码-界面现代化2] 原行分隔线 BorderBrush="{DynamicResource MutedBrush}" -->
+                                    <Border BorderBrush="{DynamicResource RowSeparatorBrush}" BorderThickness="0,0,0,1" Padding="4,10">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                                <Button Content="打开"
+                                                <!-- [新增-界面现代化2] 行内操作改为紧凑次要按钮 -->
+                                                <Button Content="打开" Style="{StaticResource CompactButton}"
                                                         Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}" />
-                                                <Button Content="删除"
+                                                <Button Content="删除" Style="{StaticResource CompactButton}" Margin="0"
                                                         Command="{Binding DataContext.DeleteHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}" />
                                             </StackPanel>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding WeekDisplay}" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding HoursDisplay}" Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0" />
+                                                <TextBlock Text="{Binding HoursDisplay}" Style="{StaticResource CaptionText}" Margin="0,5,0,0" />
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
@@ -110,13 +191,17 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Grid>
-                </Border>
-            </TabItem>
-        </TabControl>
-        <DockPanel Grid.Row="1" Margin="0,10,0,0">
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- [旧代码-去嵌套] 原状态栏为 Grid.Row="1"，新增分段开关行后下移为第 2 行 -->
+        <!-- [旧代码-去嵌套2] 分段开关并入卡片后恢复为第 1 行 -->
+        <DockPanel Grid.Row="1" Margin="0,12,0,0">
             <Button DockPanel.Dock="Right" Content="取消当前操作" Command="{Binding CancelOperationCommand}"
-                    IsEnabled="{Binding IsCancellable}" />
-            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" />
+                    IsEnabled="{Binding IsCancellable}" Style="{StaticResource SecondaryButton}" />
+            <!-- [旧代码-界面现代化2] 原状态行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionText}" />
         </DockPanel>
     </Grid>
 </UserControl>

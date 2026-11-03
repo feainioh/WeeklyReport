@@ -17,12 +17,17 @@
                 <TextBlock Text="拖动" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right" />
             </DockPanel>
             <TextBlock x:Name="WeekText" Grid.Row="1" Margin="0,10,0,0" />
-            <TextBlock x:Name="ReminderStatusText" Grid.Row="2" Text="提醒正在初始化。"
-                       Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
+            <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                <TextBlock x:Name="ReminderStatusText" Text="提醒正在初始化。"
+                           Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="StorageStatusText" Text="存储状态：正在读取"
+                           Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
             <StackPanel Grid.Row="3" Orientation="Horizontal">
                 <Button Content="打开记录" Click="Open_Click" Background="{DynamicResource AccentBrush}"
-                        Foreground="{DynamicResource AccentTextBrush}" />
-                <Button Content="收起" Click="Hide_Click" />
+                        Foreground="{DynamicResource AccentTextBrush}" Style="{StaticResource CompactButton}" />
+                <Button Content="本周进展" Click="WeeklyProgress_Click" Style="{StaticResource CompactButton}" />
+                <Button Content="收起" Click="Hide_Click" Style="{StaticResource CompactButton}" Margin="0" />
             </StackPanel>
         </Grid>
     </Border>

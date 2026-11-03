@@ -77,6 +77,7 @@ public partial class GitProjectsViewModel : ObservableObject
 
     public ObservableCollection<GitProjectItem> Projects { get; } = [];
     public ObservableCollection<GitWorkItemView> WorkItems { get; } = [];
+    public event EventHandler? DataChanged;
     public IReadOnlyList<GitAuthorOption> AuthorOptions { get; } =
     [
         new(GitAuthorField.Email, "邮箱"),
@@ -200,6 +201,7 @@ public partial class GitProjectsViewModel : ObservableObject
             }
 
             saved = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             ResetProjectEditor();
             InvalidatePreview();
             await LoadProjectsAsync();
@@ -229,6 +231,7 @@ public partial class GitProjectsViewModel : ObservableObject
             }
 
             deleted = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             if (_editingProjectId == item.Project.Id)
             {
                 ResetProjectEditor();
@@ -309,6 +312,7 @@ public partial class GitProjectsViewModel : ObservableObject
         {
             var result = await _sync.ApplyAsync(prepared, true, skipDeleted, acceptShallow);
             applied = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             InvalidatePreview();
             ResetWorkEditor();
             await LoadWorkItemsAsync();
@@ -363,6 +367,7 @@ public partial class GitProjectsViewModel : ObservableObject
             }
 
             saved = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             ResetWorkEditor();
             InvalidatePreview();
             await LoadWorkItemsAsync();
@@ -421,6 +426,7 @@ public partial class GitProjectsViewModel : ObservableObject
             }
 
             deleted = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             if (_editingWorkItemId == view.Item.Id)
             {
                 ResetWorkEditor();
@@ -461,6 +467,7 @@ public partial class GitProjectsViewModel : ObservableObject
         {
             var changed = await _store.RecalculateDateAsync(DateOnly.FromDateTime(selected));
             recalculated = true;
+            DataChanged?.Invoke(this, EventArgs.Empty);
             ResetWorkEditor();
             InvalidatePreview();
             await LoadWorkItemsAsync();
@@ -469,6 +476,22 @@ public partial class GitProjectsViewModel : ObservableObject
     }
 
     public bool CanDiscardChanges() => CanDiscardProjectChanges() && CanDiscardWorkChanges();
+
+    public async Task<bool> NavigateToWorkWeekAsync(DateOnly weekStart)
+    {
+        if (IsBusy || !CanDiscardChanges())
+        {
+            return false;
+        }
+
+        WorkWeek = weekStart.ToDateTime(TimeOnly.MinValue);
+        await RunAsync(async () =>
+        {
+            await LoadWorkItemsAsync();
+            ResetWorkEditor();
+        });
+        return true;
+    }
 
     public void InvalidateForExternalChange() => InvalidatePreview();
 

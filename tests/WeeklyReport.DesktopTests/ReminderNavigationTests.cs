@@ -48,6 +48,42 @@ public class ReminderNavigationTests
         Assert.Equal(1, dialogs.ConfirmCount);
     }
 
+    [Fact]
+    public async Task SelectDateForNavigation_ChangesDateWithoutOpeningOrCreatingReport()
+    {
+        var reports = new FakeReports();
+        var viewModel = CreateViewModel(reports, new FakeDialogs());
+        var initialWeek = new DateOnly(2026, 10, 26);
+        await viewModel.OpenWeekAsync(initialWeek);
+        var targetWeek = new DateOnly(2026, 11, 2);
+        var findCount = reports.FindCount;
+
+        var selected = viewModel.SelectDateForNavigation(targetWeek);
+
+        Assert.True(selected);
+        Assert.Equal(targetWeek.ToDateTime(TimeOnly.MinValue), viewModel.SelectedDate);
+        Assert.False(viewModel.HasReport);
+        Assert.Equal("打开或生成周报", viewModel.EditorTitle);
+        Assert.Equal(findCount, reports.FindCount);
+    }
+
+    [Fact]
+    public async Task SelectDateForNavigation_PreservesUnsavedChangesWhenUserDeclines()
+    {
+        var dialogs = new FakeDialogs { ConfirmResult = false };
+        var viewModel = CreateViewModel(new FakeReports(), dialogs);
+        var initialWeek = new DateOnly(2026, 10, 26);
+        await viewModel.OpenWeekAsync(initialWeek);
+        viewModel.WorkSummary = "未保存的内容";
+
+        var selected = viewModel.SelectDateForNavigation(new DateOnly(2026, 11, 2));
+
+        Assert.False(selected);
+        Assert.Equal(initialWeek.ToDateTime(TimeOnly.MinValue), viewModel.SelectedDate);
+        Assert.Equal("未保存的内容", viewModel.WorkSummary);
+        Assert.True(viewModel.IsDirty);
+    }
+
     private static WeeklyReportsViewModel CreateViewModel(IWeeklyReportRepository reports, IUserDialogs dialogs)
     {
         var service = new WeeklyReportService(
@@ -58,11 +94,14 @@ public class ReminderNavigationTests
 
     private sealed class FakeReports : IWeeklyReportRepository
     {
+        public int FindCount { get; private set; }
         public TaskCompletionSource<IReadOnlyList<WeeklyReportSnapshot>> ListResult { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week) =>
-            Task.FromResult<WeeklyReportSnapshot?>(null);
+        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week)
+        {
+            FindCount++;
+            return Task.FromResult<WeeklyReportSnapshot?>(null);
+        }
         public Task<IReadOnlyList<WeeklyReportSnapshot>> ListAsync() => ListResult.Task;
         public Task AddAsync(WeeklyReportSnapshot report) => throw new NotSupportedException();
         public Task<bool> UpdateAsync(WeeklyReportSnapshot report, DateTimeOffset expectedUpdatedAtUtc) =>
