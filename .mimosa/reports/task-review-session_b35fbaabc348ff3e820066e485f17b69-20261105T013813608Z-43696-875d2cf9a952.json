@@ -1,0 +1,261 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261105T013813608Z-43696-875d2cf9a952",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.AssemblyInfo.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.GlobalUsings.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.AssemblyInfo.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.GlobalUsings.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 407,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 2
+    },
+    "change_tracking": {
+      "touched_observed": 2,
+      "touched_retained": 2,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 6,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 6,
+      "selected_files": 6,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 6,
+      "scanned_files": 6,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "baseline_snapshot_unreadable": 4,
+      "project_check_failed": 4
+    },
+    "reasons": [
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.AssemblyInfo.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.GlobalUsings.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.AssemblyInfo.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.GlobalUsings.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.AssemblyInfo.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.GlobalUsings.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.AssemblyInfo.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.GlobalUsings.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-05T01:38:13.608Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "rules_version": "unavailable",
+  "diff_hash": "07b15f439e6d91d89d31aac3071fe6f8eb2c300e520e014f0b1878b2098ccef4",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 6,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 24
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "a2df17437d09e0985b105219e5da188f9068155a575dcfdb0368ba15984f996e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_liaju3du_wpftmp.GlobalUsings.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 8
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d3a5d602eb6c59425412b82def49d310ff096d51902ddd730baf10631ebcd2de"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 24
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "a2df17437d09e0985b105219e5da188f9068155a575dcfdb0368ba15984f996e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_zz2os1hd_wpftmp.GlobalUsings.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 8
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d3a5d602eb6c59425412b82def49d310ff096d51902ddd730baf10631ebcd2de"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteSyncApplier.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 490
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8755f95ff4e1f2e058fe4ee61d41ad67ff3e6ed2bd41e848639a8a6f3f47febd"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncApplierTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 173
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "ea5bd545a1845ed3fa641a8d52d10ee3422dee1afcf4c8eba329d2b70ddad4ab"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-05T01:38:11.407Z",
+    "completed_at": "2026-11-05T01:38:13.608Z",
+    "duration_ms": 2201,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2201,
+    "peakMemoryBytes": 144912384,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 6,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261105T013813608Z-43696-875d2cf9a952.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261105T013813608Z-43696-875d2cf9a952.json"
+  }
+}

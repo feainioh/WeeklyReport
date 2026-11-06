@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261102T064341304Z-32152-fe7047159a97",
+  "runStatus": "inconclusive",
+  "errors": [
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.AssemblyInfo.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.GlobalUsings.g.cs: baseline_snapshot_unreadable: file is missing from task baseline"
+  ],
+  "target": ".",
+  "revision": "b516f80fa9af53a54cf03119a38a6c90c9e00c8c",
+  "diffHash": "54f4e40edb884c3ca6097c94ba124bdb5541bba1abbff287ec88107661a5e0ff",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-02T06:43:41.304Z",
+  "timing": {
+    "startedAt": "2026-11-02T06:43:39.543Z",
+    "completedAt": "2026-11-02T06:43:41.304Z",
+    "durationMs": 1761
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "baseline_snapshot_unreadable": 2,
+      "project_check_failed": 2
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T064341304Z-32152-fe7047159a97.json"
+}

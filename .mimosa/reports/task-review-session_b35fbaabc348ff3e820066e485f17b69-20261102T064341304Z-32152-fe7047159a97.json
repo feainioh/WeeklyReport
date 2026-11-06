@@ -1,0 +1,243 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261102T064341304Z-32152-fe7047159a97",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.AssemblyInfo.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.GlobalUsings.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 237,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 4
+    },
+    "change_tracking": {
+      "touched_observed": 0,
+      "touched_retained": 0,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 6,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 6,
+      "selected_files": 6,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 6,
+      "scanned_files": 6,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "baseline_snapshot_unreadable": 2,
+      "project_check_failed": 2
+    },
+    "reasons": [
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.AssemblyInfo.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.GlobalUsings.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.AssemblyInfo.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.GlobalUsings.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-02T06:43:41.304Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "b516f80fa9af53a54cf03119a38a6c90c9e00c8c",
+  "rules_version": "unavailable",
+  "diff_hash": "54f4e40edb884c3ca6097c94ba124bdb5541bba1abbff287ec88107661a5e0ff",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 6,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "d149a651a4a49d2eeb708ec3c440d2e5abcf1b9c9673c3da6e9a0bbe5aa24888",
+        "after_hash": "ec1d316d43245f27914d9140f3bc1337fa276e3c4c2dcbc59303822d84f22881"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          }
+        ],
+        "before_hash": "2ffc54da7204b21e9fabe9c22ecd7985d868637bd18beef2f2f476b4d690cb48",
+        "after_hash": "60116575bb1b6772ed22ba93bfa53bef0a772667da1812c1c3fc0a46cd93bc3e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 44,
+            "end": 44
+          },
+          {
+            "start": 52,
+            "end": 52
+          },
+          {
+            "start": 97,
+            "end": 97
+          }
+        ],
+        "before_hash": "c7d9e13863f43021cf3bdc591c1e43ede9b5fdee0e64147918311973faa0eb11",
+        "after_hash": "3471be920ad4d1ee38828eb60194c3844e18a2d1d6d49f8318d35f1918cc6986"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 44,
+            "end": 44
+          },
+          {
+            "start": 52,
+            "end": 52
+          }
+        ],
+        "before_hash": "ca1b0f2915247fad12ccd90b49bbc7416add34daf33bd14da52a0589884452db",
+        "after_hash": "836931f88a0157137bee201b9ab59d50b6b44b15f74a36adce7061f76cae8547"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 24
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "01c2c3ccdb84a22ab1458e941e52045aeb45f77559afe2e458915bda7dca888d"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_bakxzale_wpftmp.GlobalUsings.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 8
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d3a5d602eb6c59425412b82def49d310ff096d51902ddd730baf10631ebcd2de"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-02T06:43:39.543Z",
+    "completed_at": "2026-11-02T06:43:41.304Z",
+    "duration_ms": 1761,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 1761,
+    "peakMemoryBytes": 148705280,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 6,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261102T064341304Z-32152-fe7047159a97.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261102T064341304Z-32152-fe7047159a97.json"
+  }
+}

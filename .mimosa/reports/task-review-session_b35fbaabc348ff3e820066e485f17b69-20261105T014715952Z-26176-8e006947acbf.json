@@ -1,0 +1,174 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261105T014715952Z-26176-8e006947acbf",
+  "run_status": "completed",
+  "errors": [],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "complete",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 412,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 4
+    },
+    "change_tracking": {
+      "touched_observed": 4,
+      "touched_retained": 4,
+      "truncated": false,
+      "bash_mutation": false,
+      "bash_discovered": 0,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 4,
+      "selected_files": 4,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 4,
+      "scanned_files": 4,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {},
+    "reasons": [],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-05T01:47:15.952Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "rules_version": "unavailable",
+  "diff_hash": "8e457645d7348f018bb35ccd0b0d4c2492516fc57ee45461fa16baa0b0644c7c",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 4,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/App.xaml.cs",
+        "ranges": [
+          {
+            "start": 237,
+            "end": 238
+          },
+          {
+            "start": 542,
+            "end": 592
+          }
+        ],
+        "before_hash": "81e62a27c377605a8a840f7c9d0ba96c2abe404a077189a34073836ffa481800",
+        "after_hash": "237569436898ecd638e327d6241122435d02aaca94f90eb69725b7ddcfdacd4d"
+      },
+      {
+        "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 731,
+            "end": 757
+          }
+        ],
+        "before_hash": "f5ca4e1dbc687c1a8549d0f68fc937d0594b6d0bc2c4c15538ccfcd5dbb62272",
+        "after_hash": "1c2adddde750d3b38dc80cf7a1072843aa3b068a16046ced0cf3699b0a38e23c"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteSyncApplier.cs",
+        "ranges": [
+          {
+            "start": 168,
+            "end": 168
+          },
+          {
+            "start": 171,
+            "end": 172
+          },
+          {
+            "start": 341,
+            "end": 447
+          },
+          {
+            "start": 500,
+            "end": 540
+          }
+        ],
+        "before_hash": "8755f95ff4e1f2e058fe4ee61d41ad67ff3e6ed2bd41e848639a8a6f3f47febd",
+        "after_hash": "615f4447e11f492bba04a7f976fb2ce9ae37877ae01a35689baba0015c1f9610"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteSyncCoordinator.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 171
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "5a0978c91c8983d754a5231d6060c83f08be401220f09a667627d0e9abde486a"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-05T01:47:14.106Z",
+    "completed_at": "2026-11-05T01:47:15.952Z",
+    "duration_ms": 1846,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "complete",
+    "latencyMs": 1846,
+    "peakMemoryBytes": 149544960,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 4,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261105T014715952Z-26176-8e006947acbf.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261105T014715952Z-26176-8e006947acbf.json"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261103T020937691Z-44512-cfd9f3b96c63",
+  "runId": "20261103T020937691Z-44512-cfd9f3b96c63",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "4c90c72aef63a96b9cd08f5862e7905812e09f57a113ba72adbfe02abbf56de6",
+  "rulesVersion": "unavailable",
+  "sessionHash": "0c7db4c8b88ff24e7d6983e0bf03001534096ecbce78bb338988f9b5dfc44cc8",
+  "reportRef": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261103T020937691Z-44512-cfd9f3b96c63.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/MySqlDatabaseInitializer.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteExecutor.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRow.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-03T02:09:38.042Z"
+}

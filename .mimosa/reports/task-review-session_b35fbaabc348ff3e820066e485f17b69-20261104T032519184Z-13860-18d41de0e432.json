@@ -1,0 +1,584 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261104T032519184Z-13860-18d41de0e432",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "candidate-select",
+      "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-mirror-seed/Program.cs",
+      "reason": "changed_file_unreadable: observed changed file no longer exists or cannot be read"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.AssemblyInfo.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.GlobalUsings.g.cs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 400,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 3
+    },
+    "change_tracking": {
+      "touched_observed": 3,
+      "touched_retained": 3,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 5,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 5,
+      "selected_files": 5,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 5,
+      "scanned_files": 5,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "changed_file_unreadable": 1,
+      "baseline_snapshot_unreadable": 2,
+      "project_check_failed": 3
+    },
+    "reasons": [
+      {
+        "code": "changed_file_unreadable",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-mirror-seed/Program.cs",
+        "detail": "observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.AssemblyInfo.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.GlobalUsings.g.cs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": "C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-mirror-seed/Program.cs",
+        "detail": "changed_file_unreadable: observed changed file no longer exists or cannot be read",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.AssemblyInfo.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.GlobalUsings.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-04T03:25:19.184Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "rules_version": "unavailable",
+  "diff_hash": "971b813e7f3fb3c568c4c570ec57edc23041c4cab7b8638c529c04a737ce97f3",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 5,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/App.xaml.cs",
+        "ranges": [
+          {
+            "start": 38,
+            "end": 42
+          },
+          {
+            "start": 274,
+            "end": 317
+          }
+        ],
+        "before_hash": "9742b935932a6b44053e57263398def8c3d2d43b76cbb1080f9d6a38c7e8dc17",
+        "after_hash": "288bbbf9509f03fc02e1f433bd1e47cfb98d7d7b10322d54c0fa2c703b9d8118"
+      },
+      {
+        "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 98,
+            "end": 99
+          },
+          {
+            "start": 662,
+            "end": 753
+          }
+        ],
+        "before_hash": "89ad5f7e4440b2647632253fa667f7c5e9454ab5160162be6d15c3d1334e2324",
+        "after_hash": "f5ca4e1dbc687c1a8549d0f68fc937d0594b6d0bc2c4c15538ccfcd5dbb62272"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1
+          },
+          {
+            "start": 132,
+            "end": 164
+          },
+          {
+            "start": 172,
+            "end": 172
+          },
+          {
+            "start": 180,
+            "end": 180
+          },
+          {
+            "start": 188,
+            "end": 188
+          },
+          {
+            "start": 196,
+            "end": 196
+          },
+          {
+            "start": 204,
+            "end": 204
+          },
+          {
+            "start": 212,
+            "end": 212
+          },
+          {
+            "start": 220,
+            "end": 220
+          },
+          {
+            "start": 228,
+            "end": 228
+          },
+          {
+            "start": 236,
+            "end": 236
+          },
+          {
+            "start": 244,
+            "end": 244
+          },
+          {
+            "start": 252,
+            "end": 252
+          },
+          {
+            "start": 260,
+            "end": 260
+          },
+          {
+            "start": 268,
+            "end": 268
+          },
+          {
+            "start": 276,
+            "end": 276
+          },
+          {
+            "start": 284,
+            "end": 284
+          },
+          {
+            "start": 292,
+            "end": 292
+          },
+          {
+            "start": 300,
+            "end": 300
+          },
+          {
+            "start": 308,
+            "end": 308
+          },
+          {
+            "start": 316,
+            "end": 316
+          },
+          {
+            "start": 324,
+            "end": 324
+          },
+          {
+            "start": 332,
+            "end": 332
+          },
+          {
+            "start": 340,
+            "end": 340
+          },
+          {
+            "start": 348,
+            "end": 348
+          },
+          {
+            "start": 356,
+            "end": 356
+          },
+          {
+            "start": 364,
+            "end": 364
+          },
+          {
+            "start": 467,
+            "end": 496
+          },
+          {
+            "start": 499,
+            "end": 499
+          },
+          {
+            "start": 505,
+            "end": 505
+          },
+          {
+            "start": 508,
+            "end": 508
+          },
+          {
+            "start": 514,
+            "end": 514
+          },
+          {
+            "start": 517,
+            "end": 517
+          },
+          {
+            "start": 523,
+            "end": 523
+          },
+          {
+            "start": 526,
+            "end": 526
+          },
+          {
+            "start": 532,
+            "end": 532
+          },
+          {
+            "start": 535,
+            "end": 535
+          },
+          {
+            "start": 541,
+            "end": 541
+          },
+          {
+            "start": 544,
+            "end": 544
+          },
+          {
+            "start": 550,
+            "end": 550
+          },
+          {
+            "start": 553,
+            "end": 553
+          },
+          {
+            "start": 559,
+            "end": 559
+          },
+          {
+            "start": 562,
+            "end": 562
+          },
+          {
+            "start": 568,
+            "end": 568
+          },
+          {
+            "start": 571,
+            "end": 571
+          },
+          {
+            "start": 577,
+            "end": 577
+          },
+          {
+            "start": 580,
+            "end": 580
+          },
+          {
+            "start": 586,
+            "end": 586
+          },
+          {
+            "start": 589,
+            "end": 589
+          },
+          {
+            "start": 595,
+            "end": 595
+          },
+          {
+            "start": 598,
+            "end": 598
+          },
+          {
+            "start": 604,
+            "end": 604
+          },
+          {
+            "start": 607,
+            "end": 607
+          },
+          {
+            "start": 613,
+            "end": 613
+          },
+          {
+            "start": 616,
+            "end": 616
+          },
+          {
+            "start": 622,
+            "end": 622
+          },
+          {
+            "start": 625,
+            "end": 625
+          },
+          {
+            "start": 631,
+            "end": 631
+          },
+          {
+            "start": 634,
+            "end": 634
+          },
+          {
+            "start": 640,
+            "end": 640
+          },
+          {
+            "start": 643,
+            "end": 643
+          },
+          {
+            "start": 649,
+            "end": 649
+          },
+          {
+            "start": 651,
+            "end": 651
+          },
+          {
+            "start": 657,
+            "end": 657
+          },
+          {
+            "start": 660,
+            "end": 660
+          },
+          {
+            "start": 666,
+            "end": 666
+          },
+          {
+            "start": 669,
+            "end": 669
+          },
+          {
+            "start": 672,
+            "end": 672
+          },
+          {
+            "start": 678,
+            "end": 678
+          },
+          {
+            "start": 680,
+            "end": 680
+          },
+          {
+            "start": 686,
+            "end": 686
+          },
+          {
+            "start": 689,
+            "end": 689
+          },
+          {
+            "start": 695,
+            "end": 695
+          },
+          {
+            "start": 698,
+            "end": 698
+          },
+          {
+            "start": 701,
+            "end": 701
+          },
+          {
+            "start": 707,
+            "end": 707
+          },
+          {
+            "start": 710,
+            "end": 710
+          },
+          {
+            "start": 716,
+            "end": 716
+          },
+          {
+            "start": 718,
+            "end": 718
+          },
+          {
+            "start": 724,
+            "end": 724
+          },
+          {
+            "start": 727,
+            "end": 727
+          },
+          {
+            "start": 730,
+            "end": 730
+          },
+          {
+            "start": 732,
+            "end": 732
+          },
+          {
+            "start": 738,
+            "end": 738
+          },
+          {
+            "start": 740,
+            "end": 740
+          },
+          {
+            "start": 746,
+            "end": 746
+          },
+          {
+            "start": 748,
+            "end": 748
+          }
+        ],
+        "before_hash": "42177c35659fa2c5867b9daa64f3a93e692b052939c52dd02b977f5faab04084",
+        "after_hash": "906e5c78b4096d1d6ea97d44dfb4e6d4268b8757108af44c46d91403fab3db3b"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.AssemblyInfo.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 24
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "a2df17437d09e0985b105219e5da188f9068155a575dcfdb0368ba15984f996e"
+      },
+      {
+        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.GlobalUsings.g.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 8
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d3a5d602eb6c59425412b82def49d310ff096d51902ddd730baf10631ebcd2de"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-04T03:25:17.374Z",
+    "completed_at": "2026-11-04T03:25:19.184Z",
+    "duration_ms": 1810,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 1810,
+    "peakMemoryBytes": 144752640,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 5,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261104T032519184Z-13860-18d41de0e432.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261104T032519184Z-13860-18d41de0e432.json"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261104T020257247Z-24844-b3ba067cd37a",
+  "runStatus": "inconclusive",
+  "errors": [
+    "scan:src/WeeklyReport.Application/IWorkEntryRepository.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Infrastructure/Persistence/SqlSugarWorkEntryRepository.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Application/LocalOperationModels.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteLocalStore.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.IntegrationTests/MySqlLocalMirrorTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.UnitTests/WeeklyReportServiceTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "scan:tests/WeeklyReport.UnitTests/WorkEntryServiceTests.cs: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+  ],
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "ae615247945df0eff81a9e8281e0a57afd19fef95f5078a66719a22a58f42463",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-04T02:02:57.247Z",
+  "timing": {
+    "startedAt": "2026-11-04T02:02:54.621Z",
+    "completedAt": "2026-11-04T02:02:57.247Z",
+    "durationMs": 2626
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "scanner_failed": 13,
+      "project_check_failed": 13
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261104T020257247Z-24844-b3ba067cd37a.json"
+}

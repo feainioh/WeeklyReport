@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-11-04T03:14:38.410Z",
+  "sessionId": "sess_0e1c5412-5a7b-40d6-ad83-38d402780df6",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "plugins/marketplace.json",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 5,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

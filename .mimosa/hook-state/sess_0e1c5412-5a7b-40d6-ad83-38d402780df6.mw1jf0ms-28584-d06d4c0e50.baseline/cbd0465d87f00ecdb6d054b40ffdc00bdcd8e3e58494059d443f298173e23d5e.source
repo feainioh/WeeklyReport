@@ -1,0 +1,68 @@
+// [新增-离线存储] Phase 1 切片 A：SQLite 工作记录仓储契约测试——临时库文件直跑（无环境门禁），
+// 验证迁移幂等、CRUD、周边界与微秒精度在 SQLite 侧与 MySQL 行为一致（ADR-02/05）。
+using System.IO;
+using WeeklyReport.Application;
+using WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+namespace WeeklyReport.IntegrationTests;
+
+public sealed class SqliteWorkEntryRepositoryTests : WorkEntryRepositoryContract, IDisposable
+{
+    private readonly string _databasePath =
+        Path.Combine(Path.GetTempPath(), "WeeklyReport.SqliteTests", $"workentries-{Guid.NewGuid():N}.db");
+
+    protected override async Task InitializeAsync()
+    {
+        await SqliteDatabase.EnsureInitializedAsync(_databasePath);
+    }
+
+    protected override Task<IWorkEntryRepository> CreateRepositoryAsync() =>
+        Task.FromResult<IWorkEntryRepository>(new SqliteWorkEntryRepository(_databasePath));
+
+    [Fact]
+    public async Task Contract_MigrationAndCrud() => await MigrationAndCrudAsync();
+
+    [Fact]
+    public async Task Contract_GetByWeek_ExcludesNextWeekStart() => await GetByWeek_ExcludesNextWeekStartAsync();
+
+    // [新增-离线存储] Phase 1 切片 E：全量列举契约包装
+    [Fact]
+    public async Task Contract_ListAll_ReturnsEveryEntryOrdered() => await ListAll_ReturnsEveryEntryOrderedAsync();
+
+    [Fact]
+    public async Task Migration_JournalRecordsAppliedScriptsIdempotently()
+    {
+        await SqliteDatabase.EnsureInitializedAsync(_databasePath);
+        await SqliteDatabase.EnsureInitializedAsync(_databasePath);
+        await SqliteDatabase.EnsureInitializedAsync(_databasePath);
+
+        await using var connection = SqliteDatabase.Open(_databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM schemalite_version";
+        var count = (long)command.ExecuteScalar()!;
+        // [旧代码-离线存储] 切片 D 新增 005_CreateSyncMetadata 后迁移脚本数由 4 变 5
+        // Assert.Equal(4, count);
+        // [新增-离线存储] 五个嵌入脚本各应用一次，重复初始化不重复记录
+        Assert.Equal(5, count);
+    }
+
+    public void Dispose()
+    {
+        // [新增-离线存储] SqlSugar 自动关闭的连接由 Microsoft.Data.Sqlite 连接池持有，清池后才能删除临时库文件
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        foreach (var suffix in new[] { "", "-wal", "-shm" })
+        {
+            var file = _databasePath + suffix;
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+        }
+
+        if (Directory.Exists(Path.GetDirectoryName(_databasePath))
+            && !Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(_databasePath)!).Any())
+        {
+            Directory.Delete(Path.GetDirectoryName(_databasePath)!);
+        }
+    }
+}

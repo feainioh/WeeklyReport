@@ -1,0 +1,513 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261104T020257247Z-24844-b3ba067cd37a",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Application/IWorkEntryRepository.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Infrastructure/Persistence/SqlSugarWorkEntryRepository.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Application/LocalOperationModels.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteLocalStore.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.IntegrationTests/MySqlLocalMirrorTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.UnitTests/WeeklyReportServiceTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/WeeklyReport.UnitTests/WorkEntryServiceTests.cs",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 370,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 13
+    },
+    "change_tracking": {
+      "touched_observed": 13,
+      "touched_retained": 13,
+      "truncated": false,
+      "bash_mutation": false,
+      "bash_discovered": 0,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 13,
+      "selected_files": 13,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 13,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 13,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "scanner_failed": 13,
+      "project_check_failed": 13
+    },
+    "reasons": [
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/IWorkEntryRepository.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/SqlSugarWorkEntryRepository.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/LocalOperationModels.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteLocalStore.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/MySqlLocalMirrorTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.UnitTests/WeeklyReportServiceTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.UnitTests/WorkEntryServiceTests.cs",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/IWorkEntryRepository.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/SqlSugarWorkEntryRepository.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Application/LocalOperationModels.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteLocalStore.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.IntegrationTests/MySqlLocalMirrorTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.UnitTests/WeeklyReportServiceTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/WeeklyReport.UnitTests/WorkEntryServiceTests.cs",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-04T02:02:57.247Z",
+  "session_id": "session_b35fbaabc348ff3e820066e485f17b69",
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "rules_version": "unavailable",
+  "diff_hash": "ae615247945df0eff81a9e8281e0a57afd19fef95f5078a66719a22a58f42463",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 13,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.Application/IWorkEntryRepository.cs",
+        "ranges": [
+          {
+            "start": 12,
+            "end": 14
+          }
+        ],
+        "before_hash": "c6cd9515ecd9219c7c84dda251ac327844aff2e8669423a5138180bdc6c1306b",
+        "after_hash": "b69100b01315f24b583d216dc170206ec696e3b527829cc3489b6e017c5729ef"
+      },
+      {
+        "file": "src/WeeklyReport.Application/LocalOperationModels.cs",
+        "ranges": [
+          {
+            "start": 50,
+            "end": 66
+          }
+        ],
+        "before_hash": "008adf5d6fcb0dbd3a29e7e31350b7fbe5dfc169892e5cdb535e2bfbb25bd2dd",
+        "after_hash": "ccab56fc363c44685f5562748e9ed1dea0a1305eee6ec9444db77966a6acd1cf"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteDatabase.cs",
+        "ranges": [
+          {
+            "start": 28,
+            "end": 41
+          },
+          {
+            "start": 48,
+            "end": 58
+          }
+        ],
+        "before_hash": "da7225548d760d4e1cb220f40cfb3a795fbef49beec7f91e49994b6dad6e4d9c",
+        "after_hash": "cdb7b8ab1cdb7745af0ac31e557a2b69473f6c7d8f3703e208587469442b160e"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteLocalStore.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 261
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "2190f304e76ba4ee00dcca7c1d5576de3f5f856b5203b2e01b6f288cc4036c96"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkEntryRepository.cs",
+        "ranges": [
+          {
+            "start": 86,
+            "end": 96
+          }
+        ],
+        "before_hash": "df4066fed464fd0bd39805321a6372ecbc5f5cd96e4d367a75c6f422fe9e5eff",
+        "after_hash": "14d38d8e484cb414e4224fc82202b5a5b80fdbb5adce40900a84d82c543895e3"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/SqlSugarWorkEntryRepository.cs",
+        "ranges": [
+          {
+            "start": 60,
+            "end": 70
+          }
+        ],
+        "before_hash": "74affdb0cca2f0592d1cf4ede1ba71b514cd6c442772b76c2b43c629570d766c",
+        "after_hash": "b8e543fccfa3533ed92507043e5309aa8d46f74958f6cff7fa5515ebc3058ed0"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/MySqlLocalMirrorTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 95
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "ec871d3018e03e1dc60ec9c0e252195c2efc8619704c125b3f1526469b59eb0e"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/MySqlWorkEntryRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 70,
+            "end": 73
+          }
+        ],
+        "before_hash": "1c7d1d1c02dad71ce5dc039b0d493c10704904a649437fe72da4bf6b57e2d8a2",
+        "after_hash": "3242ac427f1a3976acdaa22d9443860bb75157250d068646dcddef57d55eeb2c"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 144
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e30d8269724c929c3ec00557b1d3d958cbf6e157fdf3e3b0cfd454098cec8279"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 28,
+            "end": 31
+          }
+        ],
+        "before_hash": "ce6e52b8b93b156ae0894f3e457160ff5233350c1c3e5b957662984686c95af0",
+        "after_hash": "adc04184f34d3ef16f9042107ced62753814a0803eda8af25dfa69ada84b75fc"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/WorkEntryRepositoryContract.cs",
+        "ranges": [
+          {
+            "start": 79,
+            "end": 104
+          }
+        ],
+        "before_hash": "b2e4dcab5143acb7fb8673f11781be4bae7945f76ee4c0ecc84410138074003a",
+        "after_hash": "4fd121c378c958f8ede35a3fdeed86001f54eb8e4461b8ac9b3e5e6fe353b508"
+      },
+      {
+        "file": "tests/WeeklyReport.UnitTests/WeeklyReportServiceTests.cs",
+        "ranges": [
+          {
+            "start": 77,
+            "end": 78
+          }
+        ],
+        "before_hash": "3eee4658dd8113b7c9e20385dc75182228141a64da7db18c90d96ab8bc9581df",
+        "after_hash": "1e04214a7e81cd4bf0666b1afad54142c0cad13dbf7fc838ff47e4945f6d680c"
+      },
+      {
+        "file": "tests/WeeklyReport.UnitTests/WorkEntryServiceTests.cs",
+        "ranges": [
+          {
+            "start": 102,
+            "end": 106
+          }
+        ],
+        "before_hash": "7fb7f30b79f82ac211fcc289cfa1f29d0da6d70f074efdd5fd0df7476e7c8b1d",
+        "after_hash": "abf4db36311f4344e3ccf3bbbc01e69eee1f535a0589f150f515ff1009a3037d"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-04T02:02:54.621Z",
+    "completed_at": "2026-11-04T02:02:57.247Z",
+    "duration_ms": 2626,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2626,
+    "peakMemoryBytes": 100384768,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261104T020257247Z-24844-b3ba067cd37a.json",
+    "latest_report": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69.json",
+    "history_summary": ".mimosa/history/run-20261104T020257247Z-24844-b3ba067cd37a.json"
+  }
+}

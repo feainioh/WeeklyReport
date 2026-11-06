@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261103T094809704Z-22012-7e629caad51d",
+  "runId": "20261103T094809704Z-22012-7e629caad51d",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "81dc4c170adc60d0981c5e80feb2ae03e53a4090f2399980ce4830f864f60369",
+  "rulesVersion": "unavailable",
+  "sessionHash": "0c7db4c8b88ff24e7d6983e0bf03001534096ecbce78bb338988f9b5dfc44cc8",
+  "reportRef": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261103T094809704Z-22012-7e629caad51d.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWeeklyReportRow.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWeeklyReportRepository.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/WeeklyReportRepositoryContract.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/MySqlWeeklyReportRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteWeeklyReportRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-03T09:48:10.045Z"
+}

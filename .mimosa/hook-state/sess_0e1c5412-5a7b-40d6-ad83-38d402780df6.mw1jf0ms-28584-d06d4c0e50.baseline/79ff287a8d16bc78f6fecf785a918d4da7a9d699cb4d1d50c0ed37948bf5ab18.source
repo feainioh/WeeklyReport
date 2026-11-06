@@ -1,0 +1,660 @@
+using System.ComponentModel;
+using System.Globalization;
+using System.Windows;
+using Microsoft.Extensions.Logging;
+using WeeklyReport.App.Services;
+using WeeklyReport.App.ViewModels;
+using WeeklyReport.App.Views;
+using WeeklyReport.Application;
+
+namespace WeeklyReport.App;
+
+public partial class MainWindow : Window
+{
+    private readonly WorkEntriesViewModel _entries;
+    private readonly DatabaseSettingsViewModel _settings;
+    private readonly GitProjectsViewModel _gitProjects;
+    private readonly GitProjectsView _gitView;
+    private readonly AiSettingsViewModel _aiSettings;
+    private readonly WeeklyReportsViewModel _weeklyReports;
+    private readonly BackupViewModel _backup;
+    private readonly WeeklyReportsView _weeklyView;
+    private readonly AutoStartService _autoStart;
+    private readonly WindowsReminderNotifier _reminderNotifier;
+    private readonly ReminderEngine _reminderEngine;
+    private readonly ScheduledTaskMonitor _scheduledTasks;
+    private readonly IUserDialogs _dialogs;
+    private readonly ILogger<MainWindow> _logger;
+    private readonly IWeeklyProgressContextProvider _weeklyProgress;
+    private bool _allowClose;
+    private bool _autoStartEnabled;
+    private bool _initializingSpriteBehavior;
+    private bool _initializingScheduledTasks;
+
+    public MainWindow(
+        WorkEntriesViewModel entries,
+        DatabaseSettingsViewModel settings,
+        GitProjectsViewModel gitProjects,
+        AiSettingsViewModel aiSettings,
+        WeeklyReportsViewModel weeklyReports,
+        BackupViewModel backup,
+        AutoStartService autoStart,
+        WindowsReminderNotifier reminderNotifier,
+        ReminderEngine reminderEngine,
+        ScheduledTaskMonitor scheduledTasks,
+        IWeeklyProgressContextProvider weeklyProgress,
+        IUserDialogs dialogs,
+        ILogger<MainWindow> logger)
+    {
+        InitializeComponent();
+        _entries = entries;
+        _settings = settings;
+        _gitProjects = gitProjects;
+        _weeklyProgress = weeklyProgress;
+        _aiSettings = aiSettings;
+        _weeklyReports = weeklyReports;
+        _backup = backup;
+        _autoStart = autoStart;
+        _reminderNotifier = reminderNotifier;
+        _reminderEngine = reminderEngine;
+        _scheduledTasks = scheduledTasks;
+        _dialogs = dialogs;
+        _logger = logger;
+        DataContext = entries;
+        SettingsRoot.DataContext = settings;
+        AiSettingsRoot.DataContext = aiSettings;
+        _gitView = new GitProjectsView(gitProjects);
+        GitContent.Content = _gitView;
+        _weeklyView = new WeeklyReportsView(weeklyReports);
+        WeeklyReportContent.Content = _weeklyView;
+        BackupContent.Content = new BackupView(backup, CanStartImport, RefreshAfterImportAsync);
+        _entries.DataChanged += (_, _) =>
+        {
+            _gitProjects.InvalidateForExternalChange();
+            _weeklyProgress.Invalidate();
+        };
+        _gitProjects.DataChanged += (_, _) => _weeklyProgress.Invalidate();
+        _weeklyReports.DataChanged += () => _weeklyProgress.Invalidate();
+        _backup.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(BackupViewModel.IsNavigationLocked))
+            {
+                MainTabs.IsEnabled = !_backup.IsNavigationLocked;
+            }
+        };
+
+        // [新增-悬浮精灵] 切片 6：按当前悬浮窗样式初始化设置页选中项
+        // （Loaded 时机调用：此时 FloatingWindow 已创建并完成样式读取）
+        // [旧代码-机器人交互] 原仅初始化悬浮窗样式
+        // Loaded += (_, _) => InitializeFloatingStyleRadioButtons();
+
+        // [新增-机器人交互] 样式与精灵行为一起初始化
+        Loaded += (_, _) =>
+        {
+            InitializeFloatingStyleRadioButtons();
+            InitializeSpriteBehaviorControls();
+            WorkRhythmReminderCheck.IsChecked =
+                ((App)System.Windows.Application.Current).GetWorkRhythmSettings().Enabled;
+        };
+
+        // [新增-天线状态] 周报保存成功 → 请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 忽略）
+        _weeklyReports.ReportSaved += OnReportSaved;
+        _scheduledTasks.SettingsChanged += OnScheduledTaskSettingsChanged;
+    }
+
+    // [新增-界面现代化2] Win11 标题栏着色：窗口句柄创建后按当前主题底色刷新一次
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        WindowChromeHelper.ApplyCaptionColor(this);
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _scheduledTasks.InitializeAsync();
+        InitializeScheduledTaskControls(_scheduledTasks.Settings);
+
+        var password = await _settings.LoadAsync();
+        if (password is not null)
+        {
+            DatabasePassword.Password = password;
+        }
+
+        var apiKey = await _aiSettings.LoadAsync();
+        if (apiKey is not null)
+        {
+            DeepSeekApiKey.Password = apiKey;
+        }
+
+        try
+        {
+            _autoStartEnabled = _autoStart.IsEnabled();
+            AutoStartCheck.IsChecked = _autoStartEnabled;
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Autostart settings failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "自启动设置");
+        }
+
+        await _entries.RefreshAsync();
+    }
+
+    public bool CanExit()
+    {
+        if (_entries.IsBusy || _settings.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
+            || _weeklyReports.IsBusy || _backup.IsBusy || _scheduledTasks.IsExecuting)
+        {
+            _dialogs.Error("数据库操作进行中，请等待完成后再退出。", "周报");
+            return false;
+        }
+
+        return _entries.CanDiscardChanges() && _gitProjects.CanDiscardChanges() && _weeklyReports.CanDiscardChanges();
+    }
+
+    public void PrepareForExit() => _allowClose = true;
+
+    public void SetReminderStatus(string message) => ReminderStatusText.Text = message;
+
+    public async Task OpenWeekFromReminderAsync(DateOnly weekStart)
+    {
+        await WaitForBackupAsync();
+        MainTabs.SelectedItem = WeeklyReportTab;
+        await _weeklyView.EnsureInitializedAsync();
+        await _weeklyReports.OpenWeekAsync(weekStart);
+    }
+
+    public async Task NavigateToWeeklyAdviceAsync(WeeklyAdviceAction action, DateOnly weekStart)
+    {
+        await WaitForBackupAsync();
+
+        switch (action)
+        {
+            case WeeklyAdviceAction.WorkEntries:
+                if (!await _entries.NavigateToWeekAsync(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedIndex = 0;
+                break;
+            case WeeklyAdviceAction.GitWorkItems:
+                if (!await _gitView.NavigateToWorkItemsAsync(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedItem = GitTab;
+                break;
+            case WeeklyAdviceAction.WeeklyReport:
+                await _weeklyView.EnsureInitializedAsync();
+                if (!_weeklyReports.SelectDateForNavigation(weekStart))
+                {
+                    return;
+                }
+
+                MainTabs.SelectedItem = WeeklyReportTab;
+                break;
+            case WeeklyAdviceAction.SyncStatus:
+            case WeeklyAdviceAction.StorageSettings:
+                MainTabs.SelectedItem = SettingsTab;
+                break;
+            case WeeklyAdviceAction.None:
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action), action, "未知的周报建议导航目标。");
+        }
+    }
+
+    public void SetWeeklyProgressContext(WeeklyProgressContext context) =>
+        WeeklyStorageStatusText.Text = $"周报数据状态：{WeeklyProgressStatusFormatter.FormatStorage(context)}";
+
+    private Task WaitForBackupAsync()
+    {
+        if (!_backup.IsNavigationLocked)
+        {
+            return Task.CompletedTask;
+        }
+
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        PropertyChangedEventHandler? handler = null;
+        handler = (_, args) =>
+        {
+            if (args.PropertyName == nameof(BackupViewModel.IsNavigationLocked) && !_backup.IsNavigationLocked)
+            {
+                _backup.PropertyChanged -= handler;
+                completion.TrySetResult();
+            }
+        };
+        _backup.PropertyChanged += handler;
+        if (!_backup.IsNavigationLocked)
+        {
+            _backup.PropertyChanged -= handler;
+            completion.TrySetResult();
+        }
+
+        return completion.Task;
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_allowClose)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+            Hide();
+        }
+    }
+
+    // [新增-天线状态] 保存成功事件：转交 App 触发悬浮精灵庆祝动画
+    private void OnReportSaved() =>
+        ((App)System.Windows.Application.Current).RequestFloatingCelebration();
+
+    private void ToggleFloating_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current).ToggleFloatingWindow();
+
+    private async void TestReminder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _reminderNotifier.SendTestAsync(DateOnly.FromDateTime(DateTime.Today));
+            // [旧代码-天线状态] 原测试提醒仅更新主窗口标题区，悬浮精灵收不到提醒
+            // SetReminderStatus("已向系统提交测试提醒；实际显示受系统通知和勿扰设置影响。");
+
+            // [新增-天线状态] 经 App 统一广播提醒状态，主窗口与悬浮精灵同时进入提醒态
+            ((App)System.Windows.Application.Current).ReportReminderStatus(
+                "已向系统提交测试提醒；实际显示受系统通知和勿扰设置影响。");
+
+            // [新增-机器人交互] 查询本周保存状态并显示精灵提醒气泡
+            await ((App)System.Windows.Application.Current).PreviewReminderAsync(
+                DateOnly.FromDateTime(DateTime.Today));
+        }
+        catch (ReminderNotificationException exception)
+        {
+            _logger.LogWarning("Test reminder failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(exception.Message, "测试提醒");
+        }
+    }
+
+    private async void AcknowledgeReminder_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_dialogs.Confirm(
+            "请先手动检查周报。确认后将不再提示这些不确定的提醒，也不会自动重发。继续吗？", "确认提醒状态"))
+        {
+            return;
+        }
+
+        AcknowledgeReminderButton.IsEnabled = false;
+        try
+        {
+            var count = await _reminderEngine.AcknowledgeUncertainAsync();
+            var message = count == 0
+                ? "没有需要确认的提醒状态。"
+                : $"已知晓 {count} 条不确定的提醒状态；不会自动重发。";
+            ((App)System.Windows.Application.Current).ReportReminderStatus(message);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Reminder acknowledgement failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "确认提醒状态");
+        }
+        finally
+        {
+            AcknowledgeReminderButton.IsEnabled = true;
+        }
+    }
+
+    private async void TestConnection_Click(object sender, RoutedEventArgs e) =>
+        await _settings.TestAsync(DatabasePassword.Password);
+
+    private async void InitializeDatabase_Click(object sender, RoutedEventArgs e)
+    {
+        if (await _settings.InitializeAndSaveAsync(DatabasePassword.Password))
+        {
+            ((App)System.Windows.Application.Current).InvalidateWeeklyProgressContext();
+            await _entries.RefreshAsync();
+            await _gitProjects.RefreshAsync();
+            await _weeklyReports.RefreshHistoryAsync();
+            await _backup.RefreshWeeksAsync();
+            await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
+        }
+    }
+
+    private bool CanStartImport()
+    {
+        if (_entries.IsBusy || _settings.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
+            || _weeklyReports.IsBusy || _backup.IsBusy)
+        {
+            _dialogs.Error("其他操作进行中，请等待完成后再导入。", "导入备份");
+            return false;
+        }
+
+        if (_entries.IsDirty || _gitProjects.IsProjectDirty || _gitProjects.IsWorkDirty || _weeklyReports.IsDirty)
+        {
+            _dialogs.Error("请先保存或放弃工作记录、项目及周报中未保存的修改，再导入备份。", "导入备份");
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task RefreshAfterImportAsync()
+    {
+        _weeklyProgress.Invalidate();
+        MainTabs.IsEnabled = false;
+        try
+        {
+            await _entries.RefreshAsync();
+            await _gitProjects.RefreshAfterImportAsync();
+            await _weeklyReports.RefreshAfterImportAsync();
+            await _backup.RefreshAfterImportAsync();
+            await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
+        }
+        finally
+        {
+            MainTabs.IsEnabled = true;
+        }
+    }
+
+    private async void TestDeepSeek_Click(object sender, RoutedEventArgs e) =>
+        await _aiSettings.TestAsync(DeepSeekApiKey.Password);
+
+    private async void SaveDeepSeek_Click(object sender, RoutedEventArgs e) =>
+        await _aiSettings.SaveAsync(DeepSeekApiKey.Password);
+
+    private async void DeleteDeepSeek_Click(object sender, RoutedEventArgs e)
+    {
+        if (await _aiSettings.DeleteAsync())
+        {
+            DeepSeekApiKey.Clear();
+        }
+    }
+
+    private void AutoStart_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var enabled = AutoStartCheck.IsChecked == true;
+            _autoStart.SetEnabled(enabled);
+            _autoStartEnabled = enabled;
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            AutoStartCheck.IsChecked = _autoStartEnabled;
+            _logger.LogWarning("Autostart update failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "自启动设置");
+        }
+    }
+
+    // [新增-悬浮精灵] 切片 6：悬浮窗样式切换处理器与初始选中状态（Loaded 时悬浮窗已创建，读取其当前样式）
+    private void InitializeFloatingStyleRadioButtons()
+    {
+        // [新增-悬浮精灵] 完全限定 Application：避免与 WeeklyReport.Application 命名空间二义性
+        var style = (System.Windows.Application.Current as App)?.GetFloatingStyle() ?? (int)FloatingStyle.Card;
+        if (style == (int)FloatingStyle.Sprite)
+        {
+            FloatingSpriteRadio.IsChecked = true;
+        }
+        else
+        {
+            FloatingCardRadio.IsChecked = true;
+        }
+    }
+
+    private void FloatingCard_Checked(object sender, RoutedEventArgs e)
+    {
+        // [新增-悬浮精灵] 同值重复触发为无操作（初始化选中时也会走到这里）
+        (System.Windows.Application.Current as App)?.SetFloatingStyle((int)FloatingStyle.Card);
+    }
+
+    private void FloatingSprite_Checked(object sender, RoutedEventArgs e)
+    {
+        (System.Windows.Application.Current as App)?.SetFloatingStyle((int)FloatingStyle.Sprite);
+    }
+
+    // [新增-机器人交互] 读取当前精灵行为并填充设置页（初始化期间不保存）
+    private void InitializeSpriteBehaviorControls()
+    {
+        var settings = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        _initializingSpriteBehavior = true;
+
+        switch (settings.Preset)
+        {
+            case SpriteBehaviorPreset.Quiet:
+                SpriteQuietRadio.IsChecked = true;
+                break;
+            case SpriteBehaviorPreset.Lively:
+                SpriteLivelyRadio.IsChecked = true;
+                break;
+            default:
+                SpriteGentleRadio.IsChecked = true;
+                break;
+        }
+
+        ApplySpriteBehaviorToControls(settings);
+        _initializingSpriteBehavior = false;
+    }
+
+    private void ApplySpriteBehaviorToControls(SpriteBehaviorSettings settings)
+    {
+        SpriteGreetingsCheck.IsChecked = settings.Greetings;
+        SpriteChatterCheck.IsChecked = settings.Chatter;
+        SpriteHoverCheck.IsChecked = settings.HoverReaction;
+        SpriteReminderCheck.IsChecked = settings.ReminderBubble;
+        SpriteCelebrationCheck.IsChecked = settings.Celebration;
+        SpriteQuietHoursCheck.IsChecked = settings.QuietHours;
+        SpriteDataAdviceCheck.IsChecked = settings.DataAdvice;
+        SpriteDynamicActionsCheck.IsChecked = settings.DynamicActions;
+        SpriteAutoIdleActionsCheck.IsChecked = settings.AutoIdleActions;
+        SpriteAutoIdleActionsCheck.IsEnabled = settings.DynamicActions;
+    }
+
+    // [新增-机器人交互] 切换性格档位：恢复该档位默认开关，保留引导/问候历史
+    private void SpritePreset_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_initializingSpriteBehavior
+            || sender is not System.Windows.FrameworkElement { Tag: string tag }
+            || !Enum.TryParse<SpriteBehaviorPreset>(tag, out var preset))
+        {
+            return;
+        }
+
+        var current = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        var next = SpriteBehaviorSettings.ForPreset(preset, current);
+
+        _initializingSpriteBehavior = true;
+        ApplySpriteBehaviorToControls(next);
+        _initializingSpriteBehavior = false;
+
+        ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+        SpriteAutoIdleActionsCheck.IsEnabled = next.DynamicActions;
+    }
+
+    // [新增-机器人交互] 细项开关：保留当前档位与引导/问候历史
+    private void SpriteToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_initializingSpriteBehavior)
+        {
+            return;
+        }
+
+        var current = ((App)System.Windows.Application.Current).GetSpriteBehavior();
+        var preset = SpriteLivelyRadio.IsChecked == true
+            ? SpriteBehaviorPreset.Lively
+            : SpriteQuietRadio.IsChecked == true
+                ? SpriteBehaviorPreset.Quiet
+                : SpriteBehaviorPreset.Gentle;
+
+        var next = new SpriteBehaviorSettings
+        {
+            Preset = preset,
+            Greetings = SpriteGreetingsCheck.IsChecked == true,
+            Chatter = SpriteChatterCheck.IsChecked == true,
+            HoverReaction = SpriteHoverCheck.IsChecked == true,
+            ReminderBubble = SpriteReminderCheck.IsChecked == true,
+            Celebration = SpriteCelebrationCheck.IsChecked == true,
+            QuietHours = SpriteQuietHoursCheck.IsChecked == true,
+            DataAdvice = SpriteDataAdviceCheck.IsChecked == true,
+            DynamicActions = SpriteDynamicActionsCheck.IsChecked == true,
+            AutoIdleActions = SpriteAutoIdleActionsCheck.IsChecked == true,
+            GuideShown = current.GuideShown,
+            LastGreetingDate = current.LastGreetingDate,
+            LastAdviceDate = current.LastAdviceDate
+        };
+
+        ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+        SpriteAutoIdleActionsCheck.IsEnabled = next.DynamicActions;
+    }
+
+    // [新增-机器人交互] 设置页预览一次问候
+    private void SpriteGreet_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current).PreviewSpriteGreeting();
+
+    private void WorkRhythmReminder_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current)
+        .SetWorkRhythmEnabled(WorkRhythmReminderCheck.IsChecked == true);
+
+    // [新增-定时任务] 按已持久化设置初始化固定任务行。
+    private void InitializeScheduledTaskControls(ScheduledTaskSettings settings)
+    {
+        _initializingScheduledTasks = true;
+        ScheduledGitEnabledCheck.IsChecked = settings.GitDailyItems.Enabled;
+        ScheduledGitTimeText.Text = FormatTaskTime(settings.GitDailyItems.TimeOfDay);
+        ScheduledWeeklyEnabledCheck.IsChecked = settings.WeeklyDraft.Enabled;
+        ScheduledWeeklyTimeText.Text = FormatTaskTime(settings.WeeklyDraft.TimeOfDay);
+        var weekday = settings.WeeklyDraft.Weekday ?? DayOfWeek.Thursday;
+        ScheduledWeeklyDayCombo.SelectedIndex = ((int)weekday + 6) % 7;
+        UpdateScheduledTaskResultLabels(settings);
+        _initializingScheduledTasks = false;
+    }
+
+    private static string FormatTaskTime(TimeOnly time) =>
+        time.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+    private void OnScheduledTaskSettingsChanged(ScheduledTaskSettings settings)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() => UpdateScheduledTaskResultLabels(settings)));
+    }
+
+    private void UpdateScheduledTaskResultLabels(ScheduledTaskSettings settings)
+    {
+        ScheduledGitLastResultText.Text = FormatLastTaskResult(settings.GitDailyItems);
+        ScheduledWeeklyLastResultText.Text = FormatLastTaskResult(settings.WeeklyDraft);
+    }
+
+    private static string FormatLastTaskResult(ScheduledTaskOptions options) =>
+        options.LastAttemptDate is DateOnly date
+            ? $"{date:MM-dd}：{options.LastResult ?? "已执行"}"
+            : "尚未执行";
+
+    private async void ScheduledTaskSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_initializingScheduledTasks)
+        {
+            await SaveScheduledTaskSettingsAsync();
+        }
+    }
+
+    private async void ScheduledTaskTime_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_initializingScheduledTasks)
+        {
+            await SaveScheduledTaskSettingsAsync();
+        }
+    }
+
+    private async Task SaveScheduledTaskSettingsAsync()
+    {
+        if (!TryParseTaskTime(ScheduledGitTimeText.Text, out var gitTime)
+            || !TryParseTaskTime(ScheduledWeeklyTimeText.Text, out var weeklyTime))
+        {
+            _dialogs.Error("时间格式应为 24 小时制 HH:mm，例如 17:30。", "定时任务");
+            InitializeScheduledTaskControls(_scheduledTasks.Settings);
+            return;
+        }
+
+        var weekdayTag = (ScheduledWeeklyDayCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+        if (!Enum.TryParse<DayOfWeek>(weekdayTag, out var weekday) || !Enum.IsDefined(weekday))
+        {
+            _dialogs.Error("请选择有效的周报生成星期。", "定时任务");
+            InitializeScheduledTaskControls(_scheduledTasks.Settings);
+            return;
+        }
+
+        var current = _scheduledTasks.Settings;
+        var settings = current with
+        {
+            GitDailyItems = current.GitDailyItems with
+            {
+                Enabled = ScheduledGitEnabledCheck.IsChecked == true,
+                TimeOfDay = gitTime
+            },
+            WeeklyDraft = current.WeeklyDraft with
+            {
+                Enabled = ScheduledWeeklyEnabledCheck.IsChecked == true,
+                TimeOfDay = weeklyTime,
+                Weekday = weekday
+            }
+        };
+
+        try
+        {
+            await _scheduledTasks.UpdateSettingsAsync(settings);
+            ScheduledGitTimeText.Text = FormatTaskTime(gitTime);
+            ScheduledWeeklyTimeText.Text = FormatTaskTime(weeklyTime);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Scheduled task settings update failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "定时任务");
+            InitializeScheduledTaskControls(current);
+        }
+    }
+
+    private static bool TryParseTaskTime(string? text, out TimeOnly time) =>
+        TimeOnly.TryParseExact(
+            text, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
+
+    private async void RunScheduledTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string tag }
+            || !Enum.TryParse<ScheduledTaskKind>(tag, out var kind)
+            || !Enum.IsDefined(kind))
+        {
+            return;
+        }
+
+        var button = (System.Windows.Controls.Button)sender;
+        button.IsEnabled = false;
+        try
+        {
+            await _scheduledTasks.RunNowAsync(kind);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Scheduled task manual run failed: {TaskKind} {ErrorType}", kind, exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "立即执行定时任务");
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
+    }
+}

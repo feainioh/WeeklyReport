@@ -1,0 +1,288 @@
+// [新增-离线存储] Phase 1 切片 E：SQLite 本地存储——状态查询、首次完整镜像、无基线空工作区（计划 §4.4/§4.5）。
+// 首次镜像：单事务清空并重写五张业务表（含 Git 绑定、软删除、修订号、提交链接——BackupDocument 不承载的
+// 完整语义），完成后同事务写 local_meta（Ready + 已验证基线 + 镜像身份）；
+// 覆盖防护：存在待同步/结果待确认/冲突操作组时拒绝镜像，不用新快照静默覆盖未同步修改。
+// 空工作区：不写业务数据，仅标记 Ready + 无已验证基线（恢复后不能证明安全的合并进冲突，不把空库解释为 MySQL 为空）。
+// 镜像身份当前为本地生成的 GUID 占位，Phase 2 引入 MySQL 侧身份表后对齐（ADR-03）。
+using System.Globalization;
+using Microsoft.Data.Sqlite;
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+public sealed class SqliteLocalStore(string databasePath)
+{
+    public async Task<LocalStorageState> GetStateAsync(CancellationToken cancellationToken = default)
+    {
+        // 文件损坏/不可写在初始化路径上抛 DatabaseAccessException（SQLite 错误状态明确暴露，不伪装正常）
+        await SqliteDatabase.EnsureInitializedAsync(databasePath);
+        await using var connection = SqliteDatabase.Open(databasePath);
+
+        var status = LocalStorageStatus.NotInitialized;
+        DateTimeOffset? lastMirror = null;
+        DateTimeOffset? lastSync = null;
+        using (var meta = connection.CreateCommand())
+        {
+            meta.CommandText = "SELECT storage_status, last_mirror_at_utc, last_sync_at_utc FROM local_meta WHERE id = 1";
+            await using var reader = await meta.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                status = ParseStatus(reader.GetString(0));
+                lastMirror = ReadTimestamp(reader, 1);
+                lastSync = ReadTimestamp(reader, 2);
+            }
+        }
+
+        // [新增-离线存储] 计数为 int（LocalStorageState 契约），DB 侧 long 显式收窄
+        var pending = (int)await CountAsync(connection, "Pending", cancellationToken);
+        var awaiting = (int)await CountAsync(connection, "AwaitingConfirmation", cancellationToken);
+        var conflict = (int)await CountAsync(connection, "Conflict", cancellationToken);
+        return new LocalStorageState(
+            status, lastMirror is not null, pending, awaiting, conflict, lastMirror, lastSync);
+    }
+
+    /// <summary>首次/重建完整镜像：单事务清空业务表并写入全部数据，标记 Ready + 已验证基线。</summary>
+    public async Task InitializeMirrorAsync(
+        IReadOnlyList<GitProject> projects,
+        IReadOnlyList<GitWorkItemSnapshot> workItems,
+        IReadOnlyList<WorkEntry> workEntries,
+        IReadOnlyList<WeeklyReportSnapshot> reports,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(projects);
+        ArgumentNullException.ThrowIfNull(workItems);
+        ArgumentNullException.ThrowIfNull(workEntries);
+        ArgumentNullException.ThrowIfNull(reports);
+
+        await SqliteDatabase.EnsureInitializedAsync(databasePath);
+        await using var connection = SqliteDatabase.Open(databasePath);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await EnsureQueueDrainedAsync(connection, transaction, cancellationToken);
+
+            foreach (var table in new[] { "git_commit_links", "git_work_items", "git_projects", "work_entries", "weekly_reports" })
+            {
+                await ExecuteAsync(connection, transaction, $"DELETE FROM {table}", cancellationToken);
+            }
+
+            foreach (var project in projects)
+            {
+                await ExecuteAsync(connection, transaction,
+                    "INSERT INTO git_projects (id, name, repository_path, author_field, author_value) " +
+                    "VALUES (@id, @name, @path, @field, @author)",
+                    cancellationToken,
+                    ("@id", project.Id.ToString("D")), ("@name", project.Name),
+                    ("@path", (object?)project.RepositoryPath), ("@field", (object?)project.AuthorField?.ToString()),
+                    ("@author", (object?)project.Author));
+            }
+
+            foreach (var item in workItems)
+            {
+                await ExecuteAsync(connection, transaction,
+                    "INSERT INTO git_work_items (id, project_id, work_date, description, estimated_minutes, " +
+                    "confirmed_minutes, is_deleted, revision) VALUES (@id, @project, @date, @desc, @est, @conf, @del, @rev)",
+                    cancellationToken,
+                    ("@id", item.Id.ToString("D")), ("@project", item.ProjectId.ToString("D")),
+                    ("@date", item.WorkDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    ("@desc", item.Description), ("@est", (object?)item.EstimatedMinutes),
+                    ("@conf", (object?)item.ConfirmedMinutes), ("@del", item.IsDeleted ? 1 : 0), ("@rev", item.Revision));
+                foreach (var commit in item.Commits)
+                {
+                    await ExecuteAsync(connection, transaction,
+                        "INSERT INTO git_commit_links (project_id, commit_hash, work_item_id, author_name, " +
+                        "author_email, authored_at, subject) VALUES (@project, @hash, @item, @name, @email, @at, @subject)",
+                        cancellationToken,
+                        ("@project", commit.ProjectId.ToString("D")), ("@hash", commit.Hash),
+                        ("@item", item.Id.ToString("D")), ("@name", commit.AuthorName),
+                        ("@email", commit.AuthorEmail),
+                        ("@at", commit.AuthoredAt.ToString("O", CultureInfo.InvariantCulture)),
+                        ("@subject", commit.Subject));
+                }
+            }
+
+            foreach (var entry in workEntries)
+            {
+                await ExecuteAsync(connection, transaction,
+                    "INSERT INTO work_entries (id, work_date, content, created_at_utc, updated_at_utc, confirmed_minutes) " +
+                    "VALUES (@id, @date, @content, @created, @updated, @minutes)",
+                    cancellationToken,
+                    ("@id", entry.Id.ToString("D")),
+                    ("@date", entry.WorkDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    ("@content", entry.Content),
+                    ("@created", ToTimestamp(entry.CreatedAtUtc)), ("@updated", ToTimestamp(entry.UpdatedAtUtc)),
+                    ("@minutes", (object?)entry.ConfirmedMinutes));
+            }
+
+            foreach (var report in reports)
+            {
+                await ExecuteAsync(connection, transaction,
+                    "INSERT INTO weekly_reports (id, week_start, week_end, work_summary, next_week_plan, risks, " +
+                    "confirmed_minutes, estimated_minutes, unknown_hours_count, created_at_utc, updated_at_utc) " +
+                    "VALUES (@id, @start, @end, @summary, @plan, @risks, @conf, @est, @unknown, @created, @updated)",
+                    cancellationToken,
+                    ("@id", report.Id.ToString("D")),
+                    ("@start", report.Week.Start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    ("@end", report.Week.EndInclusive.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    ("@summary", report.WorkSummary), ("@plan", report.NextWeekPlan), ("@risks", report.Risks),
+                    ("@conf", report.ConfirmedMinutes), ("@est", report.EstimatedMinutes),
+                    ("@unknown", report.UnknownHoursCount),
+                    ("@created", ToTimestamp(report.CreatedAtUtc)), ("@updated", ToTimestamp(report.UpdatedAtUtc)));
+            }
+
+            await UpsertMetaAsync(connection, transaction, LocalStorageStatus.Ready,
+                mirrorIdentity: Guid.NewGuid(), verifiedBaseline: true, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    /// <summary>建立无基线空工作区：不写业务数据，标记 Ready + 无已验证基线（§4.4：不把空库解释为 MySQL 为空）。</summary>
+    public async Task StartEmptyWorkspaceAsync(CancellationToken cancellationToken = default)
+    {
+        await SqliteDatabase.EnsureInitializedAsync(databasePath);
+        await using var connection = SqliteDatabase.Open(databasePath);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await EnsureQueueDrainedAsync(connection, transaction, cancellationToken);
+            await UpsertMetaAsync(connection, transaction, LocalStorageStatus.Ready,
+                mirrorIdentity: Guid.NewGuid(), verifiedBaseline: false, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    // [新增-离线存储] Phase 1 切片 F：停用本地优先（回退 MySQL-only）——仅当队列已清空（无待同步/冲突）时允许；
+    // 镜像数据与身份保留，重新启用时经重建镜像走原确认流程。
+    public async Task DisableLocalFirstAsync(CancellationToken cancellationToken = default)
+    {
+        await SqliteDatabase.EnsureInitializedAsync(databasePath);
+        await using var connection = SqliteDatabase.Open(databasePath);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await EnsureQueueDrainedAsync(connection, transaction, cancellationToken);
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE local_meta SET storage_status = 'MysqlOnly' WHERE id = 1";
+            if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
+            {
+                throw new InvalidOperationException("本地存储尚未初始化，无需停用。");
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    private static async Task EnsureQueueDrainedAsync(
+        SqliteConnection connection, SqliteTransaction transaction, CancellationToken cancellationToken)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT(*) FROM sync_operation WHERE status IN ('Pending', 'Syncing', 'AwaitingConfirmation', 'Conflict')";
+        var blocking = (long)(await command.ExecuteScalarAsync(cancellationToken))!;
+        if (blocking > 0)
+        {
+            throw new InvalidOperationException(
+                $"存在 {blocking} 个未完成或冲突的本地操作，禁止覆盖镜像；请先处理或导出（不用新快照静默覆盖未同步修改）。");
+        }
+    }
+
+    private static async Task UpsertMetaAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        LocalStorageStatus status,
+        Guid mirrorIdentity,
+        bool verifiedBaseline,
+        CancellationToken cancellationToken)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "INSERT INTO local_meta (id, schema_version, protocol_version, mirror_identity, last_mirror_at_utc, " +
+            "storage_status, last_sync_at_utc) VALUES (1, @schema, 1, @identity, @mirror, @status, NULL) " +
+            "ON CONFLICT(id) DO UPDATE SET schema_version = @schema, protocol_version = 1, mirror_identity = @identity, " +
+            "last_mirror_at_utc = @mirror, storage_status = @status";
+        command.Parameters.AddWithValue("@schema", CountAppliedMigrations(connection, transaction));
+        command.Parameters.AddWithValue("@identity", mirrorIdentity.ToString("D"));
+        command.Parameters.AddWithValue("@mirror", verifiedBaseline
+            ? DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture)
+            : (object?)DBNull.Value);
+        command.Parameters.AddWithValue("@status", StatusText(status));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static long CountAppliedMigrations(SqliteConnection connection, SqliteTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT(*) FROM schemalite_version";
+        return (long)command.ExecuteScalar()!;
+    }
+
+    private static async Task<long> CountAsync(
+        SqliteConnection connection, string status, CancellationToken cancellationToken)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sync_operation WHERE status = @status";
+        command.Parameters.AddWithValue("@status", status);
+        return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
+
+    private static async Task ExecuteAsync(
+        SqliteConnection connection, SqliteTransaction transaction, string sql,
+        CancellationToken cancellationToken, params (string Name, object? Value)[] parameters)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        foreach (var (name, value) in parameters)
+        {
+            command.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        }
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static string ToTimestamp(DateTimeOffset value)
+    {
+        var utc = StorageDateRange.NormalizeUtcTimestamp(value).UtcDateTime;
+        return utc.ToString("yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture);
+    }
+
+    private static DateTimeOffset? ReadTimestamp(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : DateTimeOffset.ParseExact(
+            reader.GetString(ordinal), "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+
+    private static LocalStorageStatus ParseStatus(string text) => text switch
+    {
+        "Ready" => LocalStorageStatus.Ready,
+        "Suspended" => LocalStorageStatus.Suspended,
+        "MysqlOnly" => LocalStorageStatus.MysqlOnly,
+        _ => LocalStorageStatus.NotInitialized
+    };
+
+    private static string StatusText(LocalStorageStatus status) => status switch
+    {
+        LocalStorageStatus.Ready => "Ready",
+        LocalStorageStatus.Suspended => "Suspended",
+        LocalStorageStatus.MysqlOnly => "MysqlOnly",
+        _ => "NotInitialized"
+    };
+}

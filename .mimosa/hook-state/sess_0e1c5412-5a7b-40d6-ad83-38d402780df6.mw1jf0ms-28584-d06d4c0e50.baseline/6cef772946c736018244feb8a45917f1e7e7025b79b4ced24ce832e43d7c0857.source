@@ -1,0 +1,135 @@
+// [新增-天线状态] 周报保存事件测试：验证保存成功才触发 ReportSaved（悬浮精灵庆祝态的唯一真实触发源），
+// 失败路径不得触发。构造方式沿用 BackupViewModelTests 的假仓储 + NullLogger 模式。
+using Microsoft.Extensions.Logging.Abstractions;
+using WeeklyReport.App.Services;
+using WeeklyReport.App.ViewModels;
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.DesktopTests;
+
+public sealed class WeeklyReportsViewModelTests
+{
+    [Fact]
+    public async Task Save_Succeeds_RaisesReportSavedOnce()
+    {
+        var existing = CreateReport(new DateOnly(2026, 10, 26));
+        var viewModel = CreateViewModel(new FakeReports(existing));
+        var raised = 0;
+        viewModel.ReportSaved += () => raised++;
+
+        await viewModel.OpenWeekAsync(new DateOnly(2026, 10, 26));
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, raised);
+        Assert.Equal("周报已保存。", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task Save_Fails_DoesNotRaiseReportSaved()
+    {
+        var existing = CreateReport(new DateOnly(2026, 10, 26));
+        var viewModel = CreateViewModel(new FakeReports(existing, updateSucceeds: false));
+        var raised = 0;
+        viewModel.ReportSaved += () => raised++;
+
+        await viewModel.OpenWeekAsync(new DateOnly(2026, 10, 26));
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, raised);
+        Assert.False(viewModel.IsBusy);
+    }
+
+    private static WeeklyReportsViewModel CreateViewModel(FakeReports reports) =>
+        new(new WeeklyReportService(reports, new EmptyWorkEntries(), new EmptyGitItems(),
+                new WeeklyReportDraftBuilder(), TimeProvider.System),
+            new AiDraftCoordinator(new UnusedAiSettings(), new UnusedAiDraft(), new UnusedAiReviewDialogs()),
+            new ConfirmingDialogs(), NullLogger<WeeklyReportsViewModel>.Instance);
+
+    private static WeeklyReportSnapshot CreateReport(DateOnly weekStart)
+    {
+        var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
+        return new WeeklyReportSnapshot(Guid.NewGuid(), new WeekPeriod(weekStart),
+            "工作", "", "", 0, 0, 0, now, now);
+    }
+
+    /// <summary>只实现周报读取与更新：打开已有周报后保存，走 UpdateAsync 路径。</summary>
+    private sealed class FakeReports(WeeklyReportSnapshot? existing, bool updateSucceeds = true)
+        : IWeeklyReportRepository
+    {
+        private WeeklyReportSnapshot? _existing = existing;
+
+        public Task<IReadOnlyList<WeeklyReportSnapshot>> ListAsync() =>
+            Task.FromResult<IReadOnlyList<WeeklyReportSnapshot>>([]);
+
+        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week) =>
+            Task.FromResult(_existing is not null && _existing.Week == week ? _existing : null);
+
+        public Task AddAsync(WeeklyReportSnapshot report) => throw new NotSupportedException();
+
+        public Task<bool> UpdateAsync(WeeklyReportSnapshot report, DateTimeOffset expectedUpdatedAtUtc)
+        {
+            if (!updateSucceeds)
+            {
+                return Task.FromResult(false);
+            }
+
+            _existing = report;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> DeleteAsync(Guid id, DateTimeOffset expectedUpdatedAtUtc) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class EmptyWorkEntries : IWorkEntryRepository
+    {
+        public Task<IReadOnlyList<WorkEntry>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
+
+        public Task<WorkEntry?> FindAsync(Guid id) => throw new NotSupportedException();
+        public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
+        public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
+    }
+
+    private sealed class EmptyGitItems : IGitReportWorkItemSource
+    {
+        public Task<IReadOnlyList<GitReportWorkItem>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult<IReadOnlyList<GitReportWorkItem>>([]);
+    }
+
+    private sealed class ConfirmingDialogs : IUserDialogs
+    {
+        public bool Confirm(string message, string title) => true;
+        public void Error(string message, string title) => throw new InvalidOperationException(message);
+    }
+
+    private sealed class UnusedAiSettings : IAiSettingsStore
+    {
+        public Task<AiSettings?> LoadAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveAsync(AiSettings settings, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task DeleteAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class UnusedAiDraft : IAiDraftService
+    {
+        public Task<string> GenerateAsync(AiGenerationRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class UnusedAiReviewDialogs : IAiReviewDialogs
+    {
+        public bool ConfirmSend(string model, string instruction, string content) =>
+            throw new NotSupportedException();
+
+        public bool ConfirmApply(string result) => throw new NotSupportedException();
+    }
+}

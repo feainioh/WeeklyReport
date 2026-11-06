@@ -1,0 +1,123 @@
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.UnitTests;
+
+public sealed class ScheduledWeeklyDraftRunnerTests
+{
+    [Fact]
+    public async Task RunAsync_SavesDraftWhenWorkItemsExist()
+    {
+        var date = new DateOnly(2026, 11, 4);
+        var reports = new FakeReports();
+        var entries = new FakeEntries
+        {
+            Entries =
+            [
+                new WorkEntry(
+                    Guid.NewGuid(), date, "完成任务调度设计",
+                    StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow),
+                    StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow), confirmedMinutes: 60)
+            ]
+        };
+        var runner = CreateRunner(reports, entries, new FakeGitItems());
+
+        var outcome = await runner.RunAsync(ScheduledTaskKind.WeeklyDraft, date);
+
+        Assert.Equal(ScheduledTaskOutcomeKind.Success, outcome.Kind);
+        Assert.NotNull(reports.Added);
+        Assert.Contains("完成任务调度设计", reports.Added.WorkSummary);
+        Assert.Equal(string.Empty, reports.Added.NextWeekPlan);
+        Assert.Equal(string.Empty, reports.Added.Risks);
+    }
+
+    [Fact]
+    public async Task RunAsync_DoesNotOverwriteExistingReport()
+    {
+        var date = new DateOnly(2026, 11, 4);
+        var reports = new FakeReports { Existing = CreateReport(date) };
+        var runner = CreateRunner(reports, new FakeEntries(), new FakeGitItems());
+
+        var outcome = await runner.RunAsync(ScheduledTaskKind.WeeklyDraft, date);
+
+        Assert.Equal(ScheduledTaskOutcomeKind.Skipped, outcome.Kind);
+        Assert.Null(reports.Added);
+    }
+
+    [Fact]
+    public async Task RunAsync_SkipsWhenThereAreNoWorkItems()
+    {
+        var reports = new FakeReports();
+        var runner = CreateRunner(reports, new FakeEntries(), new FakeGitItems());
+
+        var outcome = await runner.RunAsync(
+            ScheduledTaskKind.WeeklyDraft, new DateOnly(2026, 11, 4));
+
+        Assert.Equal(ScheduledTaskOutcomeKind.Skipped, outcome.Kind);
+        Assert.Null(reports.Added);
+    }
+
+    private static ScheduledWeeklyDraftRunner CreateRunner(
+        FakeReports reports,
+        FakeEntries entries,
+        FakeGitItems gitItems)
+    {
+        var service = new WeeklyReportService(
+            reports, entries, gitItems, new WeeklyReportDraftBuilder(), TimeProvider.System);
+        return new ScheduledWeeklyDraftRunner(service);
+    }
+
+    private static WeeklyReportSnapshot CreateReport(DateOnly date)
+    {
+        var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
+        return new WeeklyReportSnapshot(
+            Guid.NewGuid(), WeekPeriod.FromDate(date), "已有内容", "", "",
+            0, 0, 0, now, now);
+    }
+
+    private sealed class FakeReports : IWeeklyReportRepository
+    {
+        public WeeklyReportSnapshot? Existing { get; set; }
+        public WeeklyReportSnapshot? Added { get; private set; }
+
+        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week) =>
+            Task.FromResult(Existing is { } report && report.Week == week ? report : null);
+
+        public Task<IReadOnlyList<WeeklyReportSnapshot>> ListAsync() =>
+            Task.FromResult<IReadOnlyList<WeeklyReportSnapshot>>([]);
+
+        public Task AddAsync(WeeklyReportSnapshot report)
+        {
+            Added = report;
+            Existing = report;
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> UpdateAsync(WeeklyReportSnapshot report, DateTimeOffset expectedUpdatedAtUtc) =>
+            Task.FromResult(false);
+
+        public Task<bool> DeleteAsync(Guid id, DateTimeOffset expectedUpdatedAtUtc) =>
+            Task.FromResult(false);
+    }
+
+    private sealed class FakeEntries : IWorkEntryRepository
+    {
+        public IReadOnlyList<WorkEntry> Entries { get; init; } = [];
+
+        public Task<IReadOnlyList<WorkEntry>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult(Entries);
+
+        public Task<WorkEntry?> FindAsync(Guid id) => Task.FromResult<WorkEntry?>(null);
+        public Task AddAsync(WorkEntry entry) => Task.CompletedTask;
+        public Task<bool> UpdateAsync(WorkEntry entry) => Task.FromResult(false);
+        public Task<bool> DeleteAsync(Guid id) => Task.FromResult(false);
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
+    }
+
+    private sealed class FakeGitItems : IGitReportWorkItemSource
+    {
+        public Task<IReadOnlyList<GitReportWorkItem>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult<IReadOnlyList<GitReportWorkItem>>([]);
+    }
+}

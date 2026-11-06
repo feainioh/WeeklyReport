@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261105T014715952Z-26176-8e006947acbf",
+  "runId": "20261105T014715952Z-26176-8e006947acbf",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "8e457645d7348f018bb35ccd0b0d4c2492516fc57ee45461fa16baa0b0644c7c",
+  "rulesVersion": "unavailable",
+  "sessionHash": "0c7db4c8b88ff24e7d6983e0bf03001534096ecbce78bb338988f9b5dfc44cc8",
+  "reportRef": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261105T014715952Z-26176-8e006947acbf.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteSyncApplier.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteSyncCoordinator.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/App.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-05T01:47:16.350Z"
+}

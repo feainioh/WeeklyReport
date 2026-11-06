@@ -1,0 +1,144 @@
+// [新增-离线存储] Phase 1 切片 A：SQLite 连接工厂与版本化迁移（ADR-02/03/05）。
+// 连接约定：journal_mode=WAL（库级持久）；foreign_keys 每连接开启；busy 等待 5 秒。
+// 迁移约定：嵌入脚本按名排序逐个应用（schemalite_version 日记表），每脚本单事务，重复执行幂等；
+// 与 MySQL 侧 DbUp 互不干扰（目录隔离 + DbUp 范围过滤，见 MySqlDatabaseInitializer）。
+using System.Globalization;
+using System.Reflection;
+using System.Text;
+using Microsoft.Data.Sqlite;
+using WeeklyReport.Application;
+
+namespace WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+public static class SqliteDatabase
+{
+    private const string JournalTable = "schemalite_version";
+    private const string ScriptScope = ".Persistence.Sqlite.Migrations.";
+
+    /// <summary>打开连接并应用连接级 PRAGMA（foreign_keys 每连接必须显式开启）。</summary>
+    public static SqliteConnection Open(string databasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            DefaultTimeout = 5
+        }.ToString());
+        try
+        {
+            connection.Open();
+            using var pragma = connection.CreateCommand();
+            pragma.CommandText = "PRAGMA foreign_keys=ON;";
+            pragma.ExecuteNonQuery();
+            return connection;
+        }
+        // [新增-离线存储] Phase 1 切片 E：边界统一包装——文件损坏/不可写在打开路径上即抛应用层标准异常
+        catch (SqliteException exception)
+        {
+            connection.Dispose();
+            throw new DatabaseAccessException("本地存储不可用：文件损坏或不是有效的 SQLite 数据库。", exception);
+        }
+    }
+
+    /// <summary>首次设置 WAL（库级持久，仅需在建库时执行一次）。</summary>
+    public static void EnableWal(string databasePath)
+    {
+        using var connection = Open(databasePath);
+        try
+        {
+            using var pragma = connection.CreateCommand();
+            pragma.CommandText = "PRAGMA journal_mode=WAL;";
+            pragma.ExecuteScalar();
+        }
+        // [新增-离线存储] Phase 1 切片 E：损坏文件的头部校验发生在首条真正读库的语句（此处），统一包装
+        catch (SqliteException exception)
+        {
+            throw new DatabaseAccessException("本地存储不可用：文件损坏或不是有效的 SQLite 数据库。", exception);
+        }
+    }
+
+    /// <summary>版本化迁移：未应用的嵌入脚本按序执行；重复调用幂等；任一脚本失败整体报错并保留日记。</summary>
+    public static async Task EnsureInitializedAsync(string databasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+        var directory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        EnableWal(databasePath);
+        await using var connection = Open(databasePath);
+        using (var createJournal = connection.CreateCommand())
+        {
+            createJournal.CommandText =
+                $"CREATE TABLE IF NOT EXISTS {JournalTable} (" +
+                "version INTEGER PRIMARY KEY, script_name TEXT NOT NULL, applied_at_utc TEXT NOT NULL)";
+            await createJournal.ExecuteNonQueryAsync();
+        }
+
+        var applied = new HashSet<string>(StringComparer.Ordinal);
+        using (var query = connection.CreateCommand())
+        {
+            query.CommandText = $"SELECT script_name FROM {JournalTable}";
+            await using var reader = await query.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                applied.Add(reader.GetString(0));
+            }
+        }
+
+        foreach (var script in LoadScripts())
+        {
+            if (applied.Contains(script.Name))
+            {
+                continue;
+            }
+
+            await using var transaction =
+                (SqliteTransaction)await connection.BeginTransactionAsync();
+            try
+            {
+                var apply = connection.CreateCommand();
+                apply.Transaction = transaction;
+                apply.CommandText = script.Content;
+                await apply.ExecuteNonQueryAsync();
+
+                var record = connection.CreateCommand();
+                record.Transaction = transaction;
+                record.CommandText =
+                    $"INSERT INTO {JournalTable} (version, script_name, applied_at_utc) " +
+                    "VALUES ($version, $name, $at)";
+                record.Parameters.AddWithValue("$version", applied.Count + 1);
+                record.Parameters.AddWithValue("$name", script.Name);
+                record.Parameters.AddWithValue("$at", DateTime.UtcNow.ToString(
+                    "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture));
+                await record.ExecuteNonQueryAsync();
+
+                await transaction.CommitAsync();
+                applied.Add(script.Name);
+            }
+            catch (Exception exception)
+            {
+                await transaction.RollbackAsync();
+                throw new DatabaseAccessException($"SQLite 迁移失败：{script.Name}", exception);
+            }
+        }
+    }
+
+    private static IEnumerable<(string Name, string Content)> LoadScripts()
+    {
+        var assembly = typeof(SqliteDatabase).Assembly;
+        foreach (var name in assembly.GetManifestResourceNames()
+                     .Where(name => name.EndsWith(".sql", StringComparison.Ordinal)
+                         && name.Contains(ScriptScope, StringComparison.Ordinal))
+                     .OrderBy(name => name, StringComparer.Ordinal))
+        {
+            using var stream = assembly.GetManifestResourceStream(name)
+                ?? throw new InvalidOperationException($"无法读取嵌入迁移脚本：{name}");
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            yield return (name, reader.ReadToEnd());
+        }
+    }
+}

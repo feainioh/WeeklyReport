@@ -1,0 +1,187 @@
+using System.IO;
+using Microsoft.Extensions.Logging.Abstractions;
+using WeeklyReport.App.Services;
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.DesktopTests;
+
+public sealed class WeeklyProgressContextProviderTests
+{
+    [Fact]
+    public async Task GetCurrentWeekAsync_WhenDatabaseIsNotConfigured_ReturnsUnknownBusinessFields()
+    {
+        var provider = CreateProvider(new FakeConfigurationStore(), new FakeEntries(), new FakeGitItems(),
+            new FakeReports(), new ManualTime());
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.MySqlNotConfigured, context.Storage);
+        Assert.Null(context.ManualEntryCount);
+        Assert.Null(context.GitWorkItemCount);
+        Assert.Null(context.HasSavedReport);
+        Assert.Null(context.UnknownHoursCount);
+    }
+
+    [Fact]
+    public async Task GetCurrentWeekAsync_UsesDraftBuilderForCountsAndUnknownHours()
+    {
+        var clock = new ManualTime();
+        var weekStart = WeekPeriod.FromDate(DateOnly.FromDateTime(clock.GetLocalNow().DateTime)).Start;
+        var entries = new FakeEntries
+        {
+            Result =
+            [
+                new WorkEntry(Guid.NewGuid(), weekStart, "record", clock.GetUtcNow(), clock.GetUtcNow())
+            ]
+        };
+        var git = new FakeGitItems
+        {
+            Result =
+            [
+                new GitReportWorkItem(Guid.NewGuid(), Guid.NewGuid(), "project", weekStart,
+                    "unestimated item", null, null)
+            ]
+        };
+        var provider = CreateProvider(new FakeConfigurationStore { IsConfigured = true },
+            entries, git, new FakeReports(), clock);
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.MySqlHealthy, context.Storage);
+        Assert.Equal(1, context.ManualEntryCount);
+        Assert.Equal(1, context.GitWorkItemCount);
+        Assert.False(context.HasSavedReport);
+        Assert.Equal(2, context.UnknownHoursCount);
+        Assert.True(context.IsBusinessDataComplete);
+    }
+
+    [Fact]
+    public async Task GetCurrentWeekAsync_PartialDatabaseFailureDoesNotReplaceMissingDataWithZero()
+    {
+        var reports = new FakeReports
+        {
+            Find = _ => throw new DatabaseAccessException("unavailable", new IOException())
+        };
+        var provider = CreateProvider(new FakeConfigurationStore { IsConfigured = true },
+            new FakeEntries(), new FakeGitItems(), reports, new ManualTime());
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.MySqlUnavailable, context.Storage);
+        Assert.Equal(0, context.ManualEntryCount);
+        Assert.Equal(0, context.GitWorkItemCount);
+        Assert.Null(context.HasSavedReport);
+        Assert.Equal(0, context.UnknownHoursCount);
+        Assert.False(context.IsBusinessDataComplete);
+    }
+
+    [Fact]
+    public async Task GetCurrentWeekAsync_CachesForFortyFiveSecondsAndCanBeInvalidated()
+    {
+        var reports = new FakeReports();
+        var clock = new ManualTime();
+        var provider = CreateProvider(new FakeConfigurationStore { IsConfigured = true },
+            new FakeEntries(), new FakeGitItems(), reports, clock);
+
+        await provider.GetCurrentWeekAsync();
+        clock.Advance(TimeSpan.FromSeconds(44));
+        await provider.GetCurrentWeekAsync();
+        Assert.Equal(1, reports.Calls);
+
+        clock.Advance(TimeSpan.FromSeconds(2));
+        await provider.GetCurrentWeekAsync();
+        Assert.Equal(2, reports.Calls);
+
+        provider.Invalidate();
+        await provider.GetCurrentWeekAsync();
+        Assert.Equal(3, reports.Calls);
+    }
+
+    [Fact]
+    public async Task GetCurrentWeekAsync_ForceRefreshBypassesCache()
+    {
+        var reports = new FakeReports();
+        var provider = CreateProvider(new FakeConfigurationStore { IsConfigured = true },
+            new FakeEntries(), new FakeGitItems(), reports, new ManualTime());
+
+        await provider.GetCurrentWeekAsync();
+        await provider.GetCurrentWeekAsync(forceRefresh: true);
+
+        Assert.Equal(2, reports.Calls);
+    }
+
+    private static WeeklyProgressContextProvider CreateProvider(
+        FakeConfigurationStore configuration,
+        FakeEntries entries,
+        FakeGitItems gitItems,
+        FakeReports reports,
+        TimeProvider clock) =>
+        new(configuration, entries, gitItems, reports, new WeeklyReportDraftBuilder(),
+            clock, NullLogger<WeeklyProgressContextProvider>.Instance);
+
+    private sealed class FakeConfigurationStore : IDatabaseConfigurationStore
+    {
+        public bool IsConfigured { get; init; }
+
+        public Task<DatabaseConnectionSettings?> LoadAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<DatabaseConnectionSettings?>(IsConfigured
+                ? new DatabaseConnectionSettings("127.0.0.1", 3306, "weekly_report", "test", "")
+                : null);
+
+        public Task SaveAsync(DatabaseConnectionSettings settings, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class FakeEntries : IWorkEntryRepository
+    {
+        public IReadOnlyList<WorkEntry> Result { get; init; } = [];
+
+        public Task<IReadOnlyList<WorkEntry>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult(Result);
+
+        public Task<WorkEntry?> FindAsync(Guid id) => throw new NotSupportedException();
+        public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
+        public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
+    }
+
+    private sealed class FakeGitItems : IGitReportWorkItemSource
+    {
+        public IReadOnlyList<GitReportWorkItem> Result { get; init; } = [];
+
+        public Task<IReadOnlyList<GitReportWorkItem>> GetByWeekAsync(WeekPeriod week) =>
+            Task.FromResult(Result);
+    }
+
+    private sealed class FakeReports : IWeeklyReportRepository
+    {
+        public int Calls { get; private set; }
+        public Func<WeekPeriod, Task<WeeklyReportSnapshot?>> Find { get; init; } =
+            _ => Task.FromResult<WeeklyReportSnapshot?>(null);
+
+        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week)
+        {
+            Calls++;
+            return Find(week);
+        }
+
+        public Task<IReadOnlyList<WeeklyReportSnapshot>> ListAsync() => throw new NotSupportedException();
+        public Task AddAsync(WeeklyReportSnapshot report) => throw new NotSupportedException();
+        public Task<bool> UpdateAsync(WeeklyReportSnapshot report, DateTimeOffset expectedUpdatedAtUtc) =>
+            throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, DateTimeOffset expectedUpdatedAtUtc) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class ManualTime : TimeProvider
+    {
+        private DateTimeOffset _now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan duration) => _now += duration;
+    }
+}

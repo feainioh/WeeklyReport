@@ -1,0 +1,35 @@
+// [新增-离线存储] Phase 1 切片 B：SQLite Git 项目仓储契约测试——临时库直跑，与 MySQL 同一契约。
+using System.IO;
+using WeeklyReport.Application;
+using WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+namespace WeeklyReport.IntegrationTests;
+
+public sealed class SqliteGitProjectRepositoryTests : GitProjectRepositoryContract, IDisposable
+{
+    private readonly string _databasePath =
+        Path.Combine(Path.GetTempPath(), "WeeklyReport.SqliteTests", $"gitprojects-{Guid.NewGuid():N}.db");
+
+    protected override Task InitializeAsync() => SqliteDatabase.EnsureInitializedAsync(_databasePath);
+
+    protected override Task<IGitProjectRepository> CreateRepositoryAsync() =>
+        Task.FromResult<IGitProjectRepository>(new SqliteGitProjectRepository(_databasePath));
+
+    [Fact]
+    public async Task Contract_Crud_SupportsBoundAndUnboundProjects() =>
+        await Crud_SupportsBoundAndUnboundProjectsAsync();
+
+    public void Dispose()
+    {
+        // [新增-离线存储] 清连接池后删除临时库文件（db/-wal/-shm）
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        foreach (var suffix in new[] { "", "-wal", "-shm" })
+        {
+            var file = _databasePath + suffix;
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+        }
+    }
+}

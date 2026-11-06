@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261104T032519184Z-13860-18d41de0e432",
+  "runStatus": "inconclusive",
+  "errors": [
+    "candidate-select:C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-mirror-seed/Program.cs: changed_file_unreadable: observed changed file no longer exists or cannot be read",
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.AssemblyInfo.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yn3tm1it_wpftmp.GlobalUsings.g.cs: baseline_snapshot_unreadable: file is missing from task baseline"
+  ],
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "971b813e7f3fb3c568c4c570ec57edc23041c4cab7b8638c529c04a737ce97f3",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-04T03:25:19.184Z",
+  "timing": {
+    "startedAt": "2026-11-04T03:25:17.374Z",
+    "completedAt": "2026-11-04T03:25:19.184Z",
+    "durationMs": 1810
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "changed_file_unreadable": 1,
+      "baseline_snapshot_unreadable": 2,
+      "project_check_failed": 3
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261104T032519184Z-13860-18d41de0e432.json"
+}

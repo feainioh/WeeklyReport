@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261104T013421587Z-37008-45eea3928362",
+  "runStatus": "inconclusive",
+  "errors": [
+    "candidate-select:src/WeeklyReport.Application/ILocalOperationQueue.cs: changed_file_unreadable: observed changed file no longer exists or cannot be read",
+    "candidate-select:C:/Users/linqiuzhao-AU/AppData/Local/Temp/wr-queue-repro/Program.cs: changed_file_unreadable: observed changed file no longer exists or cannot be read"
+  ],
+  "target": ".",
+  "revision": "0b574490ed7fd9d13da806b55883bb6573e0965d",
+  "diffHash": "ba0c1fa6be4dd3542aea16978a5811c5360e99f4d17db564fe51e6ff4eda429d",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-04T01:34:21.587Z",
+  "timing": {
+    "startedAt": "2026-11-04T01:34:19.939Z",
+    "completedAt": "2026-11-04T01:34:21.587Z",
+    "durationMs": 1648
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "changed_file_unreadable": 2,
+      "project_check_failed": 2
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_b35fbaabc348ff3e820066e485f17b69-20261104T013421587Z-37008-45eea3928362.json"
+}
