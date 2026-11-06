@@ -21,7 +21,10 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     private readonly DispatcherTimer _faceResetTimer;
     private readonly DispatcherTimer _greetingTimer;
     private readonly DispatcherTimer _idleTimer;
+    private readonly DispatcherTimer _scenarioCueTimer;
     private readonly Random _random = new();
+    private readonly Dictionary<string, DateTimeOffset> _scenarioCooldowns = new(StringComparer.Ordinal);
+    private readonly List<ScenarioCue> _scenarioCues = [];
     private string _weekText = string.Empty;
     private string _statusText = string.Empty;
     private string _bubbleText = string.Empty;
@@ -38,6 +41,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     private DateTimeOffset _lastGlance = DateTimeOffset.Now;
     private DateTimeOffset _lastWeightShift = DateTimeOffset.Now;
     private DateTimeOffset? _mutedUntil;
+    private DateTimeOffset _scenarioStartedAt;
     private Storyboard? _activeBodyAction;
     private EventHandler? _activeBodyActionCompleted;
     private Storyboard? _settleStoryboard;
@@ -45,6 +49,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     private SpriteActionPriority? _activeActionPriority;
     private SpriteActionPriority? _settlePriority;
     private FloatingSpriteState? _lastAppliedState;
+    private string? _activeScenarioKey;
+    private int _scenarioCueIndex;
     private bool _activeActionIsExtended;
     private bool _activeActionIsAutomatic;
     private bool _activeActionIsUserInitiated;
@@ -60,6 +66,33 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     // [新增-机器人交互] 表情状态：正常、开心、困倦、惊讶、眩晕
     private enum FaceState { Normal, Happy, Sleepy, Surprised, Dizzy }
     private FaceState _face = FaceState.Normal;
+
+    private sealed record ScenarioCue(TimeSpan At, string Text, TimeSpan Duration);
+
+    private sealed record ScenarioAnimation(string StoryboardKey, TimeSpan Cooldown, ScenarioCue[] Cues);
+
+    private static readonly ScenarioAnimation[] ScenarioPool =
+    [
+        new("GoOutStoryboard", TimeSpan.FromMinutes(8),
+        [
+            new(TimeSpan.Zero, "出去玩一圈～", TimeSpan.FromSeconds(3)),
+            new(TimeSpan.FromSeconds(3.2), "回来啦！", TimeSpan.FromSeconds(2))
+        ]),
+        new("CarReturnStoryboard", TimeSpan.FromMinutes(8),
+        [
+            new(TimeSpan.FromSeconds(1.8), "坐车回来啦～ ٩(๑•̀ω•́๑)۶", TimeSpan.FromSeconds(3))
+        ]),
+        new("SpiralTakeoffStoryboard", TimeSpan.FromMinutes(10),
+        [
+            new(TimeSpan.FromSeconds(0.5), "起飞喽～", TimeSpan.FromSeconds(2)),
+            new(TimeSpan.FromSeconds(4.4), "着陆成功！", TimeSpan.FromSeconds(2))
+        ]),
+        new("TakeNotesStoryboard", TimeSpan.FromMinutes(6),
+        [
+            new(TimeSpan.FromSeconds(0.8), "让我记一下...", TimeSpan.FromSeconds(3)),
+            new(TimeSpan.FromSeconds(4.2), "记好了！✓", TimeSpan.FromSeconds(2))
+        ])
+    ];
 
     public FloatingSprite(FloatingSpriteStateMachine machine)
     {
@@ -94,6 +127,9 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
         _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _idleTimer.Tick += OnIdleTimerTick;
+
+        _scenarioCueTimer = new DispatcherTimer();
+        _scenarioCueTimer.Tick += OnScenarioCueTimerTick;
 
         _machine.StateChanged += OnStateChanged;
         MouseLeftButtonDown += OnSpriteMouseLeftButtonDown;
@@ -279,11 +315,118 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         TryRequestIdleAdvice(now);
         TryShowIdleChatter(now);
         TryPlayIdleDance(now);
+        TryPlayScenarioAnimation(now);
 
         TryPlayAmbientAction(now, "GlanceStoryboard", SpriteMessagePolicy.IdleGlanceInterval(_behavior.Preset),
             ref _lastGlance);
         TryPlayAmbientAction(now, "WeightShiftStoryboard",
             SpriteMessagePolicy.WeightShiftInterval(_behavior.Preset), ref _lastWeightShift);
+    }
+
+    private void TryPlayScenarioAnimation(DateTimeOffset now)
+    {
+        if (!_behavior.DynamicActions
+            || _adviceRequestPending
+            || _activeBodyAction is not null
+            || _settleStoryboard is not null)
+        {
+            return;
+        }
+
+        var eligibleScenarios = ScenarioPool
+            .Where(scenario =>
+            {
+                var sinceLastScenario = _scenarioCooldowns.TryGetValue(
+                    scenario.StoryboardKey, out var lastPlayed)
+                    ? now - lastPlayed
+                    : scenario.Cooldown;
+                return SpriteMessagePolicy.CanPlayAutomaticAmbient(
+                    _behavior,
+                    now,
+                    now - _lastInteraction,
+                    sinceLastScenario,
+                    scenario.Cooldown,
+                    IsVisible,
+                    IsMouseOver,
+                    ReminderBubble.IsOpen,
+                    IsMuted(now),
+                    _machine.State == FloatingSpriteState.Idle);
+            })
+            .ToArray();
+        if (eligibleScenarios.Length == 0)
+        {
+            return;
+        }
+
+        var scenario = eligibleScenarios[_random.Next(eligibleScenarios.Length)];
+        if (!StartBodyAction(
+                scenario.StoryboardKey, extendedAction: true, SpriteActionPriority.Automatic,
+                automatic: true, userInitiated: false))
+        {
+            return;
+        }
+
+        _scenarioCooldowns[scenario.StoryboardKey] = now;
+        _lastDynamicAction = now;
+        StartScenarioCues(scenario);
+    }
+
+    private void StartScenarioCues(ScenarioAnimation scenario)
+    {
+        StopScenarioCues();
+        _activeScenarioKey = scenario.StoryboardKey;
+        _scenarioStartedAt = DateTimeOffset.Now;
+        _scenarioCues.AddRange(scenario.Cues);
+        _scenarioCueIndex = 0;
+        ShowDueScenarioCues();
+        ScheduleNextScenarioCue();
+    }
+
+    private void OnScenarioCueTimerTick(object? sender, EventArgs e)
+    {
+        _scenarioCueTimer.Stop();
+        if (_disposed || _activeScenarioKey is null || _activeBodyAction is null)
+        {
+            StopScenarioCues();
+            return;
+        }
+
+        ShowDueScenarioCues();
+        ScheduleNextScenarioCue();
+    }
+
+    private void ShowDueScenarioCues()
+    {
+        var elapsed = DateTimeOffset.Now - _scenarioStartedAt;
+        while (_scenarioCueIndex < _scenarioCues.Count
+               && _scenarioCues[_scenarioCueIndex].At <= elapsed)
+        {
+            var cue = _scenarioCues[_scenarioCueIndex];
+            ShowBubble(cue.Text, null, cue.Duration);
+            _scenarioCueIndex++;
+        }
+    }
+
+    private void ScheduleNextScenarioCue()
+    {
+        if (_scenarioCueIndex >= _scenarioCues.Count)
+        {
+            return;
+        }
+
+        var remaining = _scenarioCues[_scenarioCueIndex].At - (DateTimeOffset.Now - _scenarioStartedAt);
+        _scenarioCueTimer.Interval = remaining > TimeSpan.Zero
+            ? remaining
+            : TimeSpan.FromMilliseconds(1);
+        _scenarioCueTimer.Start();
+    }
+
+    private void StopScenarioCues()
+    {
+        _scenarioCueTimer.Stop();
+        _scenarioCues.Clear();
+        _scenarioCueIndex = 0;
+        _activeScenarioKey = null;
     }
 
     private void TryPlayIdleDance(DateTimeOffset now)
@@ -1136,7 +1279,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         _activeActionIsExtended = extendedAction;
         _activeActionIsAutomatic = automatic;
         _activeActionIsUserInitiated = userInitiated;
-        _activeActionRestoresFace = storyboardKey is "WaveStoryboard" or "DanceStoryboard";
+        _activeActionRestoresFace = automatic
+            || storyboardKey is "WaveStoryboard" or "DanceStoryboard";
         if (automatic || storyboardKey is "WaveStoryboard" or "DanceStoryboard")
         {
             SetFace(FaceState.Happy);
@@ -1183,6 +1327,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         _activeBodyAction = null;
         _activeActionPriority = null;
         storyboard.Remove(this);
+        StopScenarioCues();
+        ResetScenarioProps();
         _activeActionRestoresFace = false;
         _activeActionIsExtended = false;
         _activeActionIsAutomatic = false;
@@ -1217,6 +1363,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     private void StopBodyAction(bool settle = true, int settleMilliseconds = 200, bool preserveCurrent = false)
     {
         var snapshot = CaptureBodyTransforms();
+        StopScenarioCues();
+        ResetScenarioProps();
         var storyboard = _activeBodyAction;
         if (storyboard is not null)
         {
@@ -1299,6 +1447,12 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             snapshot.ScaleY, 1, milliseconds);
         AddSettleAnimation(settle, BodyRotate, System.Windows.Media.RotateTransform.AngleProperty,
             snapshot.BodyAngle, 0, milliseconds);
+        AddSettleAnimation(settle, CharacterSpinRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.CharacterSpinAngle, 0, milliseconds);
+        AddSettleAnimation(settle, CharacterSpinScale, System.Windows.Media.ScaleTransform.ScaleXProperty,
+            snapshot.CharacterSpinScaleX, 1, milliseconds);
+        AddSettleAnimation(settle, CharacterSpinScale, System.Windows.Media.ScaleTransform.ScaleYProperty,
+            snapshot.CharacterSpinScaleY, 1, milliseconds);
         AddSettleAnimation(settle, LeftArmRotate, System.Windows.Media.RotateTransform.AngleProperty,
             snapshot.LeftArmAngle, 16, milliseconds);
         AddSettleAnimation(settle, RightArmRotate, System.Windows.Media.RotateTransform.AngleProperty,
@@ -1422,6 +1576,9 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         BodyScale.ScaleX = 1;
         BodyScale.ScaleY = 1;
         BodyRotate.Angle = 0;
+        CharacterSpinRotate.Angle = 0;
+        CharacterSpinScale.ScaleX = 1;
+        CharacterSpinScale.ScaleY = 1;
         LeftArmRotate.Angle = 16;
         RightArmRotate.Angle = -16;
         LeftElbowRotate.Angle = 8;
@@ -1440,7 +1597,24 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         ShadowScale.ScaleX = 1;
         ShadowScale.ScaleY = 1;
         GroundShadow.Opacity = 0.16;
+        ResetScenarioProps();
         ResetHoverGaze();
+    }
+
+    private void ResetScenarioProps()
+    {
+        CharacterRoot.Opacity = 1;
+        ShadowTranslate.X = 0;
+        DoorProp.Opacity = 0;
+        DoorRotate.Angle = 0;
+        CarProp.Opacity = 0;
+        CarTranslate.X = 0;
+        CarTranslate.Y = 0;
+        FrontWheelRotate.Angle = 0;
+        RearWheelRotate.Angle = 0;
+        NotebookProp.Opacity = 0;
+        NotebookTranslate.X = 0;
+        NotebookTranslate.Y = 0;
     }
 
     private readonly record struct BodyTransformSnapshot(
@@ -1449,6 +1623,9 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         double ScaleX,
         double ScaleY,
         double BodyAngle,
+        double CharacterSpinAngle,
+        double CharacterSpinScaleX,
+        double CharacterSpinScaleY,
         double LeftArmAngle,
         double RightArmAngle,
         double LeftElbowAngle,
@@ -1474,6 +1651,9 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         BodyScale.ScaleX,
         BodyScale.ScaleY,
         BodyRotate.Angle,
+        CharacterSpinRotate.Angle,
+        CharacterSpinScale.ScaleX,
+        CharacterSpinScale.ScaleY,
         LeftArmRotate.Angle,
         RightArmRotate.Angle,
         LeftElbowRotate.Angle,
@@ -1500,6 +1680,9 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         BodyScale.ScaleX = snapshot.ScaleX;
         BodyScale.ScaleY = snapshot.ScaleY;
         BodyRotate.Angle = snapshot.BodyAngle;
+        CharacterSpinRotate.Angle = snapshot.CharacterSpinAngle;
+        CharacterSpinScale.ScaleX = snapshot.CharacterSpinScaleX;
+        CharacterSpinScale.ScaleY = snapshot.CharacterSpinScaleY;
         LeftArmRotate.Angle = snapshot.LeftArmAngle;
         RightArmRotate.Angle = snapshot.RightArmAngle;
         LeftElbowRotate.Angle = snapshot.LeftElbowAngle;
@@ -1555,6 +1738,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         _machine.StateChanged -= OnStateChanged;
         StopContinuousAnimations();
         _bubbleCloseTimer.Stop();
+        _scenarioCueTimer.Stop();
         StopBehaviorTimers();
         // [新增-天线状态] 停止无限循环的天线动画，避免重建精灵后时钟残留
         StopAntennaAnimations();

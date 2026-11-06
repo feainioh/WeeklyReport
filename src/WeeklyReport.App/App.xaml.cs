@@ -253,6 +253,7 @@ public partial class App : System.Windows.Application
             Log.Error("Application startup failed: {ErrorType}", exception.GetType().Name);
             MessageBox.Show("应用启动失败，请检查本地配置目录和运行环境。", "周报",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _floatingWindow?.PrepareForApplicationShutdown();
             Shutdown();
         }
     }
@@ -544,6 +545,7 @@ public partial class App : System.Windows.Application
             _syncCoordinator = null;
         }
 
+        _floatingWindow?.PrepareForApplicationShutdown();
         StartExitWatchdog();
         Shutdown();
     }
@@ -910,5 +912,11 @@ public partial class App : System.Windows.Application
         _instanceMutex?.Dispose();
         Log.CloseAndFlush();
         base.OnExit(e);
+    }
+
+    protected override void OnSessionEnding(System.Windows.SessionEndingCancelEventArgs e)
+    {
+        _floatingWindow?.PrepareForApplicationShutdown();
+        base.OnSessionEnding(e);
     }
 }

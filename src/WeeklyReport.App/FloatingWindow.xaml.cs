@@ -31,6 +31,7 @@ public partial class FloatingWindow : Window
     private SpriteBehaviorSettings _spriteBehavior = SpriteBehaviorSettings.Default;
     private WorkRhythmReminderSettings _workRhythmSettings = WorkRhythmReminderSettings.Default;
     private string _weeklyProgressStatus = "存储状态：正在读取";
+    private bool _allowClose;
 
     // [新增-悬浮精灵] 精灵形态窗口尺寸（含跳动空间）；卡片形态沿用 320x165
     // [旧代码-机器人化] 原文档精灵尺寸 150x190，机器人化缩小 50% 后改为 75x95
@@ -78,6 +79,16 @@ public partial class FloatingWindow : Window
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _timer.Tick += (_, _) => UpdateWeek();
         Loaded += OnLoaded;
+        Closing += (_, e) =>
+        {
+            if (_allowClose)
+            {
+                return;
+            }
+
+            e.Cancel = true;
+            HideWithPosition();
+        };
         Closed += (_, _) =>
         {
             _timer.Stop();
@@ -118,6 +129,8 @@ public partial class FloatingWindow : Window
         SavePosition();
         Hide();
     }
+
+    public void PrepareForApplicationShutdown() => _allowClose = true;
 
     public void SetReminderStatus(string message)
     {
