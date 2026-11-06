@@ -10,7 +10,7 @@ public sealed record DailyGitHourEstimate(
 public sealed class GitHourEstimator
 {
     private static readonly TimeSpan MaximumGap = TimeSpan.FromHours(2);
-    private static readonly long DailyLimitTicks = TimeSpan.FromHours(8).Ticks;
+    private static readonly long DailyLimitTicks = TimeSpan.FromMinutes(WorkHourLimits.DailyLimitMinutes).Ticks;
 
     public IReadOnlyList<DailyGitHourEstimate> Estimate(
         IEnumerable<GitCommit> commits,

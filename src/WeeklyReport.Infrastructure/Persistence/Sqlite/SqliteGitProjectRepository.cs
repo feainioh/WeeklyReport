@@ -1,0 +1,147 @@
+// [新增-离线存储] Phase 1 切片 B：SQLite 版 Git 项目仓储（ADR-02/03）。
+// git_projects 表全列为字符串（无日期列），与 MySQL 行结构一致，SQL 为 SQLite 方言、全参数化。
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+public sealed class SqliteGitProjectRepository(string databasePath) : IGitProjectRepository
+{
+    private readonly SqliteExecutor _executor = new(databasePath);
+
+    public async Task<IReadOnlyList<GitProject>> ListAsync() =>
+        await _executor.ExecuteAsync<IReadOnlyList<GitProject>>(async database =>
+        {
+            var rows = await database.Ado.SqlQueryAsync<GitProjectRow>(
+                "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+                "author_field AS AuthorField, author_value AS Author FROM git_projects ORDER BY name, id");
+            return rows.Select(ToProject).ToArray();
+        });
+
+    public async Task<GitProject?> FindAsync(Guid id)
+    {
+        var key = id.ToString("D");
+        return await _executor.ExecuteAsync(async database =>
+        {
+            var rows = await database.Ado.SqlQueryAsync<GitProjectRow>(
+                "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+                "author_field AS AuthorField, author_value AS Author FROM git_projects WHERE id = @key",
+                new { key });
+            var row = rows.FirstOrDefault();
+            return row is null ? null : ToProject(row);
+        });
+    }
+
+    // [新增-离线存储] Phase 1 切片 F：写路径入队化（业务写入与 sync_operation 同队列事务；旧独立连接写法从略，见 git 历史）
+    public async Task AddAsync(GitProject project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ValidateText(project);
+        var id = project.Id.ToString("D");
+        var authorField = project.AuthorField?.ToString();
+        await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-project.save", async session =>
+        {
+            await session.Database.Ado.ExecuteCommandAsync(
+                "INSERT INTO git_projects (id, name, repository_path, author_field, author_value) " +
+                "VALUES (@id, @name, @repositoryPath, @authorField, @author)",
+                new { id, name = project.Name, repositoryPath = project.RepositoryPath, authorField, author = project.Author });
+            session.Record(new LocalOperationChange("git_projects", id, project.Name, LocalObjectChange.Add)
+            {
+                AfterJson = SqliteOperationPayload.Serialize(project)
+            });
+            return true;
+        });
+    }
+
+    public async Task<bool> UpdateAsync(GitProject project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ValidateText(project);
+        var id = project.Id.ToString("D");
+        var authorField = project.AuthorField?.ToString();
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-project.save", async session =>
+        {
+            var existingRows = await session.Database.Ado.SqlQueryAsync<GitProjectRow>(
+                "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+                "author_field AS AuthorField, author_value AS Author FROM git_projects WHERE id = @id",
+                new { id });
+            var existing = existingRows.FirstOrDefault();
+            var changed = await session.Database.Ado.ExecuteCommandAsync(
+                "UPDATE git_projects SET name = @name, repository_path = @repositoryPath, " +
+                "author_field = @authorField, author_value = @author WHERE id = @id",
+                new { id, name = project.Name, repositoryPath = project.RepositoryPath, authorField, author = project.Author }) > 0;
+            if (changed)
+            {
+                var previous = existing
+                    ?? throw new InvalidOperationException("更新成功但未能读取 Git 项目的变更前快照。");
+                session.Record(new LocalOperationChange("git_projects", id, project.Name, LocalObjectChange.Update)
+                {
+                    BeforeJson = SqliteOperationPayload.Serialize(ToProject(previous)),
+                    AfterJson = SqliteOperationPayload.Serialize(project)
+                });
+            }
+
+            return changed;
+        });
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var key = id.ToString("D");
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-project.delete", async session =>
+        {
+            var rows = await session.Database.Ado.SqlQueryAsync<GitProjectRow>(
+                "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+                "author_field AS AuthorField, author_value AS Author FROM git_projects WHERE id = @key",
+                new { key });
+            var row = rows.FirstOrDefault();
+            if (row is null)
+            {
+                return false;
+            }
+
+            await session.Database.Ado.ExecuteCommandAsync(
+                "DELETE FROM git_projects WHERE id = @key", new { key });
+            var previous = ToProject(row);
+            session.Record(new LocalOperationChange(
+                "git_projects", key, previous.Name, LocalObjectChange.Delete)
+            {
+                BeforeJson = SqliteOperationPayload.Serialize(previous)
+            });
+            return true;
+        });
+    }
+
+    // [新增-离线存储] 供 SqliteGitSyncStore 的项目基线比较复用（与 MySQL 侧 internal 约定一致）
+    internal static GitProject ToProject(GitProjectRow row)
+    {
+        GitAuthorField? field = null;
+        if (row.AuthorField is not null)
+        {
+            if (!Enum.TryParse<GitAuthorField>(row.AuthorField, out var parsed)
+                || !Enum.IsDefined(parsed)
+                || parsed.ToString() != row.AuthorField)
+            {
+                throw new InvalidDataException("项目作者筛选类型无效，请检查本地存储。");
+            }
+
+            field = parsed;
+        }
+
+        return new GitProject(Guid.Parse(row.Id), row.Name, row.RepositoryPath, field, row.Author);
+    }
+
+    private static void ValidateText(GitProject project)
+    {
+        DbTextLimits.Validate(project.Name, "项目名称");
+        if (project.RepositoryPath is not null)
+        {
+            DbTextLimits.Validate(project.RepositoryPath, "仓库路径");
+        }
+
+        if (project.Author is not null)
+        {
+            DbTextLimits.Validate(project.Author, "作者筛选");
+        }
+    }
+}

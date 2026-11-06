@@ -3,6 +3,7 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using System.Windows.Threading;
 using WeeklyReport.App.Services;
 using WeeklyReport.App.ViewModels;
 using WeeklyReport.Application;
@@ -12,6 +13,8 @@ using WeeklyReport.Infrastructure.Ai;
 using WeeklyReport.Infrastructure.Backup;
 using WeeklyReport.Infrastructure.Git;
 using WeeklyReport.Infrastructure.Persistence;
+// [新增-离线存储] Phase 1 切片 F：本地优先存储（SQLite）命名空间
+using WeeklyReport.Infrastructure.Persistence.Sqlite;
 using MessageBox = System.Windows.MessageBox;
 
 namespace WeeklyReport.App;
@@ -25,9 +28,18 @@ public partial class App : System.Windows.Application
     private FloatingWindow? _floatingWindow;
     private WindowsReminderNotifier? _reminderNotifier;
     private ReminderMonitor? _reminderMonitor;
+    private ScheduledTaskMonitor? _scheduledTaskMonitor;
+    private DispatcherTimer? _workRhythmTimer;
+    private DateTimeOffset _lastWorkRhythmCheck;
     private WeeklyReportStatusProvider? _weeklyReportStatus;
     private IWeeklyProgressContextProvider? _weeklyProgressContext;
     private bool _ownsMutex;
+    private int _exitStarted;
+
+    // [新增-离线存储] Phase 1 切片 F：本地优先存储数据库路径（与配置/日志同目录的独立业务库，ADR-03 §4.1）
+    public static string LocalDatabasePath { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "WeeklyReport", "weekly-report.db");
 
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
@@ -82,6 +94,24 @@ public partial class App : System.Windows.Application
 
             var services = new ServiceCollection();
             services.AddLogging(builder => builder.ClearProviders().AddSerilog(Log.Logger));
+
+            // [新增-离线存储] Phase 1 切片 F：启动探测本地存储状态（local_meta 为事实来源），按模式路由仓储注册。
+            // 损坏文件明确提示并以 MySQL 模式继续（数据仍在 MySQL，不伪装正常）。
+            LocalStorageState? localState = null;
+            if (File.Exists(LocalDatabasePath))
+            {
+                try
+                {
+                    localState = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
+                }
+                catch (DatabaseAccessException)
+                {
+                    MessageBox.Show("本地离线存储文件不可用（可能损坏），本次以 MySQL 模式运行；可在设置中重建镜像。",
+                        "周报", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                }
+            }
+
+            var localFirst = localState is { Status: LocalStorageStatus.Ready or LocalStorageStatus.Suspended };
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IReminderStateStore>(
                 new ProtectedReminderStateStore(Path.Combine(dataDirectory, "reminders.json")));
@@ -100,23 +130,76 @@ public partial class App : System.Windows.Application
             services.AddSingleton<JsonBackupCodec>();
             services.AddSingleton<ExcelBackupCodec>();
             services.AddSingleton<BackupFileService>();
-            services.AddSingleton<IBackupStore, SqlSugarBackupStore>();
+            // [旧代码-备份离线化] 原固定 MySQL 备份实现（本地优先启用时由 SQLite 实现替代）
+            // services.AddSingleton<IBackupStore, SqlSugarBackupStore>();
+            // [新增-备份离线化] 切片 2：备份捕获/导入按模式路由——导入导出切到当前有效数据源
+            services.AddSingleton<IBackupStore>(localFirst
+                ? new SqliteBackupStore(LocalDatabasePath)
+                : new SqlSugarBackupStore(new DatabaseConfigurationStore(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WeeklyReport", "database.json"))));
             services.AddSingleton<BackupImportPlanner>();
             services.AddSingleton<BackupService>();
             services.AddSingleton<IDatabaseInitializer, MySqlDatabaseInitializer>();
-            services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
-            services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
-            services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
+
+            // [旧代码-离线存储] 原固定 MySQL 仓储注册（本地优先启用时由 SQLite 实现替代）
+            // services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
+            // services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
+            // services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
+            if (localFirst)
+            {
+                // [新增-离线存储] 本地优先模式：业务读写走 SQLite 有效视图（写路径自动入队，见各 SQLite 仓储）
+                services.AddSingleton<IWorkEntryRepository>(_ => new SqliteWorkEntryRepository(LocalDatabasePath));
+                services.AddSingleton<IGitProjectRepository>(_ => new SqliteGitProjectRepository(LocalDatabasePath));
+                services.AddSingleton<IGitSyncStore>(_ => new SqliteGitSyncStore(LocalDatabasePath));
+            }
+            else
+            {
+                // [新增-离线存储] MySQL 模式（未启用本地优先或本地存储不可用）
+                services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
+                services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
+                services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
+            }
+
             services.AddSingleton<IGitReportWorkItemSource>(provider => provider.GetRequiredService<IGitSyncStore>());
             services.AddSingleton<IGitCommitReader>(_ => new GitCliCommitReader());
             services.AddSingleton<GitHourEstimator>();
             services.AddSingleton<GitSyncPlanner>();
             services.AddSingleton<GitSyncService>();
+            services.AddSingleton<IScheduledTaskSettingsStore>(provider =>
+                new JsonScheduledTaskSettingsStore(
+                    Path.Combine(dataDirectory, "scheduled-tasks.json"),
+                    provider.GetRequiredService<ILogger<JsonScheduledTaskSettingsStore>>()));
+            services.AddSingleton<ScheduledTaskScheduler>();
+            services.AddSingleton<ScheduledGitSyncRunner>();
+            services.AddSingleton<ScheduledWeeklyDraftRunner>();
+            services.AddSingleton(provider => new ScheduledTaskMonitor(
+                provider.GetRequiredService<IScheduledTaskSettingsStore>(),
+                provider.GetRequiredService<ScheduledTaskScheduler>(),
+                provider.GetRequiredService<ScheduledGitSyncRunner>(),
+                provider.GetRequiredService<ScheduledWeeklyDraftRunner>(),
+                provider.GetRequiredService<TimeProvider>(),
+                ReportScheduledTaskResult,
+                provider.GetRequiredService<ILogger<ScheduledTaskMonitor>>()));
             services.AddSingleton<WorkEntryService>();
-            services.AddSingleton<IWeeklyReportRepository, SqlSugarWeeklyReportRepository>();
+            // [旧代码-离线存储] 原固定 MySQL 周报仓储注册（本地优先启用时由 SQLite 实现替代）
+            // services.AddSingleton<IWeeklyReportRepository, SqlSugarWeeklyReportRepository>();
+            // [新增-离线存储] Phase 1 切片 F：按模式路由（周选择列表与周报编辑同视图）
+            services.AddSingleton<IWeeklyReportRepository>(localFirst
+                ? new SqliteWeeklyReportRepository(LocalDatabasePath)
+                : new SqlSugarWeeklyReportRepository(
+                    new DatabaseConfigurationStore(Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "WeeklyReport", "database.json"))));
             // [新增-机器人交互] 本周周报保存状态查询（提醒文案区分已保存/未保存）
             services.AddSingleton<WeeklyReportStatusProvider>();
             services.AddSingleton<WeeklyReportDraftBuilder>();
+            if (localFirst)
+            {
+                services.AddSingleton<ILocalStorageStateProvider>(
+                    _ => new SqliteLocalStore(LocalDatabasePath));
+            }
+
             services.AddSingleton<IWeeklyProgressContextProvider, WeeklyProgressContextProvider>();
             services.AddSingleton<WeeklyReportService>();
             services.AddSingleton<IUserDialogs, UserDialogs>();
@@ -151,13 +234,19 @@ public partial class App : System.Windows.Application
                 _ = ShowWeeklyProgressAsync(userInitiated);
             _floatingWindow.AdviceActionRequested += (action, week) =>
                 _ = NavigateFromWeeklyAdviceAsync(action, week);
+            _floatingWindow.WorkRhythmReminderActionRequested += HandleWorkRhythmReminderAction;
             _tray = new TrayService(ShowMainWindow, ToggleFloatingWindow, ExitApplication);
 
             mainWindow.Show();
             _floatingWindow.Show();
             StartReminders();
+            StartWorkRhythmReminders();
+            // [新增-离线存储] G2：本地优先模式启动后台同步协调器
+            await StartLocalSyncAsync();
             await mainWindow.InitializeAsync();
             await RefreshWeeklyProgressStatusAsync();
+            _scheduledTaskMonitor = _services.GetRequiredService<ScheduledTaskMonitor>();
+            _scheduledTaskMonitor.Start();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -196,6 +285,48 @@ public partial class App : System.Windows.Application
             _floatingWindow.Show();
             _floatingWindow.Activate();
         }
+    }
+
+    // [新增-离线存储] Phase 1 切片 F：设置页"离线可用"操作入口——查询状态 / 建立镜像 / 空工作区 / 停用。
+    // 镜像读取 MySQL 侧经现有 MySQL 仓储（不走当前模式路由，避免本地优先已启用时读到 SQLite 自身）。
+    public static async Task<LocalStorageState> GetLocalStoreStateAsync()
+    {
+        if (!File.Exists(LocalDatabasePath))
+        {
+            return new LocalStorageState(LocalStorageStatus.NotInitialized, false, 0, 0, 0, null, null);
+        }
+
+        return await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
+    }
+
+    public static async Task<string> BuildLocalMirrorAsync()
+    {
+        var configuration = new DatabaseConfigurationStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WeeklyReport", "database.json"));
+        var settings = await configuration.LoadAsync()
+            ?? throw new InvalidOperationException("尚未配置 MySQL，请先在设置中完成连接配置。");
+        var snapshot = await new MySqlLocalMirrorSnapshotReader().ReadAsync(settings);
+        var store = new SqliteLocalStore(LocalDatabasePath);
+        await store.InitializeMirrorAsync(
+            snapshot.Projects,
+            snapshot.WorkItems,
+            snapshot.WorkEntries,
+            snapshot.Reports,
+            mirrorIdentity: snapshot.Identity.DatabaseId);
+        return "镜像建立完成，重启应用后以本地优先模式运行。";
+    }
+
+    public static async Task<string> StartEmptyLocalWorkspaceAsync()
+    {
+        await new SqliteLocalStore(LocalDatabasePath).StartEmptyWorkspaceAsync();
+        return "空工作区已建立（无已验证基线），重启应用后以本地优先模式运行。";
+    }
+
+    public static async Task<string> DisableLocalFirstAsync()
+    {
+        await new SqliteLocalStore(LocalDatabasePath).DisableLocalFirstAsync();
+        return "已停用本地优先，重启应用后以 MySQL 模式运行。";
     }
 
     // [新增-天线状态] 周报保存成功：请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 自行忽略）
@@ -286,6 +417,36 @@ public partial class App : System.Windows.Application
     public void PreviewSpriteGreeting() =>
         _floatingWindow?.PreviewGreeting();
 
+    public WorkRhythmReminderSettings GetWorkRhythmSettings() =>
+        _floatingWindow?.CurrentWorkRhythmSettings ?? WorkRhythmReminderSettings.Default;
+
+    public void SetWorkRhythmEnabled(bool enabled)
+    {
+        var settings = GetWorkRhythmSettings() with { Enabled = enabled };
+        _floatingWindow?.ApplyWorkRhythmSettings(settings);
+    }
+
+    // [新增-定时任务] 状态栏始终报告结果；气泡仅展示有意义的执行结果。
+    private void ReportScheduledTaskResult(ScheduledTaskKind kind, ScheduledTaskOutcome outcome)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            var taskName = kind == ScheduledTaskKind.GitDailyItems ? "Git 工作项同步" : "周报草稿生成";
+            var status = $"{taskName}：{outcome.Message}";
+            (MainWindow as MainWindow)?.SetReminderStatus(status);
+            if (outcome.Kind != ScheduledTaskOutcomeKind.NoChanges)
+            {
+                _floatingWindow?.ShowScheduledTaskResult(
+                    outcome.Message, outcome.Kind == ScheduledTaskOutcomeKind.Failed);
+            }
+        }));
+    }
+
     // [新增-悬浮精灵] 切片 6：设置页悬浮窗样式读写入口（0=卡片，1=精灵）
     public int GetFloatingStyle() => _floatingWindow?.CurrentStyleValue ?? (int)FloatingStyle.Card;
 
@@ -328,8 +489,16 @@ public partial class App : System.Windows.Application
             {
                 return;
             }
+        }
 
-            mainWindow.PrepareForExit();
+        if (Interlocked.Exchange(ref _exitStarted, 1) != 0)
+        {
+            return;
+        }
+
+        if (MainWindow is MainWindow window)
+        {
+            window.PrepareForExit();
         }
 
         _floatingWindow?.SavePosition();
@@ -345,6 +514,34 @@ public partial class App : System.Windows.Application
             }
 
             _reminderMonitor = null;
+        }
+
+        if (_scheduledTaskMonitor is not null)
+        {
+            try
+            {
+                await _scheduledTaskMonitor.DisposeAsync();
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                Log.Warning("Scheduled task monitor disposal failed: {ErrorType}", exception.GetType().Name);
+            }
+
+            _scheduledTaskMonitor = null;
+        }
+
+        if (_syncCoordinator is not null)
+        {
+            try
+            {
+                await _syncCoordinator.DisposeAsync();
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                Log.Warning("Local sync coordinator disposal failed: {ErrorType}", exception.GetType().Name);
+            }
+
+            _syncCoordinator = null;
         }
 
         StartExitWatchdog();
@@ -369,6 +566,57 @@ public partial class App : System.Windows.Application
         watchdog.Start();
     }
 
+    // [新增-离线存储] G2：启动后台同步协调器（仅本地优先模式）
+    private SqliteSyncCoordinator? _syncCoordinator;
+
+    private async Task StartLocalSyncAsync()
+    {
+        if (!File.Exists(LocalDatabasePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var state = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
+            if (state.Status is not (LocalStorageStatus.Ready or LocalStorageStatus.Suspended))
+            {
+                return;
+            }
+
+            _syncCoordinator = new SqliteSyncCoordinator(
+                LocalDatabasePath,
+                new DatabaseConfigurationStore(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WeeklyReport", "database.json")),
+                TimeProvider.System,
+                ReportLocalSyncStatus,
+                _services?.GetRequiredService<ILogger<SqliteSyncCoordinator>>());
+            _syncCoordinator.Start();
+            Log.Information("Local sync coordinator started (pending: {Pending})", state.PendingCount);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or DatabaseAccessException)
+        {
+            Log.Warning("Local sync coordinator failed to start: {ErrorType}", exception.GetType().Name);
+        }
+    }
+
+    private void ReportLocalSyncStatus(string message)
+    {
+        ReportReminderStatus(message);
+    }
+
+    /// <summary>手动"立即同步"（设置页按钮）。</summary>
+    public async Task<SyncOutcome> SyncNowAsync()
+    {
+        if (_syncCoordinator is null)
+        {
+            return new SyncOutcome(0, 0, 0, "本地优先未启用或协调器未运行。");
+        }
+
+        return await _syncCoordinator.SyncNowAsync();
+    }
+
     private void StartReminders()
     {
         var services = _services ?? throw new InvalidOperationException("应用服务尚未初始化。");
@@ -391,6 +639,104 @@ public partial class App : System.Windows.Application
         {
             Log.Warning("Reminder startup failed: {ErrorType}", exception.GetType().Name);
             ReportReminderStatus("系统提醒无法启动，请检查 Windows 通知权限和运行环境，修复后重新启动应用。");
+        }
+    }
+
+    private void StartWorkRhythmReminders()
+    {
+        _reminderNotifier ??= _services?.GetRequiredService<WindowsReminderNotifier>();
+        if (_reminderNotifier is not null)
+        {
+            _reminderNotifier.WorkRhythmActivated += OnWorkRhythmReminderActivated;
+        }
+
+        _lastWorkRhythmCheck = DateTimeOffset.Now;
+        _workRhythmTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _workRhythmTimer.Tick += OnWorkRhythmTimerTick;
+        _workRhythmTimer.Start();
+    }
+
+    private async void OnWorkRhythmTimerTick(object? sender, EventArgs e)
+    {
+        var now = DateTimeOffset.Now;
+        var previousCheck = _lastWorkRhythmCheck;
+        _lastWorkRhythmCheck = now;
+        var window = _floatingWindow;
+        if (window is null)
+        {
+            return;
+        }
+
+        var settings = window.CurrentWorkRhythmSettings;
+        var dueTime = WorkRhythmReminderPolicy.GetDueTime(previousCheck, now, settings);
+        if (dueTime is { } scheduledTime)
+        {
+            settings = settings with { SnoozedUntil = null, LastReminderAt = scheduledTime };
+            window.ApplyWorkRhythmSettings(settings);
+            if (!window.ShowWorkRhythmReminder())
+            {
+                await SendWorkRhythmSystemNotificationAsync();
+            }
+        }
+        else if (settings.SnoozedUntil is { } snoozedUntil && snoozedUntil <= now)
+        {
+            window.ApplyWorkRhythmSettings(settings with { SnoozedUntil = null });
+        }
+    }
+
+    private void HandleWorkRhythmReminderAction(WorkRhythmReminderAction action)
+    {
+        var window = _floatingWindow;
+        if (window is null)
+        {
+            return;
+        }
+
+        var settings = window.CurrentWorkRhythmSettings;
+        if (action == WorkRhythmReminderAction.Acknowledge)
+        {
+            window.ApplyWorkRhythmSettings(settings with { SnoozedUntil = null });
+            return;
+        }
+
+        var now = DateTimeOffset.Now;
+        if (!settings.Enabled
+            || settings.LastReminderAt is not { } lastReminderAt
+            || now - lastReminderAt > TimeSpan.FromMinutes(30)
+            || !WorkRhythmReminderPolicy.IsWorkingTime(now))
+        {
+            return;
+        }
+
+        window.ApplyWorkRhythmSettings(settings with { SnoozedUntil = now.AddMinutes(10) });
+    }
+
+    private void OnWorkRhythmReminderActivated(WorkRhythmReminderAction action)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() => HandleWorkRhythmReminderAction(action)));
+    }
+
+    private async Task SendWorkRhythmSystemNotificationAsync()
+    {
+        if (_reminderNotifier is null)
+        {
+            ReportReminderStatus("工作节律提醒无法显示：系统通知尚未注册。");
+            return;
+        }
+
+        try
+        {
+            await _reminderNotifier.SendWorkRhythmReminderAsync();
+        }
+        catch (ReminderNotificationException exception)
+        {
+            Log.Warning("Work rhythm notification failed: {ErrorType}", exception.GetType().Name);
+            ReportReminderStatus(exception.Message);
         }
     }
 
@@ -502,6 +848,18 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
+        _workRhythmTimer?.Stop();
+        _workRhythmTimer = null;
+
+        if (_scheduledTaskMonitor is not null)
+        {
+            var disposal = _scheduledTaskMonitor.DisposeAsync().AsTask();
+            if (!disposal.Wait(TimeSpan.FromSeconds(3)))
+            {
+                Log.Warning("exit: scheduled task monitor disposal timed out, continuing shutdown");
+            }
+        }
+
         if (_reminderMonitor is not null)
         {
             // [旧代码-退出修复] 同步阻塞等待异步释放，UI 线程死锁根因（诊断日志已确认停在 monitor dispose begin）
@@ -516,9 +874,19 @@ public partial class App : System.Windows.Application
             }
         }
 
+        if (_syncCoordinator is not null)
+        {
+            var disposal = _syncCoordinator.DisposeAsync().AsTask();
+            if (!disposal.Wait(TimeSpan.FromSeconds(3)))
+            {
+                Log.Warning("exit: local sync coordinator disposal timed out, continuing shutdown");
+            }
+        }
+
         if (_reminderNotifier is not null)
         {
             _reminderNotifier.Activated -= OnReminderActivated;
+            _reminderNotifier.WorkRhythmActivated -= OnWorkRhythmReminderActivated;
             try
             {
                 _reminderNotifier.Dispose();

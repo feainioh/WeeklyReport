@@ -11,6 +11,12 @@ public enum FloatingSpriteState
     Celebrating
 }
 
+public enum SpriteAlertKind
+{
+    Strong,
+    Soft
+}
+
 public sealed class FloatingSpriteStateMachine : IDisposable
 {
     private static readonly TimeSpan AlertedDuration = TimeSpan.FromSeconds(8);
@@ -27,6 +33,8 @@ public sealed class FloatingSpriteStateMachine : IDisposable
 
     public FloatingSpriteState State { get; private set; } = FloatingSpriteState.Idle;
 
+    public SpriteAlertKind AlertKind { get; private set; } = SpriteAlertKind.Strong;
+
     public event Action<FloatingSpriteState>? StateChanged;
 
     public void BeginDrag()
@@ -42,8 +50,9 @@ public sealed class FloatingSpriteStateMachine : IDisposable
         }
     }
 
-    public void Notify()
+    public void Notify(SpriteAlertKind kind = SpriteAlertKind.Strong)
     {
+        AlertKind = kind;
         Transition(FloatingSpriteState.Alerted);
         _fallbackTimer = _timeProvider.CreateTimer(
             _ => Transition(FloatingSpriteState.Idle), null, AlertedDuration, Timeout.InfiniteTimeSpan);

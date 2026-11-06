@@ -19,16 +19,7 @@ public sealed class WorkEntryService(IWorkEntryRepository repository, TimeProvid
     {
         var existing = await repository.FindAsync(id)
             ?? throw new KeyNotFoundException("工作记录不存在，可能已被删除。");
-        var now = StorageDateRange.NormalizeUtcTimestamp(timeProvider.GetUtcNow());
-        if (now < existing.UpdatedAtUtc)
-        {
-            throw new InvalidOperationException("系统时间早于记录更新时间，请检查系统时钟。");
-        }
-
-        if (now == existing.UpdatedAtUtc)
-        {
-            now = now.AddTicks(10);
-        }
+        var now = StorageDateRange.GetUpdateTimestamp(existing.UpdatedAtUtc, timeProvider.GetUtcNow(), "记录");
 
         var entry = new WorkEntry(id, date, content, existing.CreatedAtUtc, now, confirmedMinutes);
         if (!await repository.UpdateAsync(entry))

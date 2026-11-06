@@ -24,6 +24,60 @@ public sealed class WeeklyProgressContextProviderTests
     }
 
     [Fact]
+    public async Task GetCurrentWeekAsync_InLocalModeReadsBusinessDataWithoutMySqlConfiguration()
+    {
+        var clock = new ManualTime();
+        var weekStart = WeekPeriod.FromDate(DateOnly.FromDateTime(clock.GetLocalNow().DateTime)).Start;
+        var entries = new FakeEntries
+        {
+            Result =
+            [
+                new WorkEntry(Guid.NewGuid(), weekStart, "本地记录", clock.GetUtcNow(), clock.GetUtcNow())
+            ]
+        };
+        var provider = CreateProvider(
+            new FakeConfigurationStore(),
+            entries,
+            new FakeGitItems(),
+            new FakeReports(),
+            clock,
+            new FakeLocalStorageStateProvider(new LocalStorageState(
+                LocalStorageStatus.Ready, false, 2, 1, 0, null,
+                new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero))));
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.SyncPending, context.Storage);
+        Assert.Equal(3, context.PendingSyncCount);
+        Assert.Equal(1, context.ManualEntryCount);
+        Assert.Equal(0, context.GitWorkItemCount);
+        Assert.False(context.HasSavedReport);
+        Assert.True(context.IsBusinessDataComplete);
+    }
+
+    [Fact]
+    public async Task GetCurrentWeekAsync_InEmptyLocalWorkspaceReturnsCompleteZeroCounts()
+    {
+        var provider = CreateProvider(
+            new FakeConfigurationStore(),
+            new FakeEntries(),
+            new FakeGitItems(),
+            new FakeReports(),
+            new ManualTime(),
+            new FakeLocalStorageStateProvider(new LocalStorageState(
+                LocalStorageStatus.Ready, false, 0, 0, 0, null, null)));
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.LocalMode, context.Storage);
+        Assert.Equal(0, context.ManualEntryCount);
+        Assert.Equal(0, context.GitWorkItemCount);
+        Assert.False(context.HasSavedReport);
+        Assert.Equal(0, context.UnknownHoursCount);
+        Assert.True(context.IsBusinessDataComplete);
+    }
+
+    [Fact]
     public async Task GetCurrentWeekAsync_UsesDraftBuilderForCountsAndUnknownHours()
     {
         var clock = new ManualTime();
@@ -116,9 +170,16 @@ public sealed class WeeklyProgressContextProviderTests
         FakeEntries entries,
         FakeGitItems gitItems,
         FakeReports reports,
-        TimeProvider clock) =>
+        TimeProvider clock,
+        ILocalStorageStateProvider? localStorage = null) =>
         new(configuration, entries, gitItems, reports, new WeeklyReportDraftBuilder(),
-            clock, NullLogger<WeeklyProgressContextProvider>.Instance);
+            clock, NullLogger<WeeklyProgressContextProvider>.Instance, localStorage);
+
+    private sealed class FakeLocalStorageStateProvider(LocalStorageState state) : ILocalStorageStateProvider
+    {
+        public Task<LocalStorageState> GetStateAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(state);
+    }
 
     private sealed class FakeConfigurationStore : IDatabaseConfigurationStore
     {
@@ -144,6 +205,8 @@ public sealed class WeeklyProgressContextProviderTests
         public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
     }
 
     private sealed class FakeGitItems : IGitReportWorkItemSource

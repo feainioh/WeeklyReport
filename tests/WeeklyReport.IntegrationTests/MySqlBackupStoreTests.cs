@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using WeeklyReport.Application;
 using WeeklyReport.Domain;
 using WeeklyReport.Infrastructure.Backup;
@@ -8,7 +7,8 @@ namespace WeeklyReport.IntegrationTests;
 
 [Collection("MySqlIntegration")]
 [Trait("Category", "MySql")]
-public class MySqlBackupStoreTests
+// [新增-备份离线化] 切片 1：接入 IBackupStore 共享契约基类，MySQL 与未来 SQLite 实现同跑同一组行为测试
+public class MySqlBackupStoreTests : BackupStoreContract
 {
     [MySqlIntegrationFact]
     public async Task Import_SkipOverwriteAndStalePreviewPreserveBindings()
@@ -19,7 +19,7 @@ public class MySqlBackupStoreTests
         var store = new SqlSugarBackupStore(configuration);
         var service = new BackupService(store, new BackupImportPlanner(), TimeProvider.System);
         var current = await service.CaptureAsync();
-        var source = CreateBackup(FindUnusedWeek(current));
+        var source = CreateMySqlBackup(FindUnusedWeek(current));
         var projectId = source.Projects[0].Id;
         var manualId = source.Entries.Single(entry => entry.Kind == BackupEntryKind.Manual).Id;
         var reportId = source.Reports[0].Id;
@@ -94,7 +94,7 @@ public class MySqlBackupStoreTests
         await new MySqlDatabaseInitializer().InitializeAsync(settings);
         var store = new SqlSugarBackupStore(new MySqlIntegrationSupport.FixedConfigurationStore(settings));
         var service = new BackupService(store, new BackupImportPlanner(), TimeProvider.System);
-        var source = CreateBackup(FindUnusedWeek(await service.CaptureAsync()));
+        var source = CreateMySqlBackup(FindUnusedWeek(await service.CaptureAsync()));
         var projectId = source.Projects[0].Id;
         var manualId = source.Entries.Single(entry => entry.Kind == BackupEntryKind.Manual).Id;
         var reportId = source.Reports[0].Id;
@@ -152,8 +152,8 @@ public class MySqlBackupStoreTests
             foreach (var format in new[] { BackupFileFormat.Json, BackupFileFormat.Excel })
             {
                 var existing = await service.CaptureAsync();
-                var first = CreateBackup(FindUnusedWeek(existing));
-                var second = CreateBackup(FindUnusedWeek(existing with
+                var first = CreateMySqlBackup(FindUnusedWeek(existing));
+                var second = CreateMySqlBackup(FindUnusedWeek(existing with
                 {
                     Reports = existing.Reports.Concat(first.Reports).ToArray()
                 }));
@@ -226,7 +226,77 @@ public class MySqlBackupStoreTests
         }
     }
 
-    private static BackupDocument CreateBackup(DateOnly week)
+    // [新增-备份离线化] 切片 1：契约钩子与包装方法（共享行为在 MySQL 上的落点）。
+    // 触发器故障注入对 SQLite 同样适用（SQLite 支持等价触发器），未来子类可复用同一思路。
+    private string? _contractFailureTrigger;
+
+    protected override async Task<BackupService> CreateServiceAsync()
+    {
+        var settings = MySqlIntegrationSupport.LoadSettings();
+        await new MySqlDatabaseInitializer().InitializeAsync(settings);
+        var configuration = new MySqlIntegrationSupport.FixedConfigurationStore(settings);
+        return new BackupService(new SqlSugarBackupStore(configuration), new BackupImportPlanner(), TimeProvider.System);
+    }
+
+    protected override async Task TouchManualEntryAsync(Guid id, string newContent)
+    {
+        var entries = new SqlSugarWorkEntryRepository(new MySqlIntegrationSupport.FixedConfigurationStore(
+            MySqlIntegrationSupport.LoadSettings()));
+        var existing = await entries.FindAsync(id);
+        Assert.NotNull(existing);
+        var touched = new WorkEntry(existing.Id, existing.WorkDate, newContent,
+            existing.CreatedAtUtc, existing.UpdatedAtUtc.AddTicks(10), existing.ConfirmedMinutes);
+        Assert.True(await entries.UpdateAsync(touched));
+    }
+
+    protected override async Task InjectReportInsertFailureAsync(Guid reportId)
+    {
+        var settings = MySqlIntegrationSupport.LoadSettings();
+        _contractFailureTrigger = "wr_test_" + Guid.NewGuid().ToString("N");
+        await using (var connection = MySqlIntegrationSupport.CreateConnection(settings))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"CREATE TRIGGER `{_contractFailureTrigger}` BEFORE INSERT ON weekly_reports FOR EACH ROW " +
+                $"BEGIN IF NEW.id = '{reportId:D}' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'synthetic failure'; END IF; END";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+
+    protected override async Task RemoveReportInsertFailureAsync()
+    {
+        if (_contractFailureTrigger is null)
+        {
+            return;
+        }
+
+        await using (var connection = MySqlIntegrationSupport.CreateConnection(MySqlIntegrationSupport.LoadSettings()))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"DROP TRIGGER `{_contractFailureTrigger}`";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        _contractFailureTrigger = null;
+    }
+
+    protected override async Task CleanupAsync(Guid project, Guid manual, Guid report) =>
+        await CleanupAsync(MySqlIntegrationSupport.LoadSettings(), project, manual, report);
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Import_SkipOverwriteAndStalePreview() =>
+        await Import_SkipOverwriteAndStalePreviewAsync();
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Import_FailureMidwayRollsBack() =>
+        await Import_FailureMidwayRollsBackAsync();
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Capture_IsStableAcrossCalls() =>
+        await Capture_IsStableAcrossCallsAsync();
+
+    private static BackupDocument CreateMySqlBackup(DateOnly week)
     {
         var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
         var project = Guid.NewGuid();
@@ -245,21 +315,6 @@ public class MySqlBackupStoreTests
                 new BackupCommit(project, git, new string('b', 40), "name", "test@example.invalid", atNine.AddHours(1), "two")
             ],
             [new BackupReport(Guid.NewGuid(), week, week.AddDays(6), "本周", "下周", "风险", 120, 0, 0, now, now)]);
-    }
-
-    private static DateOnly FindUnusedWeek(BackupDocument current)
-    {
-        var existing = current.Reports.Select(report => report.WeekStart).ToHashSet();
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            var week = new DateOnly(2000, 1, 3).AddDays(RandomNumberGenerator.GetInt32(0, 5000) * 7);
-            if (!existing.Contains(week))
-            {
-                return week;
-            }
-        }
-
-        throw new InvalidOperationException("无法在隔离测试库中找到空闲周。");
     }
 
     private static async Task CleanupAsync(DatabaseConnectionSettings settings, Guid project, Guid manual, Guid report)

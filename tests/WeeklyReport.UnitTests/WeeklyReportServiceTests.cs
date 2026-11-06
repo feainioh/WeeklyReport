@@ -74,6 +74,8 @@ public class WeeklyReportServiceTests
         public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        // [新增-离线存储] Phase 1 切片 E：接口新增 ListAllAsync 后补齐测试桩
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() => throw new NotSupportedException();
     }
 
     private sealed class FailingGitSource : IGitReportWorkItemSource

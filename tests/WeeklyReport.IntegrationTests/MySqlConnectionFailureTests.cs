@@ -9,9 +9,11 @@ namespace WeeklyReport.IntegrationTests;
 public class MySqlConnectionFailureTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ConnectionFailure_IsReportedWithoutExposingPassword(bool useOrm)
+    [InlineData("initializer")]
+    [InlineData("orm")]
+    [InlineData("identity")]
+    [InlineData("mirror")]
+    public async Task ConnectionFailure_IsReportedWithoutExposingPassword(string operation)
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -27,12 +29,15 @@ public class MySqlConnectionFailureTests
             var settings = new DatabaseConnectionSettings(
                 "127.0.0.1", port, "weeklyreport_test_example", "test-user", "example-secret");
 
-            var exception = useOrm
-                ? await Assert.ThrowsAsync<DatabaseAccessException>(
-                    () => new SqlSugarWorkEntryRepository(new FixedConfigurationStore(settings))
-                        .GetByWeekAsync(WeekPeriod.FromDate(new DateOnly(2026, 10, 30))))
-                : await Assert.ThrowsAsync<DatabaseAccessException>(
-                    () => new MySqlDatabaseInitializer().TestConnectionAsync(settings, timeout.Token));
+            var exception = await Assert.ThrowsAsync<DatabaseAccessException>(() => operation switch
+            {
+                "initializer" => new MySqlDatabaseInitializer().TestConnectionAsync(settings, timeout.Token),
+                "orm" => new SqlSugarWorkEntryRepository(new FixedConfigurationStore(settings))
+                    .GetByWeekAsync(WeekPeriod.FromDate(new DateOnly(2026, 10, 30))),
+                "identity" => new MySqlSyncIdentityStore().GetAsync(settings, timeout.Token),
+                "mirror" => new MySqlLocalMirrorSnapshotReader().ReadAsync(settings, timeout.Token),
+                _ => throw new ArgumentOutOfRangeException(nameof(operation))
+            });
             await closeConnection;
 
             Assert.Contains("MySQL", exception.Message, StringComparison.Ordinal);
@@ -42,6 +47,18 @@ public class MySqlConnectionFailureTests
         {
             listener.Stop();
         }
+    }
+
+    [Fact]
+    public async Task IdentityRead_WhenCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var settings = new DatabaseConnectionSettings(
+            "127.0.0.1", 3306, "weeklyreport_test_example", "test-user", "example-secret");
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => new MySqlSyncIdentityStore().GetAsync(settings, cancellation.Token));
     }
 
     private sealed class FixedConfigurationStore(DatabaseConnectionSettings settings) : IDatabaseConfigurationStore

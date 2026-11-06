@@ -7,7 +7,8 @@ namespace WeeklyReport.IntegrationTests;
 
 [Collection("MySqlIntegration")]
 [Trait("Category", "MySql")]
-public class MySqlGitSyncStoreTests
+// [新增-离线存储] Phase 1 切片 B：接入 Git 同步仓储共享契约
+public class MySqlGitSyncStoreTests : GitSyncStoreContract
 {
     [MySqlIntegrationFact]
     public async Task Sync_IsTransactionalIdempotentAndPreservesManualEdits()
@@ -108,29 +109,6 @@ public class MySqlGitSyncStoreTests
         }
     }
 
-    private static async Task<IReadOnlyList<GitWorkItemSnapshot>> ProjectItemsAsync(
-        IGitSyncStore store, Guid projectA, Guid projectB) =>
-        (await store.LoadAllAsync()).Where(item => item.ProjectId == projectA || item.ProjectId == projectB).ToArray();
-
-    private static async Task<DateOnly> FindUnusedDayAsync(IGitSyncStore store)
-    {
-        var used = (await store.LoadAllAsync()).Select(item => item.WorkDate).ToHashSet();
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            var day = new DateOnly(2000, 1, 1).AddDays(System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 30000));
-            if (!used.Contains(day))
-            {
-                return day;
-            }
-        }
-
-        throw new InvalidOperationException("无法在隔离测试库中找到空闲日期。");
-    }
-
-    private static GitCommit Commit(Guid project, int value, DateOnly day, int hour, int minute) =>
-        new(project, value.ToString("x").PadLeft(40, '0'), "Synthetic Author", "test@example.invalid",
-            new DateTimeOffset(day.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.Zero), $"提交 {value}");
-
     private static async Task DeleteTestProjectsAsync(DatabaseConnectionSettings settings, Guid first, Guid second)
     {
         var builder = new MySqlConnectionStringBuilder
@@ -165,14 +143,33 @@ public class MySqlGitSyncStoreTests
         Assert.Equal(1, await command.ExecuteNonQueryAsync());
     }
 
-    private sealed class TestGitReader : IGitCommitReader
-    {
-        public Dictionary<Guid, List<GitCommit>> Commits { get; } = new();
+    // [新增-离线存储] Phase 1 切片 B：契约钩子与包装（原有测试保持原样）
+    protected override Task InitializeAsync() =>
+        new MySqlDatabaseInitializer().InitializeAsync(MySqlIntegrationSupport.LoadSettings());
 
-        public Task<GitReadResult> ReadAsync(GitRepositoryQuery query, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(new GitReadResult(Commits[query.ProjectId].ToArray(), HasHead: true, IsShallow: false));
-        }
+    protected override Task<IGitProjectRepository> CreateProjectsRepositoryAsync() =>
+        Task.FromResult<IGitProjectRepository>(new SqlSugarGitProjectRepository(
+            new MySqlIntegrationSupport.FixedConfigurationStore(MySqlIntegrationSupport.LoadSettings())));
+
+    protected override Task<IGitSyncStore> CreateSyncStoreAsync() => Task.FromResult<IGitSyncStore>(
+        new SqlSugarGitSyncStore(new MySqlIntegrationSupport.FixedConfigurationStore(
+            MySqlIntegrationSupport.LoadSettings())));
+
+    protected override async Task CorruptEstimateAsync(Guid id, int minutes)
+    {
+        await using var connection = MySqlIntegrationSupport.CreateConnection(MySqlIntegrationSupport.LoadSettings());
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE git_work_items SET estimated_minutes = @minutes WHERE id = @id";
+        command.Parameters.AddWithValue("@minutes", minutes);
+        command.Parameters.AddWithValue("@id", id.ToString("D"));
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
     }
+
+    protected override async Task CleanupProjectsAsync(Guid first, Guid second) =>
+        await DeleteTestProjectsAsync(MySqlIntegrationSupport.LoadSettings(), first, second);
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Sync_IsTransactionalIdempotentAndPreservesManualEdits() =>
+        await Sync_IsTransactionalIdempotentAndPreservesManualEditsAsync();
 }

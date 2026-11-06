@@ -99,6 +99,11 @@ public class WorkEntryServiceTests
         public Task<WorkEntry?> FindAsync(Guid id) =>
             Task.FromResult(_entries.GetValueOrDefault(id));
 
+        // [新增-离线存储] Phase 1 切片 E：接口新增 ListAllAsync 后补齐测试桩（按工作日期排序）
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>(
+                _entries.Values.OrderBy(entry => entry.WorkDate).ThenBy(entry => entry.Id).ToArray());
+
         public Task AddAsync(WorkEntry entry)
         {
             _entries.Add(entry.Id, entry);

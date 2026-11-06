@@ -30,7 +30,13 @@ public sealed class MySqlDatabaseInitializer : IDatabaseInitializer
         var result = await Task.Run(
             () => DeployChanges.To
                 .MySqlDatabase(connectionString)
-                .WithScriptsEmbeddedInAssembly(typeof(MySqlDatabaseInitializer).Assembly)
+                // [旧代码-离线存储] 原无过滤的嵌入脚本扫描——SQLite 迁移脚本嵌入同一程序集后会被误执行到 MySQL
+                // .WithScriptsEmbeddedInAssembly(typeof(MySqlDatabaseInitializer).Assembly)
+                // [新增-离线存储] Phase 1 切片 A：限定只执行 MySQL 迁移目录（Persistence.Migrations）下的脚本
+                .WithScriptsEmbeddedInAssembly(
+                    typeof(MySqlDatabaseInitializer).Assembly,
+                    name => name.EndsWith(".sql", StringComparison.Ordinal)
+                        && name.Contains(".Persistence.Migrations.", StringComparison.Ordinal))
                 .Build()
                 .PerformUpgrade(),
             cancellationToken);

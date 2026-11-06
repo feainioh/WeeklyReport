@@ -1,5 +1,4 @@
-// [新增-机器人交互] 悬浮精灵行为配置：性格档位 + 问候/闲聊/悬停/提醒/庆祝/夜间免打扰开关，
-// 以及跨重启保存的首次引导与每日问候日期。默认温和档，全部通道开启。
+// [新增-机器人交互] 悬浮精灵行为配置：性格档位、交互/提醒/动画开关，以及跨重启保存的引导与问候状态。
 namespace WeeklyReport.App.Services;
 
 public enum SpriteBehaviorPreset
@@ -19,6 +18,8 @@ public sealed record SpriteBehaviorSettings
     public bool Celebration { get; init; } = true;
     public bool QuietHours { get; init; } = true;
     public bool DataAdvice { get; init; } = true;
+    public bool DynamicActions { get; init; } = true;
+    public bool AutoIdleActions { get; init; } = true;
     public bool GuideShown { get; init; }
     public DateOnly? LastGreetingDate { get; init; }
     public DateOnly? LastAdviceDate { get; init; }
@@ -39,9 +40,16 @@ public sealed record SpriteBehaviorSettings
                 ReminderBubble = true,
                 Celebration = true,
                 QuietHours = true,
-                DataAdvice = false
+                DataAdvice = false,
+                DynamicActions = true,
+                AutoIdleActions = false
             },
-            SpriteBehaviorPreset.Lively => new SpriteBehaviorSettings { Preset = preset },
+            SpriteBehaviorPreset.Lively => new SpriteBehaviorSettings
+            {
+                Preset = preset,
+                DynamicActions = true,
+                AutoIdleActions = true
+            },
             _ => new SpriteBehaviorSettings { Preset = SpriteBehaviorPreset.Gentle }
         }) with
         {

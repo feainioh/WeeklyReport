@@ -1,0 +1,15 @@
+{
+  "name": "dev-weeklyreport-chemcoder",
+  "plugins": [
+    {
+      "name": "chemcoder",
+      "source": "./chemcoder",
+      "version": "0.1.0",
+      "description": "chem 公司（Chemlex 上位机）代码编辑规范：开发规范与代码 Review 规范",
+      "displayName": "ChemCoder",
+      "displayName_i18n": { "zh-CN": "ChemCoder 公司代码规范" },
+      "description_i18n": { "zh-CN": "chem 公司（Chemlex 上位机）代码编辑规范：开发规范与代码 Review 规范" },
+      "category": "developer-tools"
+    }
+  ]
+}

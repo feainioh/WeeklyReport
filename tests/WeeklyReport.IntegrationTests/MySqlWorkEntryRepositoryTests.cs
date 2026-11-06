@@ -6,7 +6,8 @@ namespace WeeklyReport.IntegrationTests;
 
 [Collection("MySqlIntegration")]
 [Trait("Category", "MySql")]
-public class MySqlWorkEntryRepositoryTests
+// [新增-离线存储] Phase 1 切片 A：接入工作记录仓储共享契约，与 SQLite 实现同跑同一组行为测试
+public class MySqlWorkEntryRepositoryTests : WorkEntryRepositoryContract
 {
     [MySqlIntegrationFact]
     public async Task MigrationAndCrud_WorkWithAnIsolatedMySqlDatabase()
@@ -49,6 +50,26 @@ public class MySqlWorkEntryRepositoryTests
             }
         }
     }
+
+    // [新增-离线存储] Phase 1 切片 A：契约钩子与包装（原有 MySQL 专属测试保持原样）
+    protected override Task InitializeAsync()
+    {
+        return new MySqlDatabaseInitializer().InitializeAsync(MySqlIntegrationSupport.LoadSettings());
+    }
+
+    protected override Task<IWorkEntryRepository> CreateRepositoryAsync() => Task.FromResult<IWorkEntryRepository>(
+        new SqlSugarWorkEntryRepository(new MySqlIntegrationSupport.FixedConfigurationStore(
+            MySqlIntegrationSupport.LoadSettings())));
+
+    [MySqlIntegrationFact]
+    public async Task Contract_MigrationAndCrud() => await MigrationAndCrudAsync();
+
+    [MySqlIntegrationFact]
+    public async Task Contract_GetByWeek_ExcludesNextWeekStart() => await GetByWeek_ExcludesNextWeekStartAsync();
+
+    // [新增-离线存储] Phase 1 切片 E：全量列举契约包装
+    [MySqlIntegrationFact]
+    public async Task Contract_ListAll_ReturnsEveryEntryOrdered() => await ListAll_ReturnsEveryEntryOrderedAsync();
 
 }
 

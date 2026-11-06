@@ -33,13 +33,28 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     private System.Windows.Point _pressPosition;
     private DateTimeOffset _lastInteraction = DateTimeOffset.Now;
     private DateTimeOffset _lastChatter = DateTimeOffset.Now;
+    private DateTimeOffset _lastDynamicAction = DateTimeOffset.Now;
     private DateTimeOffset _nextIdleAnimationAt = DateTimeOffset.Now;
+    private DateTimeOffset _lastGlance = DateTimeOffset.Now;
+    private DateTimeOffset _lastWeightShift = DateTimeOffset.Now;
     private DateTimeOffset? _mutedUntil;
+    private Storyboard? _activeBodyAction;
+    private EventHandler? _activeBodyActionCompleted;
+    private Storyboard? _settleStoryboard;
+    private EventHandler? _settleStoryboardCompleted;
+    private SpriteActionPriority? _activeActionPriority;
+    private SpriteActionPriority? _settlePriority;
+    private FloatingSpriteState? _lastAppliedState;
+    private bool _activeActionIsExtended;
+    private bool _activeActionIsAutomatic;
+    private bool _activeActionIsUserInitiated;
+    private bool _activeActionRestoresFace;
     private bool _pressActive;
     private bool _isDragging;
     private bool _suppressClick;
     private bool _adviceRequestPending;
     private bool _isReminderBubble;
+    private bool _isWorkRhythmReminderBubble;
     private bool _disposed;
 
     // [新增-机器人交互] 表情状态：正常、开心、困倦、惊讶、眩晕
@@ -80,11 +95,6 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _idleTimer.Tick += OnIdleTimerTick;
 
-        if (Resources["JumpStoryboard"] is Storyboard jumpStoryboard)
-        {
-            jumpStoryboard.Completed += (_, _) => StartIdleAnimations();
-        }
-
         _machine.StateChanged += OnStateChanged;
         MouseLeftButtonDown += OnSpriteMouseLeftButtonDown;
         // [旧代码-机器人交互] 原按下即拖动、单击无独立反馈
@@ -105,7 +115,11 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             ApplyState(_machine.State);
             StartBehaviorTimers();
         };
-        Unloaded += (_, _) => StopContinuousAnimations();
+        Unloaded += (_, _) =>
+        {
+            StopContinuousAnimations();
+            StopAntennaAnimations();
+        };
         Unloaded += (_, _) => StopBehaviorTimers();
     }
 
@@ -120,6 +134,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
     /// <summary>用户点击提醒气泡中的“打开周报”。</summary>
     public event Action<DateOnly>? OpenWeekRequested;
+
+    public event Action<WorkRhythmReminderAction>? WorkRhythmReminderActionRequested;
 
     public event Action<bool>? WeeklyProgressRequested;
 
@@ -147,6 +163,28 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         // _machine.Notify();
     }
 
+    // [新增-定时任务] 定时任务结果使用普通气泡；失败时仅触发柔和提醒动作。
+    public void ShowScheduledTaskResult(string message, bool isFailure)
+    {
+        var now = DateTimeOffset.Now;
+        if (_disposed || !IsVisible || !_behavior.ReminderBubble || ReminderBubble.IsOpen
+            || IsMuted(now)
+            || _behavior.QuietHours
+                && SpriteMessagePolicy.IsQuietHours(TimeOnly.FromDateTime(now.DateTime)))
+        {
+            return;
+        }
+
+        InterruptBodyActionForMessage();
+        _statusText = message;
+        UpdateToolTip();
+        ShowBubble(message, null, TimeSpan.FromSeconds(7));
+        if (isFailure)
+        {
+            _machine.Notify(SpriteAlertKind.Soft);
+        }
+    }
+
     public void SetWeeklyProgressStatus(string message)
     {
         _statusText = message;
@@ -156,7 +194,25 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     // [新增-机器人交互] 保存设置并重启空闲计时；关闭悬停反应时立即复位眼神
     public void ApplyBehavior(SpriteBehaviorSettings settings)
     {
+        var animationSettingsChanged = settings.DynamicActions != _behavior.DynamicActions
+            || settings.AutoIdleActions != _behavior.AutoIdleActions;
+        if (animationSettingsChanged)
+        {
+            _lastInteraction = DateTimeOffset.Now;
+            _lastDynamicAction = _lastInteraction;
+        }
+
         _behavior = settings;
+        if ((!_behavior.DynamicActions && _activeActionIsExtended)
+            || (!_behavior.AutoIdleActions && _activeActionIsAutomatic))
+        {
+            StopBodyAction(settle: false);
+            if (_machine.State == FloatingSpriteState.Idle && IsVisible)
+            {
+                StartIdleAnimations();
+            }
+        }
+
         if (!_behavior.HoverReaction)
         {
             ResetHoverGaze();
@@ -167,11 +223,17 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             _idleTimer.Start();
             _nextIdleAnimationAt = DateTimeOffset.Now
                 + SpriteMessagePolicy.IdleAnimationInterval(_behavior.Preset);
+            ResetAmbientActionTimes(DateTimeOffset.Now);
         }
     }
 
     // [新增-机器人交互] 宿主显示精灵时恢复问候/空闲计时
-    public void OnWindowShown() => StartBehaviorTimers();
+    public void OnWindowShown()
+    {
+        _lastInteraction = DateTimeOffset.Now;
+        ApplyState(_machine.State);
+        StartBehaviorTimers();
+    }
 
     private void StartBehaviorTimers()
     {
@@ -191,8 +253,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             _greetingTimer.Start();
         }
 
-        _nextIdleAnimationAt = DateTimeOffset.Now
-            + SpriteMessagePolicy.IdleAnimationInterval(_behavior.Preset);
+        ResetAmbientActionTimes(DateTimeOffset.Now);
     }
 
     private void StopBehaviorTimers()
@@ -209,16 +270,87 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             return;
         }
 
-        var now = DateTimeOffset.Now;
-        if (!IsMuted(now) && !IsMouseOver && now >= _nextIdleAnimationAt)
+        if (_activeBodyAction is not null || _settleStoryboard is not null)
         {
-            Play("LookAroundStoryboard");
-            _nextIdleAnimationAt = now
-                + SpriteMessagePolicy.IdleAnimationInterval(_behavior.Preset);
+            return;
         }
 
+        var now = DateTimeOffset.Now;
         TryRequestIdleAdvice(now);
         TryShowIdleChatter(now);
+        TryPlayIdleDance(now);
+
+        TryPlayAmbientAction(now, "GlanceStoryboard", SpriteMessagePolicy.IdleGlanceInterval(_behavior.Preset),
+            ref _lastGlance);
+        TryPlayAmbientAction(now, "WeightShiftStoryboard",
+            SpriteMessagePolicy.WeightShiftInterval(_behavior.Preset), ref _lastWeightShift);
+    }
+
+    private void TryPlayIdleDance(DateTimeOffset now)
+    {
+        if (_adviceRequestPending
+            || !SpriteMessagePolicy.CanPlayIdleDance(
+                _behavior,
+                now,
+                now - _lastInteraction,
+                now - _lastDynamicAction,
+                IsVisible,
+                IsMouseOver,
+                ReminderBubble.IsOpen,
+                IsMuted(now),
+                _machine.State == FloatingSpriteState.Idle))
+        {
+            return;
+        }
+
+        if (StartBodyAction(
+                "DanceStoryboard", extendedAction: true, SpriteActionPriority.Automatic,
+                automatic: true, userInitiated: false))
+        {
+            _lastDynamicAction = now;
+        }
+    }
+
+    private void TryPlayAmbientAction(
+        DateTimeOffset now,
+        string storyboardKey,
+        TimeSpan interval,
+        ref DateTimeOffset lastAction)
+    {
+        if (_activeBodyAction is not null
+            || _settleStoryboard is not null
+            || now - _lastDynamicAction < TimeSpan.FromSeconds(60)
+            || !SpriteMessagePolicy.CanPlayAutomaticAmbient(
+                _behavior,
+                now,
+                now - _lastInteraction,
+                now - lastAction,
+                interval,
+                IsVisible,
+                IsMouseOver,
+                ReminderBubble.IsOpen,
+                IsMuted(now),
+                _machine.State == FloatingSpriteState.Idle))
+        {
+            return;
+        }
+
+        if (StartBodyAction(
+                storyboardKey, extendedAction: false, SpriteActionPriority.Ambient,
+                automatic: true, userInitiated: false))
+        {
+            lastAction = now;
+            _lastDynamicAction = now;
+        }
+    }
+
+    private void ResetAmbientActionTimes(DateTimeOffset now)
+    {
+        var glanceInterval = SpriteMessagePolicy.IdleGlanceInterval(_behavior.Preset);
+        var weightShiftInterval = SpriteMessagePolicy.WeightShiftInterval(_behavior.Preset);
+        _lastGlance = glanceInterval == Timeout.InfiniteTimeSpan ? now : now - glanceInterval;
+        _lastWeightShift = weightShiftInterval == Timeout.InfiniteTimeSpan ? now : now - weightShiftInterval;
+        _lastDynamicAction = now;
     }
 
     private void TryRequestIdleAdvice(DateTimeOffset now)
@@ -311,6 +443,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             return;
         }
 
+        InterruptBodyActionForMessage();
         var message = SpriteMessagePolicy.CreateReminder(state, weekStart);
         _reminderWeekStart = weekStart;
         _statusText = message.Text;
@@ -326,8 +459,29 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         ShowBubble(message.Text, message.ActionLabel, TimeSpan.FromSeconds(10), isReminder: true);
         if (state == WeeklyReportSavedState.NotSaved)
         {
-            _machine.Notify();
+            StopBodyAction(settle: false);
+            _machine.Notify(SpriteAlertKind.Strong);
         }
+    }
+
+    public bool ShowWorkRhythmReminder()
+    {
+        if (_disposed || !IsVisible || !_behavior.ReminderBubble || ReminderBubble.IsOpen)
+        {
+            return false;
+        }
+
+        StopBodyAction(settle: false);
+        _statusText = "工作节律提醒：喝点水，起来休息一下吧。";
+        UpdateToolTip();
+        ShowBubble(
+            "工作一段时间啦，喝点水、起来活动一下吧。",
+            "知道了",
+            TimeSpan.FromSeconds(30),
+            isReminder: true,
+            isWorkRhythmReminder: true);
+        _machine.Notify(SpriteAlertKind.Soft);
+        return true;
     }
 
     // [新增-机器人交互] 设置页“打个招呼”预览：强制显示一条问候，不写每日问候日期
@@ -335,6 +489,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     {
         var weekStart = WeekPeriod.FromDate(DateOnly.FromDateTime(DateTime.Today)).Start;
         var message = SpriteMessagePolicy.CreateGreeting(DateTimeOffset.Now, weekStart);
+        InterruptBodyActionForMessage();
         ShowBubble(message.Text, null, TimeSpan.FromSeconds(6));
         SetTransientFace(FaceState.Happy);
     }
@@ -358,6 +513,7 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
         var today = DateOnly.FromDateTime(now.DateTime);
         _adviceWeekStart = weekStart;
+        InterruptBodyActionForMessage();
         ShowBubble(advice.Text, advice.ActionLabel, TimeSpan.FromSeconds(10));
         _adviceAction = advice.Action;
         if (!userInitiated)
@@ -385,6 +541,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         StopBehaviorTimers();
         CloseBubble();
         _machine.Dismiss();
+        StopContinuousAnimations();
+        StopAntennaAnimations();
     }
 
     // [旧代码-机器人交互] 原按下即进入拖动
@@ -485,7 +643,13 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     {
         _lastInteraction = DateTimeOffset.Now;
         SetTransientFace(FaceState.Happy);
-        Play("PokeStoryboard");
+        var pokeStoryboard = _behavior.DynamicActions
+            ? "PokeStoryboard"
+            : "BasicPokeStoryboard";
+        StartBodyAction(
+            pokeStoryboard, extendedAction: _behavior.DynamicActions,
+            SpriteActionPriority.User, userInitiated: true);
+        _lastDynamicAction = _lastInteraction;
 
         var now = DateTimeOffset.Now;
         if (IsMuted(now))
@@ -517,6 +681,11 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     // [新增-机器人交互] 悬停眼神/身体轻倾；关闭悬停反应或非待机时复位
     private void UpdateHoverGaze(System.Windows.Point point)
     {
+        if (_activeBodyAction is not null)
+        {
+            return;
+        }
+
         if (!_behavior.HoverReaction || _machine.State != FloatingSpriteState.Idle)
         {
             ResetHoverGaze();
@@ -559,6 +728,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         }
 
         MuteMenuItem.Header = _mutedUntil is null ? "安静 1 小时" : "取消安静";
+        WaveMenuItem.IsEnabled = _behavior.DynamicActions;
+        DanceMenuItem.IsEnabled = _behavior.DynamicActions;
     }
 
     private void GreetMenu_Click(object sender, RoutedEventArgs e) => PreviewGreeting();
@@ -582,14 +753,19 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
             return;
         }
 
-        // [新增-天线状态] 先统一换装天线（颜色 + 动画），再执行原有身体动画
+        var previousState = _lastAppliedState;
+        _lastAppliedState = state;
+        if (state != FloatingSpriteState.Idle)
+        {
+            StopBodyAction(settle: false);
+        }
+
         ApplyAntennaState(state);
 
-        // [新增-机器人交互] 状态对应表情：待机正常、拖动眩晕、提醒惊讶、庆祝开心
         SetFace(state switch
         {
             FloatingSpriteState.Dragging => FaceState.Dizzy,
-            FloatingSpriteState.Alerted => FaceState.Surprised,
+            FloatingSpriteState.Alerted when _machine.AlertKind == SpriteAlertKind.Strong => FaceState.Surprised,
             FloatingSpriteState.Celebrating => FaceState.Happy,
             _ => FaceState.Normal
         });
@@ -597,28 +773,46 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         switch (state)
         {
             case FloatingSpriteState.Idle:
-                Play("UnsquashStoryboard");
-                StartIdleAnimations();
+                if (previousState == FloatingSpriteState.Dragging)
+                {
+                    StopBodyAction(settle: false, preserveCurrent: true);
+                    StartBodyAction(
+                        "DragSettleStoryboard", extendedAction: false, SpriteActionPriority.State,
+                        userInitiated: false, preserveCurrent: true);
+                }
+                else if (previousState is not null and not FloatingSpriteState.Idle)
+                {
+                    SettleBodyAction(200, StartIdleAnimations);
+                }
+                else
+                {
+                    StartIdleAnimations();
+                }
                 break;
             case FloatingSpriteState.Dragging:
                 StopContinuousAnimations();
-                Play("SquashStoryboard");
+                StartBodyAction(
+                    "DragHoldStoryboard", extendedAction: false, SpriteActionPriority.State,
+                    userInitiated: false);
                 break;
             case FloatingSpriteState.Alerted:
                 StopContinuousAnimations();
-                Play("JumpStoryboard");
                 OpenBubble();
+                StartBodyAction(
+                    _machine.AlertKind == SpriteAlertKind.Strong
+                        ? "AlertStrongStoryboard"
+                        : "AlertSoftStoryboard",
+                    extendedAction: false, SpriteActionPriority.State, userInitiated: false);
                 break;
             case FloatingSpriteState.Celebrating:
                 StopContinuousAnimations();
-                // [旧代码-天线状态] 原徽章放大庆祝；徽章已移除，庆祝动画由 ApplyAntennaState 的天线摆动承担
-                // Play("CelebrateStoryboard");
+                StartBodyAction(
+                    "CelebrateStoryboard", extendedAction: false, SpriteActionPriority.Celebration,
+                    userInitiated: false);
                 break;
         }
     }
 
-    // [新增-天线状态] 状态到天线颜色/动画的映射：
-    // Idle 强调色呼吸、Dragging 前倾 15° 且球缩至 0.8、Alerted 橙色快闪 + 光环、Celebrating 绿色摆动
     private void ApplyAntennaState(FloatingSpriteState state)
     {
         StopAntennaAnimations();
@@ -627,31 +821,27 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         {
             case FloatingSpriteState.Idle:
                 SetAntennaFill("AccentBrush");
-                Play("AntennaBreatheStoryboard");
                 break;
             case FloatingSpriteState.Dragging:
                 SetAntennaFill("AccentBrush");
-                AntennaRotate.Angle = 15;
-                AntennaBallScale.ScaleX = 0.8;
-                AntennaBallScale.ScaleY = 0.8;
                 break;
             case FloatingSpriteState.Alerted:
-                SetAntennaFill("AntennaAlertBrush");
-                Play("AntennaAlertBlinkStoryboard");
+                SetAntennaFill(_machine.AlertKind == SpriteAlertKind.Strong
+                    ? "AntennaAlertBrush"
+                    : "AccentBrush");
                 break;
             case FloatingSpriteState.Celebrating:
                 SetAntennaFill("AntennaSuccessBrush");
-                Play("AntennaWiggleStoryboard");
                 break;
         }
     }
 
-    // [新增-天线状态] 停止天线动画并复位基础值，保证状态切换从干净状态开始
     private void StopAntennaAnimations()
     {
         foreach (var key in new[]
                  {
-                     "AntennaBreatheStoryboard", "AntennaAlertBlinkStoryboard", "AntennaWiggleStoryboard"
+                     "AntennaBreatheStoryboard", "AntennaAlertBlinkStoryboard", "AntennaWiggleStoryboard",
+                     "IdleAntennaBreatheStoryboard"
                  })
         {
             if (Resources[key] is Storyboard storyboard)
@@ -678,15 +868,11 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         AntennaHaloScale.ScaleY = 1;
     }
 
-    // [旧代码-机器人交互] 原仅更新天线球颜色
-    // private void SetAntennaFill(string resourceKey) =>
-    //     AntennaBall.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, resourceKey);
-
-    // [新增-机器人交互] 天线球与胸口状态灯同步换色
     private void SetAntennaFill(string resourceKey)
     {
         AntennaBall.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, resourceKey);
-        ChestLed.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, resourceKey);
+        // [旧代码-形象动画2] ChestLed 曾随天线换色，现由固定胸口核心替代。
+        // ChestLed.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, resourceKey);
     }
 
     // [新增-机器人交互] 表情切换：正常/困倦/惊讶共用 LED 眼；开心/眩晕使用独立线条；
@@ -733,12 +919,12 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
     private void StartIdleAnimations()
     {
-        if (_disposed || !IsLoaded)
+        if (_disposed || !IsLoaded || _activeBodyAction is not null)
         {
             return;
         }
 
-        Play("BobStoryboard");
+        Play("IdleAntennaBreatheStoryboard");
         if (!_blinkTimer.IsEnabled)
         {
             _blinkTimer.Interval = NextBlinkInterval();
@@ -748,9 +934,11 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
     private void StopContinuousAnimations()
     {
-        if (Resources["BobStoryboard"] is Storyboard bobStoryboard)
+        StopBodyAction(settle: false);
+        if (Resources["IdleAntennaBreatheStoryboard"] is Storyboard antennaStoryboard)
         {
-            bobStoryboard.Stop(this);
+            antennaStoryboard.Stop(this);
+            antennaStoryboard.Remove(this);
         }
 
         _blinkTimer.Stop();
@@ -787,20 +975,28 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         ShowBubble(
             string.IsNullOrWhiteSpace(_bubbleText) ? "周报提醒" : _bubbleText,
             _bubbleActionLabel,
-            TimeSpan.FromSeconds(10),
-            isReminder: _isReminderBubble);
+            _isWorkRhythmReminderBubble ? TimeSpan.FromSeconds(30) : TimeSpan.FromSeconds(10),
+            isReminder: _isReminderBubble,
+            isWorkRhythmReminder: _isWorkRhythmReminderBubble);
     }
 
     // [新增-机器人交互] 统一气泡显示：文本、可选动作按钮与非负时长
-    private void ShowBubble(string text, string? actionLabel, TimeSpan duration, bool isReminder = false)
+    private void ShowBubble(
+        string text,
+        string? actionLabel,
+        TimeSpan duration,
+        bool isReminder = false,
+        bool isWorkRhythmReminder = false)
     {
         _bubbleText = text;
         _bubbleActionLabel = actionLabel;
         _adviceAction = null;
         _isReminderBubble = isReminder;
+        _isWorkRhythmReminderBubble = isWorkRhythmReminder;
         BubbleText.Text = text;
         BubbleAction.Content = actionLabel ?? "打开周报";
         BubbleAction.Visibility = actionLabel is null ? Visibility.Collapsed : Visibility.Visible;
+        BubbleSecondaryAction.Visibility = isWorkRhythmReminder ? Visibility.Visible : Visibility.Collapsed;
         ReminderBubble.IsOpen = true;
         _bubbleCloseTimer.Stop();
         _bubbleCloseTimer.Interval = duration;
@@ -810,6 +1006,13 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
     // [新增-机器人交互] 气泡动作：收起气泡并请求打开对应周
     private void BubbleAction_Click(object sender, RoutedEventArgs e)
     {
+        if (_isWorkRhythmReminderBubble)
+        {
+            CloseBubble();
+            WorkRhythmReminderActionRequested?.Invoke(WorkRhythmReminderAction.Acknowledge);
+            return;
+        }
+
         var adviceAction = _adviceAction;
         var adviceWeekStart = _adviceWeekStart;
         var reminderWeekStart = _reminderWeekStart;
@@ -824,11 +1027,23 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         }
     }
 
+    private void BubbleSecondaryAction_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isWorkRhythmReminderBubble)
+        {
+            return;
+        }
+
+        CloseBubble();
+        WorkRhythmReminderActionRequested?.Invoke(WorkRhythmReminderAction.Snooze);
+    }
+
     private void CloseBubble()
     {
         _bubbleCloseTimer.Stop();
         ReminderBubble.IsOpen = false;
         _isReminderBubble = false;
+        _isWorkRhythmReminderBubble = false;
         _adviceAction = null;
     }
 
@@ -849,7 +1064,480 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
         }
     }
 
+    private bool StartBodyAction(
+        string storyboardKey,
+        bool extendedAction,
+        SpriteActionPriority priority,
+        bool automatic = false,
+        bool userInitiated = true,
+        bool preserveCurrent = false,
+        bool allowOpenBubble = false)
+    {
+        var stateAction = priority == SpriteActionPriority.State
+            && (_machine.State != FloatingSpriteState.Idle || storyboardKey == "DragSettleStoryboard");
+        var celebrationAction = priority == SpriteActionPriority.Celebration
+            && _machine.State == FloatingSpriteState.Celebrating;
+        if (_disposed
+            || !IsLoaded
+            || (extendedAction && !_behavior.DynamicActions)
+            || (_machine.State != FloatingSpriteState.Idle && !stateAction && !celebrationAction)
+            || (ReminderBubble.IsOpen && !stateAction && !celebrationAction && !allowOpenBubble)
+            || Resources[storyboardKey] is not Storyboard storyboard)
+        {
+            return false;
+        }
+
+        if (_settleStoryboard is not null)
+        {
+            if (!stateAction && !celebrationAction)
+            {
+                return false;
+            }
+
+            StopSettleStoryboard(preserveCurrent: false);
+        }
+
+        if (_activeBodyAction is not null)
+        {
+            if (!SpriteActionPriorityRules.CanStart(_activeActionPriority, priority))
+            {
+                return false;
+            }
+
+            if (priority == SpriteActionPriority.User
+                && _activeActionPriority == SpriteActionPriority.Ambient)
+            {
+                SettleBodyAction(200,
+                    () => StartBodyAction(
+                        storyboardKey, extendedAction, priority, automatic, userInitiated,
+                        allowOpenBubble: true),
+                    SpriteActionPriority.Ambient);
+                return true;
+            }
+
+            StopBodyAction(settle: false);
+        }
+
+        ResetHoverGaze();
+        if (Resources["IdleAntennaBreatheStoryboard"] is Storyboard breathe)
+        {
+            breathe.Stop(this);
+            breathe.Remove(this);
+        }
+
+        _blinkTimer.Stop();
+        if (!preserveCurrent)
+        {
+            ResetBodyActionTransforms();
+        }
+
+        _activeBodyAction = storyboard;
+        _activeActionPriority = priority;
+        _activeActionIsExtended = extendedAction;
+        _activeActionIsAutomatic = automatic;
+        _activeActionIsUserInitiated = userInitiated;
+        _activeActionRestoresFace = storyboardKey is "WaveStoryboard" or "DanceStoryboard";
+        if (automatic || storyboardKey is "WaveStoryboard" or "DanceStoryboard")
+        {
+            SetFace(FaceState.Happy);
+        }
+
+        EventHandler completed = (_, _) => CompleteBodyAction(storyboard);
+        _activeBodyActionCompleted = completed;
+        storyboard.Completed += completed;
+        storyboard.Begin(this, HandoffBehavior.SnapshotAndReplace, isControllable: true);
+        return true;
+    }
+
+    private void CompleteBodyAction(Storyboard storyboard)
+    {
+        if (!ReferenceEquals(_activeBodyAction, storyboard))
+        {
+            return;
+        }
+
+        if (_machine.State == FloatingSpriteState.Dragging
+            && storyboard == Resources["DragHoldStoryboard"])
+        {
+            if (_activeActionPriority is null)
+            {
+                _activeActionPriority = SpriteActionPriority.State;
+            }
+
+            if (_activeBodyActionCompleted is { } dragCompleted)
+            {
+                storyboard.Completed -= dragCompleted;
+            }
+            _activeBodyActionCompleted = null;
+            return;
+        }
+
+        if (_activeBodyActionCompleted is not null)
+        {
+            storyboard.Completed -= _activeBodyActionCompleted;
+        }
+
+        var priority = _activeActionPriority;
+        var restoreFace = _activeActionRestoresFace;
+        _activeBodyActionCompleted = null;
+        _activeBodyAction = null;
+        _activeActionPriority = null;
+        storyboard.Remove(this);
+        _activeActionRestoresFace = false;
+        _activeActionIsExtended = false;
+        _activeActionIsAutomatic = false;
+        _activeActionIsUserInitiated = false;
+        if (storyboard == Resources["DragSettleStoryboard"])
+        {
+            ResetBodyActionTransforms();
+            StartIdleAnimations();
+            return;
+        }
+
+        if (_machine.State != FloatingSpriteState.Idle)
+        {
+            ResetBodyActionTransforms();
+            return;
+        }
+
+        SettleBodyAction(200, () =>
+        {
+            if (restoreFace)
+            {
+                SetFace(FaceState.Normal);
+            }
+
+            if (_machine.State == FloatingSpriteState.Idle && IsVisible)
+            {
+                StartIdleAnimations();
+            }
+        }, priority);
+    }
+
+    private void StopBodyAction(bool settle = true, int settleMilliseconds = 200, bool preserveCurrent = false)
+    {
+        var snapshot = CaptureBodyTransforms();
+        var storyboard = _activeBodyAction;
+        if (storyboard is not null)
+        {
+            if (_activeBodyActionCompleted is not null)
+            {
+                storyboard.Completed -= _activeBodyActionCompleted;
+            }
+
+            _activeBodyActionCompleted = null;
+            _activeBodyAction = null;
+            storyboard.Stop(this);
+            storyboard.Remove(this);
+        }
+
+        var restoreFace = _activeActionRestoresFace;
+        var priority = _activeActionPriority;
+        _activeActionRestoresFace = false;
+        _activeActionIsExtended = false;
+        _activeActionIsAutomatic = false;
+        _activeActionIsUserInitiated = false;
+        _activeActionPriority = null;
+        StopSettleStoryboard(preserveCurrent: true);
+
+        if (settle)
+        {
+            ApplyBodyTransforms(snapshot);
+            SettleBodyAction(settleMilliseconds, null, priority);
+        }
+        else if (preserveCurrent)
+        {
+            ApplyBodyTransforms(snapshot);
+        }
+        else
+        {
+            ResetBodyActionTransforms();
+        }
+
+        if (restoreFace && _machine.State == FloatingSpriteState.Idle)
+        {
+            SetFace(FaceState.Normal);
+        }
+    }
+
+    private void SettleBodyAction(
+        int milliseconds,
+        Action? completed,
+        SpriteActionPriority? priority = null)
+    {
+        var snapshot = CaptureBodyTransforms();
+        StopSettleStoryboard(preserveCurrent: true);
+        if (_activeBodyAction is { } active)
+        {
+            if (_activeBodyActionCompleted is not null)
+            {
+                active.Completed -= _activeBodyActionCompleted;
+            }
+
+            _activeBodyActionCompleted = null;
+            _activeBodyAction = null;
+            active.Stop(this);
+            active.Remove(this);
+        }
+
+        _activeActionPriority = null;
+        _activeActionRestoresFace = false;
+        _activeActionIsExtended = false;
+        _activeActionIsAutomatic = false;
+        _activeActionIsUserInitiated = false;
+        ApplyBodyTransforms(snapshot);
+        _settlePriority = priority;
+
+        var settle = new Storyboard();
+        AddSettleAnimation(settle, BodyTranslate, System.Windows.Media.TranslateTransform.XProperty,
+            snapshot.TranslateX, 0, milliseconds);
+        AddSettleAnimation(settle, BodyTranslate, System.Windows.Media.TranslateTransform.YProperty,
+            snapshot.TranslateY, 0, milliseconds);
+        AddSettleAnimation(settle, BodyScale, System.Windows.Media.ScaleTransform.ScaleXProperty,
+            snapshot.ScaleX, 1, milliseconds);
+        AddSettleAnimation(settle, BodyScale, System.Windows.Media.ScaleTransform.ScaleYProperty,
+            snapshot.ScaleY, 1, milliseconds);
+        AddSettleAnimation(settle, BodyRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.BodyAngle, 0, milliseconds);
+        AddSettleAnimation(settle, LeftArmRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.LeftArmAngle, 16, milliseconds);
+        AddSettleAnimation(settle, RightArmRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.RightArmAngle, -16, milliseconds);
+        AddSettleAnimation(settle, LeftElbowRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.LeftElbowAngle, 8, milliseconds);
+        AddSettleAnimation(settle, RightElbowRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.RightElbowAngle, -8, milliseconds);
+        AddSettleAnimation(settle, LeftLegRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.LeftLegAngle, 0, milliseconds);
+        AddSettleAnimation(settle, RightLegRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.RightLegAngle, 0, milliseconds);
+        AddSettleAnimation(settle, LeftFootTranslate, System.Windows.Media.TranslateTransform.YProperty,
+            snapshot.LeftFootY, 0, milliseconds);
+        AddSettleAnimation(settle, RightFootTranslate, System.Windows.Media.TranslateTransform.YProperty,
+            snapshot.RightFootY, 0, milliseconds);
+        AddSettleAnimation(settle, AntennaRotate, System.Windows.Media.RotateTransform.AngleProperty,
+            snapshot.AntennaAngle, 0, milliseconds);
+        AddSettleAnimation(settle, AntennaBallScale, System.Windows.Media.ScaleTransform.ScaleXProperty,
+            snapshot.AntennaScaleX, 1, milliseconds);
+        AddSettleAnimation(settle, AntennaBallScale, System.Windows.Media.ScaleTransform.ScaleYProperty,
+            snapshot.AntennaScaleY, 1, milliseconds);
+        AddSettleAnimation(settle, AntennaBall, System.Windows.UIElement.OpacityProperty,
+            snapshot.AntennaOpacity, 1, milliseconds);
+        AddSettleAnimation(settle, AntennaHalo, System.Windows.UIElement.OpacityProperty,
+            snapshot.HaloOpacity, 0, milliseconds);
+        AddSettleAnimation(settle, AntennaHaloScale, System.Windows.Media.ScaleTransform.ScaleXProperty,
+            snapshot.HaloScaleX, 1, milliseconds);
+        AddSettleAnimation(settle, AntennaHaloScale, System.Windows.Media.ScaleTransform.ScaleYProperty,
+            snapshot.HaloScaleY, 1, milliseconds);
+        AddSettleAnimation(settle, ShadowScale, System.Windows.Media.ScaleTransform.ScaleXProperty,
+            snapshot.ShadowScaleX, 1, milliseconds);
+        AddSettleAnimation(settle, ShadowScale, System.Windows.Media.ScaleTransform.ScaleYProperty,
+            snapshot.ShadowScaleY, 1, milliseconds);
+        AddSettleAnimation(settle, GroundShadow, System.Windows.UIElement.OpacityProperty,
+            snapshot.ShadowOpacity, 0.16, milliseconds);
+
+        _settleStoryboard = settle;
+        EventHandler? handler = null;
+        handler = (_, _) =>
+        {
+            if (!ReferenceEquals(_settleStoryboard, settle))
+            {
+                return;
+            }
+
+            settle.Completed -= handler;
+            _settleStoryboardCompleted = null;
+            _settleStoryboard = null;
+            _settlePriority = null;
+            settle.Remove(this);
+            ResetBodyActionTransforms();
+            completed?.Invoke();
+        };
+        _settleStoryboardCompleted = handler;
+        settle.Completed += handler;
+        settle.Begin(this, HandoffBehavior.SnapshotAndReplace, isControllable: true);
+    }
+
+    private static void AddSettleAnimation(
+        Storyboard storyboard,
+        DependencyObject target,
+        System.Windows.DependencyProperty property,
+        double from,
+        double to,
+        int milliseconds)
+    {
+        if (Math.Abs(from - to) < 0.001)
+        {
+            return;
+        }
+
+        var animation = new DoubleAnimation(from, to, TimeSpan.FromMilliseconds(milliseconds))
+        {
+            EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(animation, target);
+        Storyboard.SetTargetProperty(animation, new PropertyPath(property));
+        storyboard.Children.Add(animation);
+    }
+
+    private void StopSettleStoryboard(bool preserveCurrent)
+    {
+        var settle = _settleStoryboard;
+        if (settle is null)
+        {
+            return;
+        }
+
+        var snapshot = CaptureBodyTransforms();
+        if (_settleStoryboardCompleted is not null)
+        {
+            settle.Completed -= _settleStoryboardCompleted;
+        }
+
+        _settleStoryboardCompleted = null;
+        _settleStoryboard = null;
+        _settlePriority = null;
+        settle.Stop(this);
+        settle.Remove(this);
+        if (preserveCurrent)
+        {
+            ApplyBodyTransforms(snapshot);
+        }
+    }
+
+    private void InterruptBodyActionForMessage()
+    {
+        if (_activeBodyAction is null)
+        {
+            return;
+        }
+
+        StopBodyAction(settle: false);
+    }
+
+    private void ResetBodyActionTransforms()
+    {
+        BodyTranslate.X = 0;
+        BodyTranslate.Y = 0;
+        BodyScale.ScaleX = 1;
+        BodyScale.ScaleY = 1;
+        BodyRotate.Angle = 0;
+        LeftArmRotate.Angle = 16;
+        RightArmRotate.Angle = -16;
+        LeftElbowRotate.Angle = 8;
+        RightElbowRotate.Angle = -8;
+        LeftLegRotate.Angle = 0;
+        RightLegRotate.Angle = 0;
+        LeftFootTranslate.Y = 0;
+        RightFootTranslate.Y = 0;
+        AntennaRotate.Angle = 0;
+        AntennaBallScale.ScaleX = 1;
+        AntennaBallScale.ScaleY = 1;
+        AntennaBall.Opacity = 1;
+        AntennaHalo.Opacity = 0;
+        AntennaHaloScale.ScaleX = 1;
+        AntennaHaloScale.ScaleY = 1;
+        ShadowScale.ScaleX = 1;
+        ShadowScale.ScaleY = 1;
+        GroundShadow.Opacity = 0.16;
+        ResetHoverGaze();
+    }
+
+    private readonly record struct BodyTransformSnapshot(
+        double TranslateX,
+        double TranslateY,
+        double ScaleX,
+        double ScaleY,
+        double BodyAngle,
+        double LeftArmAngle,
+        double RightArmAngle,
+        double LeftElbowAngle,
+        double RightElbowAngle,
+        double LeftLegAngle,
+        double RightLegAngle,
+        double LeftFootY,
+        double RightFootY,
+        double AntennaAngle,
+        double AntennaScaleX,
+        double AntennaScaleY,
+        double AntennaOpacity,
+        double HaloOpacity,
+        double HaloScaleX,
+        double HaloScaleY,
+        double ShadowScaleX,
+        double ShadowScaleY,
+        double ShadowOpacity);
+
+    private BodyTransformSnapshot CaptureBodyTransforms() => new(
+        BodyTranslate.X,
+        BodyTranslate.Y,
+        BodyScale.ScaleX,
+        BodyScale.ScaleY,
+        BodyRotate.Angle,
+        LeftArmRotate.Angle,
+        RightArmRotate.Angle,
+        LeftElbowRotate.Angle,
+        RightElbowRotate.Angle,
+        LeftLegRotate.Angle,
+        RightLegRotate.Angle,
+        LeftFootTranslate.Y,
+        RightFootTranslate.Y,
+        AntennaRotate.Angle,
+        AntennaBallScale.ScaleX,
+        AntennaBallScale.ScaleY,
+        AntennaBall.Opacity,
+        AntennaHalo.Opacity,
+        AntennaHaloScale.ScaleX,
+        AntennaHaloScale.ScaleY,
+        ShadowScale.ScaleX,
+        ShadowScale.ScaleY,
+        GroundShadow.Opacity);
+
+    private void ApplyBodyTransforms(BodyTransformSnapshot snapshot)
+    {
+        BodyTranslate.X = snapshot.TranslateX;
+        BodyTranslate.Y = snapshot.TranslateY;
+        BodyScale.ScaleX = snapshot.ScaleX;
+        BodyScale.ScaleY = snapshot.ScaleY;
+        BodyRotate.Angle = snapshot.BodyAngle;
+        LeftArmRotate.Angle = snapshot.LeftArmAngle;
+        RightArmRotate.Angle = snapshot.RightArmAngle;
+        LeftElbowRotate.Angle = snapshot.LeftElbowAngle;
+        RightElbowRotate.Angle = snapshot.RightElbowAngle;
+        LeftLegRotate.Angle = snapshot.LeftLegAngle;
+        RightLegRotate.Angle = snapshot.RightLegAngle;
+        LeftFootTranslate.Y = snapshot.LeftFootY;
+        RightFootTranslate.Y = snapshot.RightFootY;
+        AntennaRotate.Angle = snapshot.AntennaAngle;
+        AntennaBallScale.ScaleX = snapshot.AntennaScaleX;
+        AntennaBallScale.ScaleY = snapshot.AntennaScaleY;
+        AntennaBall.Opacity = snapshot.AntennaOpacity;
+        AntennaHalo.Opacity = snapshot.HaloOpacity;
+        AntennaHaloScale.ScaleX = snapshot.HaloScaleX;
+        AntennaHaloScale.ScaleY = snapshot.HaloScaleY;
+        ShadowScale.ScaleX = snapshot.ShadowScaleX;
+        ShadowScale.ScaleY = snapshot.ShadowScaleY;
+        GroundShadow.Opacity = snapshot.ShadowOpacity;
+    }
+
     private void OpenMenu_Click(object sender, RoutedEventArgs e) => OpenRequested?.Invoke();
+
+    private void WaveMenu_Click(object sender, RoutedEventArgs e)
+    {
+        _lastInteraction = DateTimeOffset.Now;
+        StartBodyAction(
+            "WaveStoryboard", extendedAction: true, SpriteActionPriority.User, userInitiated: true);
+    }
+
+    private void DanceMenu_Click(object sender, RoutedEventArgs e)
+    {
+        _lastInteraction = DateTimeOffset.Now;
+        if (StartBodyAction(
+                "DanceStoryboard", extendedAction: true, SpriteActionPriority.User, userInitiated: true))
+        {
+            _lastDynamicAction = DateTimeOffset.Now;
+        }
+    }
 
     private void WeeklyProgressMenu_Click(object sender, RoutedEventArgs e) =>
         RequestWeeklyProgress(userInitiated: true);
@@ -865,10 +1553,8 @@ public partial class FloatingSprite : System.Windows.Controls.UserControl, IDisp
 
         _disposed = true;
         _machine.StateChanged -= OnStateChanged;
-        _blinkTimer.Stop();
+        StopContinuousAnimations();
         _bubbleCloseTimer.Stop();
-        _pokeTimer.Stop();
-        _faceResetTimer.Stop();
         StopBehaviorTimers();
         // [新增-天线状态] 停止无限循环的天线动画，避免重建精灵后时钟残留
         StopAntennaAnimations();

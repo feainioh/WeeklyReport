@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using WeeklyReport.App.Services;
@@ -21,12 +22,14 @@ public partial class MainWindow : Window
     private readonly AutoStartService _autoStart;
     private readonly WindowsReminderNotifier _reminderNotifier;
     private readonly ReminderEngine _reminderEngine;
+    private readonly ScheduledTaskMonitor _scheduledTasks;
     private readonly IUserDialogs _dialogs;
     private readonly ILogger<MainWindow> _logger;
     private readonly IWeeklyProgressContextProvider _weeklyProgress;
     private bool _allowClose;
     private bool _autoStartEnabled;
     private bool _initializingSpriteBehavior;
+    private bool _initializingScheduledTasks;
 
     public MainWindow(
         WorkEntriesViewModel entries,
@@ -38,6 +41,7 @@ public partial class MainWindow : Window
         AutoStartService autoStart,
         WindowsReminderNotifier reminderNotifier,
         ReminderEngine reminderEngine,
+        ScheduledTaskMonitor scheduledTasks,
         IWeeklyProgressContextProvider weeklyProgress,
         IUserDialogs dialogs,
         ILogger<MainWindow> logger)
@@ -53,6 +57,7 @@ public partial class MainWindow : Window
         _autoStart = autoStart;
         _reminderNotifier = reminderNotifier;
         _reminderEngine = reminderEngine;
+        _scheduledTasks = scheduledTasks;
         _dialogs = dialogs;
         _logger = logger;
         DataContext = entries;
@@ -88,10 +93,15 @@ public partial class MainWindow : Window
         {
             InitializeFloatingStyleRadioButtons();
             InitializeSpriteBehaviorControls();
+            WorkRhythmReminderCheck.IsChecked =
+                ((App)System.Windows.Application.Current).GetWorkRhythmSettings().Enabled;
+            // [新增-离线存储] Phase 1 切片 F：设置页离线可用状态初始化
+            RefreshLocalStoreStatus();
         };
 
         // [新增-天线状态] 周报保存成功 → 请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 忽略）
         _weeklyReports.ReportSaved += OnReportSaved;
+        _scheduledTasks.SettingsChanged += OnScheduledTaskSettingsChanged;
     }
 
     // [新增-界面现代化2] Win11 标题栏着色：窗口句柄创建后按当前主题底色刷新一次
@@ -103,6 +113,9 @@ public partial class MainWindow : Window
 
     public async Task InitializeAsync()
     {
+        await _scheduledTasks.InitializeAsync();
+        InitializeScheduledTaskControls(_scheduledTasks.Settings);
+
         var password = await _settings.LoadAsync();
         if (password is not null)
         {
@@ -132,7 +145,7 @@ public partial class MainWindow : Window
     public bool CanExit()
     {
         if (_entries.IsBusy || _settings.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
-            || _weeklyReports.IsBusy || _backup.IsBusy)
+            || _weeklyReports.IsBusy || _backup.IsBusy || _scheduledTasks.IsExecuting)
         {
             _dialogs.Error("数据库操作进行中，请等待完成后再退出。", "周报");
             return false;
@@ -445,6 +458,9 @@ public partial class MainWindow : Window
         SpriteCelebrationCheck.IsChecked = settings.Celebration;
         SpriteQuietHoursCheck.IsChecked = settings.QuietHours;
         SpriteDataAdviceCheck.IsChecked = settings.DataAdvice;
+        SpriteDynamicActionsCheck.IsChecked = settings.DynamicActions;
+        SpriteAutoIdleActionsCheck.IsChecked = settings.AutoIdleActions;
+        SpriteAutoIdleActionsCheck.IsEnabled = settings.DynamicActions;
     }
 
     // [新增-机器人交互] 切换性格档位：恢复该档位默认开关，保留引导/问候历史
@@ -465,6 +481,7 @@ public partial class MainWindow : Window
         _initializingSpriteBehavior = false;
 
         ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+        SpriteAutoIdleActionsCheck.IsEnabled = next.DynamicActions;
     }
 
     // [新增-机器人交互] 细项开关：保留当前档位与引导/问候历史
@@ -492,15 +509,283 @@ public partial class MainWindow : Window
             Celebration = SpriteCelebrationCheck.IsChecked == true,
             QuietHours = SpriteQuietHoursCheck.IsChecked == true,
             DataAdvice = SpriteDataAdviceCheck.IsChecked == true,
+            DynamicActions = SpriteDynamicActionsCheck.IsChecked == true,
+            AutoIdleActions = SpriteAutoIdleActionsCheck.IsChecked == true,
             GuideShown = current.GuideShown,
             LastGreetingDate = current.LastGreetingDate,
             LastAdviceDate = current.LastAdviceDate
         };
 
         ((App)System.Windows.Application.Current).SetSpriteBehavior(next);
+        SpriteAutoIdleActionsCheck.IsEnabled = next.DynamicActions;
     }
 
     // [新增-机器人交互] 设置页预览一次问候
     private void SpriteGreet_Click(object sender, RoutedEventArgs e) =>
         ((App)System.Windows.Application.Current).PreviewSpriteGreeting();
+
+    private void WorkRhythmReminder_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current)
+        .SetWorkRhythmEnabled(WorkRhythmReminderCheck.IsChecked == true);
+
+    // [新增-定时任务] 按已持久化设置初始化固定任务行。
+    private void InitializeScheduledTaskControls(ScheduledTaskSettings settings)
+    {
+        _initializingScheduledTasks = true;
+        ScheduledGitEnabledCheck.IsChecked = settings.GitDailyItems.Enabled;
+        ScheduledGitTimeText.Text = FormatTaskTime(settings.GitDailyItems.TimeOfDay);
+        ScheduledWeeklyEnabledCheck.IsChecked = settings.WeeklyDraft.Enabled;
+        ScheduledWeeklyTimeText.Text = FormatTaskTime(settings.WeeklyDraft.TimeOfDay);
+        var weekday = settings.WeeklyDraft.Weekday ?? DayOfWeek.Thursday;
+        ScheduledWeeklyDayCombo.SelectedIndex = ((int)weekday + 6) % 7;
+        UpdateScheduledTaskResultLabels(settings);
+        _initializingScheduledTasks = false;
+    }
+
+    private static string FormatTaskTime(TimeOnly time) =>
+        time.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+    private void OnScheduledTaskSettingsChanged(ScheduledTaskSettings settings)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() => UpdateScheduledTaskResultLabels(settings)));
+    }
+
+    private void UpdateScheduledTaskResultLabels(ScheduledTaskSettings settings)
+    {
+        ScheduledGitLastResultText.Text = FormatLastTaskResult(settings.GitDailyItems);
+        ScheduledWeeklyLastResultText.Text = FormatLastTaskResult(settings.WeeklyDraft);
+    }
+
+    private static string FormatLastTaskResult(ScheduledTaskOptions options) =>
+        options.LastAttemptDate is DateOnly date
+            ? $"{date:MM-dd}：{options.LastResult ?? "已执行"}"
+            : "尚未执行";
+
+    private async void ScheduledTaskSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_initializingScheduledTasks)
+        {
+            await SaveScheduledTaskSettingsAsync();
+        }
+    }
+
+    private async void ScheduledTaskTime_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_initializingScheduledTasks)
+        {
+            await SaveScheduledTaskSettingsAsync();
+        }
+    }
+
+    private async Task SaveScheduledTaskSettingsAsync()
+    {
+        if (!TryParseTaskTime(ScheduledGitTimeText.Text, out var gitTime)
+            || !TryParseTaskTime(ScheduledWeeklyTimeText.Text, out var weeklyTime))
+        {
+            _dialogs.Error("时间格式应为 24 小时制 HH:mm，例如 17:30。", "定时任务");
+            InitializeScheduledTaskControls(_scheduledTasks.Settings);
+            return;
+        }
+
+        var weekdayTag = (ScheduledWeeklyDayCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+        if (!Enum.TryParse<DayOfWeek>(weekdayTag, out var weekday) || !Enum.IsDefined(weekday))
+        {
+            _dialogs.Error("请选择有效的周报生成星期。", "定时任务");
+            InitializeScheduledTaskControls(_scheduledTasks.Settings);
+            return;
+        }
+
+        var current = _scheduledTasks.Settings;
+        var settings = current with
+        {
+            GitDailyItems = current.GitDailyItems with
+            {
+                Enabled = ScheduledGitEnabledCheck.IsChecked == true,
+                TimeOfDay = gitTime
+            },
+            WeeklyDraft = current.WeeklyDraft with
+            {
+                Enabled = ScheduledWeeklyEnabledCheck.IsChecked == true,
+                TimeOfDay = weeklyTime,
+                Weekday = weekday
+            }
+        };
+
+        try
+        {
+            await _scheduledTasks.UpdateSettingsAsync(settings);
+            ScheduledGitTimeText.Text = FormatTaskTime(gitTime);
+            ScheduledWeeklyTimeText.Text = FormatTaskTime(weeklyTime);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Scheduled task settings update failed: {ErrorType}", exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "定时任务");
+            InitializeScheduledTaskControls(current);
+        }
+    }
+
+    private static bool TryParseTaskTime(string? text, out TimeOnly time) =>
+        TimeOnly.TryParseExact(
+            text, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
+
+    private async void RunScheduledTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string tag }
+            || !Enum.TryParse<ScheduledTaskKind>(tag, out var kind)
+            || !Enum.IsDefined(kind))
+        {
+            return;
+        }
+
+        var button = (System.Windows.Controls.Button)sender;
+        button.IsEnabled = false;
+        try
+        {
+            await _scheduledTasks.RunNowAsync(kind);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Scheduled task manual run failed: {TaskKind} {ErrorType}", kind, exception.GetType().Name);
+            _dialogs.Error(ErrorMessages.Describe(exception), "立即执行定时任务");
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
+    }
+
+    // [新增-离线存储] Phase 1 切片 F：设置页"离线可用"小节——状态刷新与三个操作入口。
+    // 操作在 UI 线程外执行；完成/失败均更新状态行；成功后提示重启生效（DI 按启动时模式注册）。
+    private async void RefreshLocalStoreStatus()
+    {
+        try
+        {
+            var state = await App.GetLocalStoreStateAsync();
+            LocalStoreStatusText.Text = DescribeLocalState(state);
+            var localFirst = state.Status is LocalStorageStatus.Ready or LocalStorageStatus.Suspended;
+            BuildLocalMirrorButton.IsEnabled = !localFirst
+                || (state.Status == LocalStorageStatus.Suspended
+                    && state.PendingCount == 0
+                    && state.AwaitingConfirmationCount == 0
+                    && state.ConflictCount == 0
+                    && state.FailedCount == 0);
+            StartEmptyLocalButton.IsEnabled = !localFirst;
+            DisableLocalFirstButton.IsEnabled = localFirst;
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            LocalStoreStatusText.Text = $"本地存储状态读取失败：{ErrorMessages.Describe(exception)}";
+            BuildLocalMirrorButton.IsEnabled = false;
+            StartEmptyLocalButton.IsEnabled = false;
+            DisableLocalFirstButton.IsEnabled = false;
+        }
+    }
+
+    private static string DescribeLocalState(LocalStorageState state) => state.Status switch
+    {
+        LocalStorageStatus.Ready when state.HasVerifiedBaseline =>
+            $"本地优先已启用（已验证基线，镜像于 {state.LastMirrorAtUtc:yyyy-MM-dd HH:mm}）；" +
+            $"待同步 {state.PendingCount} 项，待确认 {state.AwaitingConfirmationCount} 项，" +
+            $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+        LocalStorageStatus.Ready =>
+            $"本地优先已启用（空工作区，无已验证基线）；待同步 {state.PendingCount} 项，" +
+            $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+        LocalStorageStatus.Suspended =>
+            $"本地优先已暂停：{state.StatusReason ?? "请检查数据库配置后手动重新同步，或在无待处理操作时重建镜像。"}",
+        _ => "未启用本地优先：当前业务数据读写直接走本机 MySQL。"
+    };
+
+    private async void BuildLocalMirror_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_dialogs.Confirm(
+                "将从本机 MySQL 读取全部业务数据（含 Git 绑定）写入本地 SQLite 镜像。镜像包含明文业务数据；"
+                + "存在待同步变更时会被拒绝。继续吗？", "建立本地镜像"))
+        {
+            return;
+        }
+
+        await RunLocalOperationAsync(App.BuildLocalMirrorAsync);
+    }
+
+    private async void StartEmptyLocal_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_dialogs.Confirm(
+                "将建立不含任何数据的本地空工作区（无已验证基线）：MySQL 不可用时仍可录入，"
+                + "恢复后无法自动同步；当前没有冲突解决入口，待同步操作会保留且需先导出保护数据。继续吗？",
+                "建立空工作区"))
+        {
+            return;
+        }
+
+        await RunLocalOperationAsync(App.StartEmptyLocalWorkspaceAsync);
+    }
+
+    private async void DisableLocalFirst_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_dialogs.Confirm(
+                "将停用本地优先并回退 MySQL 模式（需重启生效）。仅当没有待同步或冲突变更时允许；"
+                + "本地镜像数据会保留。继续吗？", "停用本地优先"))
+        {
+            return;
+        }
+
+        await RunLocalOperationAsync(App.DisableLocalFirstAsync);
+    }
+
+    // [新增-离线存储] G2：手动立即同步
+    private async void SyncNow_Click(object sender, RoutedEventArgs e)
+    {
+        SyncNowButton.IsEnabled = false;
+        LocalStoreStatusText.Text = "同步进行中，请稍候……";
+        try
+        {
+            var outcome = await Task.Run(async () => await ((App)System.Windows.Application.Current).SyncNowAsync());
+            LocalStoreStatusText.Text = outcome.Failed > 0
+                ? $"同步失败（{outcome.Failed} 项）：{outcome.Error}"
+                : $"同步完成：已应用 {outcome.Applied} 项，冲突 {outcome.Conflicted} 项。";
+            if (outcome.Failed > 0)
+            {
+                _dialogs.Error($"同步失败：{outcome.Error}", "立即同步");
+            }
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            LocalStoreStatusText.Text = $"同步异常：{ErrorMessages.Describe(exception)}";
+        }
+        finally
+        {
+            SyncNowButton.IsEnabled = true;
+            RefreshLocalStoreStatus();
+        }
+    }
+
+    private async Task RunLocalOperationAsync(Func<Task<string>> operation)
+    {
+        BuildLocalMirrorButton.IsEnabled = false;
+        StartEmptyLocalButton.IsEnabled = false;
+        DisableLocalFirstButton.IsEnabled = false;
+        LocalStoreStatusText.Text = "操作进行中，请稍候……";
+        try
+        {
+            var result = await Task.Run(operation);
+            LocalStoreStatusText.Text = result;
+            _dialogs.Error(result, "离线可用");
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            _logger.LogWarning("Local store operation failed: {ErrorType}", exception.GetType().Name);
+            LocalStoreStatusText.Text = $"操作失败：{ErrorMessages.Describe(exception)}";
+            _dialogs.Error(ErrorMessages.Describe(exception), "离线可用");
+        }
+        finally
+        {
+            RefreshLocalStoreStatus();
+        }
+    }
 }

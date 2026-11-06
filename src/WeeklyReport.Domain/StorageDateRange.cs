@@ -27,6 +27,39 @@ public static class StorageDateRange
     public static DateTimeOffset NormalizeUtcTimestamp(DateTimeOffset value)
     {
         var utc = value.ToUniversalTime();
-        return new DateTimeOffset(utc.Ticks - utc.Ticks % 10, TimeSpan.Zero);
+        var ticks = utc.Ticks - utc.Ticks % TimeSpan.TicksPerMicrosecond;
+        return new DateTimeOffset(ticks, TimeSpan.Zero);
+    }
+
+    public static DateTimeOffset GetNextTimestamp(
+        DateTimeOffset previous,
+        DateTimeOffset minimum,
+        DateTimeOffset candidate)
+    {
+        var next = previous.AddTicks(TimeSpan.TicksPerMicrosecond);
+        var normalizedCandidate = NormalizeUtcTimestamp(candidate);
+        if (normalizedCandidate < next)
+        {
+            normalizedCandidate = next;
+        }
+
+        return normalizedCandidate < minimum ? minimum : normalizedCandidate;
+    }
+
+    public static DateTimeOffset GetUpdateTimestamp(
+        DateTimeOffset previous,
+        DateTimeOffset candidate,
+        string entityName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entityName);
+        var normalizedCandidate = NormalizeUtcTimestamp(candidate);
+        if (normalizedCandidate < previous)
+        {
+            throw new InvalidOperationException($"系统时间早于{entityName}更新时间，请检查系统时钟。");
+        }
+
+        return normalizedCandidate == previous
+            ? previous.AddTicks(TimeSpan.TicksPerMicrosecond)
+            : normalizedCandidate;
     }
 }

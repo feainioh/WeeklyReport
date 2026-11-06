@@ -121,7 +121,7 @@ public partial class WorkEntriesViewModel(
                     + git.Where(item => item.WorkDate == date)
                         .Sum(item => (long)(item.ConfirmedMinutes ?? item.EstimatedMinutes ?? 0))
                     + minutes.Value;
-                if (dailyMinutes > 8 * 60
+                if (dailyMinutes > WorkHourLimits.DailyLimitMinutes
                     && !dialogs.Confirm("当天已填写或估算的工时合计超过 8 小时，仍要保存吗？", "工时提示"))
                 {
                     return;
@@ -216,6 +216,8 @@ public partial class WorkEntriesViewModel(
         }
 
         var selected = weekStart.ToDateTime(TimeOnly.MinValue);
+        var previousWeek = SelectedWeek;
+        var loaded = false;
         SelectedWeek = selected;
         await RunAsync(async () =>
         {
@@ -223,8 +225,14 @@ public partial class WorkEntriesViewModel(
             ResetEditor();
             EditDate = selected;
             _baselineDate = selected.Date;
+            loaded = true;
         });
-        return true;
+        if (!loaded)
+        {
+            SelectedWeek = previousWeek;
+        }
+
+        return loaded;
     }
 
     private async Task ReloadAsync()

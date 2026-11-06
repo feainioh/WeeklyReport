@@ -1,0 +1,475 @@
+// [新增-离线存储] Phase 1 切片 B：SQLite 版 Git 同步仓储（ADR-02/03）。
+// 与 MySQL 版语义一致：多表事务组（项目/工作项/提交链接/估算）、修订号乐观守护、
+// 软删除保留提交身份、重算不覆盖已确认工时、基线比较拒绝过期预览。
+// 差异（ADR-02）：SQLite 无 FOR UPDATE——写事务内读取即一致快照，行锁由事务互斥 + busy_timeout 替代；
+// work_date 为固定格式 TEXT；SQL 为 SQLite 方言、全参数化。
+using System.Globalization;
+using SqlSugar;
+using WeeklyReport.Application;
+using WeeklyReport.Domain;
+
+namespace WeeklyReport.Infrastructure.Persistence.Sqlite;
+
+public sealed class SqliteGitSyncStore(string databasePath) : IGitSyncStore
+{
+    private readonly SqliteExecutor _executor = new(databasePath);
+
+    public async Task<IReadOnlyList<GitWorkItemSnapshot>> LoadAllAsync() =>
+        await _executor.ExecuteAsync<IReadOnlyList<GitWorkItemSnapshot>>(
+            database => LoadSnapshotsAsync(database));
+
+    public async Task<IReadOnlyList<GitReportWorkItem>> GetByWeekAsync(WeekPeriod week)
+    {
+        var start = week.Start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var end = week.EndExclusive.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return await _executor.ExecuteAsync<IReadOnlyList<GitReportWorkItem>>(async database =>
+        {
+            var rows = await database.Ado.SqlQueryAsync<SqliteGitWorkItemRow>(
+                "SELECT id AS Id, project_id AS ProjectId, work_date AS WorkDate, description AS Description, " +
+                "estimated_minutes AS EstimatedMinutes, confirmed_minutes AS ConfirmedMinutes, " +
+                "is_deleted AS IsDeleted, revision AS Revision FROM git_work_items " +
+                "WHERE work_date >= @start AND work_date < @end AND is_deleted = 0 ORDER BY work_date, id",
+                new { start, end });
+            var projects = await database.Ado.SqlQueryAsync<GitProjectRow>(
+                "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+                "author_field AS AuthorField, author_value AS Author FROM git_projects");
+            var names = projects.ToDictionary(row => row.Id, row => row.Name, StringComparer.OrdinalIgnoreCase);
+            return rows.Select(row =>
+            {
+                if (!names.TryGetValue(row.ProjectId, out var name))
+                {
+                    throw new InvalidDataException("Git 工作项关联的项目不存在。");
+                }
+
+                return new GitReportWorkItem(
+                    Guid.Parse(row.Id), Guid.Parse(row.ProjectId), name,
+                    DateOnly.ParseExact(row.WorkDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    row.Description, row.EstimatedMinutes, row.ConfirmedMinutes);
+            }).ToArray();
+        });
+    }
+
+    // [新增-离线存储] Phase 1 切片 F：写路径入队化——Apply/编辑/软删除/重算全部走队列事务（业务 + 入队同事务），
+    // 受影响工作项逐条 Record 为语义化变更（创建/更新按 proposals，重算按实际变更项）。
+    public async Task<GitSyncApplyResult> ApplyAsync(PreparedGitSync sync)
+    {
+        ArgumentNullException.ThrowIfNull(sync);
+        if (sync.Preview.Proposals.Count == 0)
+        {
+            return new GitSyncApplyResult(0, 0, sync.Preview.DuplicateCount, sync.Preview.DeletedConflicts.Count);
+        }
+
+        // [旧代码-离线存储] 原独立事务写法（无入队）
+        // return await _executor.ExecuteAsync(database => SqlSugarTransactions.SerializableAsync(database, async () => {...}));
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-sync.apply", async session =>
+        {
+            var database = session.Database;
+            var projectRows = await LoadProjectsAsync(database);
+            EnsureProjectsUnchanged(sync.Projects, projectRows);
+            var current = await LoadSnapshotsAsync(database);
+            EnsureBaselineUnchanged(sync.Baseline, current);
+            var result = await ApplyProposalsAsync(database, sync, current);
+            await RecordChangedWorkItemsAsync(session, database, current);
+            return result;
+        });
+    }
+
+    public async Task<bool> UpdateWorkItemAsync(Guid id, string description, int? confirmedMinutes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        if (confirmedMinutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(confirmedMinutes), "工时不能为负数。");
+        }
+
+        DbTextLimits.Validate(description, "工作项描述");
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("工作项标识不能为空。", nameof(id));
+        }
+
+        var key = id.ToString("D");
+        // [旧代码-离线存储] 原独立连接写法（无入队），改走队列事务
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-workitem.update", async session =>
+        {
+            var rows = await session.Database.Ado.SqlQueryAsync<SqliteGitWorkItemRow>(
+                "SELECT id AS Id, project_id AS ProjectId, work_date AS WorkDate, description AS Description, " +
+                "estimated_minutes AS EstimatedMinutes, confirmed_minutes AS ConfirmedMinutes, " +
+                "is_deleted AS IsDeleted, revision AS Revision FROM git_work_items WHERE id = @key",
+                new { key });
+            var row = rows.FirstOrDefault();
+            if (row is null || row.IsDeleted)
+            {
+                return false;
+            }
+
+            var before = await LoadSnapshotsAsync(session.Database);
+            var revision = row.Revision;
+            var updated = await session.Database.Ado.ExecuteCommandAsync(
+                "UPDATE git_work_items SET description = @description, confirmed_minutes = @confirmedMinutes, " +
+                "revision = @newRevision WHERE id = @key AND revision = @revision AND is_deleted = 0",
+                new
+                {
+                    key,
+                    description = description.Trim(),
+                    confirmedMinutes,
+                    newRevision = checked(revision + 1),
+                    revision
+                }) > 0;
+            if (updated)
+            {
+                await RecordChangedWorkItemsAsync(session, session.Database, before);
+            }
+
+            return updated;
+        });
+    }
+
+    public async Task<bool> SoftDeleteWorkItemAsync(Guid id)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("工作项标识不能为空。", nameof(id));
+        }
+
+        // [旧代码-离线存储] 原独立 SerializableAsync 写法（无入队），改走队列事务
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-workitem.delete", async session =>
+        {
+            var database = session.Database;
+            var current = await LoadSnapshotsAsync(database);
+            var item = current.SingleOrDefault(value => value.Id == id && !value.IsDeleted);
+            if (item is null)
+            {
+                return false;
+            }
+
+            var key = id.ToString("D");
+            var revision = item.Revision;
+            var deleted = await database.Ado.ExecuteCommandAsync(
+                "UPDATE git_work_items SET description = '（已删除）', estimated_minutes = NULL, " +
+                "confirmed_minutes = NULL, is_deleted = 1, revision = @newRevision " +
+                "WHERE id = @key AND revision = @revision AND is_deleted = 0",
+                new { key, newRevision = checked(revision + 1), revision });
+            if (deleted != 1)
+            {
+                throw new InvalidOperationException("Git 工作项已发生变化，请重新加载。");
+            }
+
+            await database.Ado.ExecuteCommandAsync(
+                "UPDATE git_commit_links SET author_name = @empty, author_email = @empty, subject = @empty " +
+                "WHERE work_item_id = @key",
+                new { empty = string.Empty, key });
+
+            await RecalculateAsync(database, current, item.WorkDate, id);
+            await RecordChangedWorkItemsAsync(session, database, current);
+            return true;
+        });
+    }
+
+    public async Task<int> RecalculateDateAsync(DateOnly date)
+    {
+        StorageDateRange.ValidateWorkDate(date);
+        // [旧代码-离线存储] 原独立 SerializableAsync 写法（无入队），改走队列事务
+        return await new SqliteOperationQueue(databasePath).RunInOperationAsync("git-recalc.run", async session =>
+        {
+            var database = session.Database;
+            var current = await LoadSnapshotsAsync(database);
+            var changed = await RecalculateAsync(database, current, date, excludedId: null);
+            if (changed > 0)
+            {
+                await RecordChangedWorkItemsAsync(session, database, current);
+            }
+
+            return changed;
+        });
+    }
+
+    // [新增-离线存储] 项目读取：SQLite 无行锁，写事务内一致快照读取（ADR-02）
+    private static async Task<List<GitProjectRow>> LoadProjectsAsync(SqlSugarClient database) =>
+        await database.Ado.SqlQueryAsync<GitProjectRow>(
+            "SELECT id AS Id, name AS Name, repository_path AS RepositoryPath, " +
+            "author_field AS AuthorField, author_value AS Author FROM git_projects ORDER BY id");
+
+    private static async Task RecordChangedWorkItemsAsync(
+        LocalOperationSession session,
+        SqlSugarClient database,
+        IReadOnlyList<GitWorkItemSnapshot> before)
+    {
+        var after = await LoadSnapshotsAsync(database);
+        var previousById = before.ToDictionary(item => item.Id);
+        var projects = (await LoadProjectsAsync(database))
+            .Select(SqliteGitProjectRepository.ToProject)
+            .ToDictionary(project => project.Id);
+
+        foreach (var item in after)
+        {
+            previousById.TryGetValue(item.Id, out var previous);
+            if (previous is not null && SameSnapshot(previous, item))
+            {
+                continue;
+            }
+
+            if (!projects.TryGetValue(item.ProjectId, out var project))
+            {
+                throw new InvalidDataException("Git 工作项关联的项目不存在。");
+            }
+
+            var change = previous is null
+                ? LocalObjectChange.Add
+                : !previous.IsDeleted && item.IsDeleted
+                    ? LocalObjectChange.Delete
+                    : LocalObjectChange.Update;
+            session.Record(new LocalOperationChange(
+                "git_work_items",
+                item.Id.ToString("D"),
+                $"{item.ProjectId:D}|{item.WorkDate:yyyy-MM-dd}",
+                change)
+            {
+                BeforeJson = previous is null
+                    ? null
+                    : SqliteOperationPayload.SerializeGitWorkItem(previous, project),
+                AfterJson = SqliteOperationPayload.SerializeGitWorkItem(item, project)
+            });
+        }
+    }
+
+    private static bool SameSnapshot(GitWorkItemSnapshot first, GitWorkItemSnapshot second) =>
+        first.ProjectId == second.ProjectId
+        && first.WorkDate == second.WorkDate
+        && first.Description == second.Description
+        && first.ConfirmedMinutes == second.ConfirmedMinutes
+        && first.EstimatedMinutes == second.EstimatedMinutes
+        && first.IsDeleted == second.IsDeleted
+        && first.Revision == second.Revision
+        && SameCommits(first.Commits, second.Commits);
+
+    private static async Task<IReadOnlyList<GitWorkItemSnapshot>> LoadSnapshotsAsync(SqlSugarClient database)
+    {
+        var items = await database.Ado.SqlQueryAsync<SqliteGitWorkItemRow>(
+            "SELECT id AS Id, project_id AS ProjectId, work_date AS WorkDate, description AS Description, " +
+            "estimated_minutes AS EstimatedMinutes, confirmed_minutes AS ConfirmedMinutes, " +
+            "is_deleted AS IsDeleted, revision AS Revision FROM git_work_items ORDER BY id");
+        var links = await database.Ado.SqlQueryAsync<GitCommitRow>(
+            "SELECT project_id AS ProjectId, commit_hash AS CommitHash, work_item_id AS WorkItemId, " +
+            "author_name AS AuthorName, author_email AS AuthorEmail, authored_at AS AuthoredAt, " +
+            "subject AS Subject FROM git_commit_links ORDER BY project_id, commit_hash");
+
+        var itemIds = items.Select(item => item.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (links.Any(link => !itemIds.Contains(link.WorkItemId)))
+        {
+            throw new InvalidDataException("Git 提交关联了不存在的工作项。");
+        }
+
+        var commitsByItem = links.GroupBy(link => link.WorkItemId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Select(ToCommit).ToArray(), StringComparer.OrdinalIgnoreCase);
+        return items.Select(item => new GitWorkItemSnapshot(
+            Guid.Parse(item.Id),
+            Guid.Parse(item.ProjectId),
+            DateOnly.ParseExact(item.WorkDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            item.Description,
+            item.ConfirmedMinutes,
+            item.IsDeleted,
+            commitsByItem.GetValueOrDefault(item.Id) ?? [],
+            item.EstimatedMinutes,
+            item.Revision)).ToArray();
+    }
+
+    private static GitCommit ToCommit(GitCommitRow row)
+    {
+        if (!DateTimeOffset.TryParseExact(
+                row.AuthoredAt, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var authoredAt))
+        {
+            throw new InvalidDataException("Git 提交的作者时间无效。");
+        }
+
+        return new GitCommit(
+            Guid.Parse(row.ProjectId), row.CommitHash, row.AuthorName, row.AuthorEmail, authoredAt, row.Subject);
+    }
+
+    private static void EnsureProjectsUnchanged(IReadOnlyList<GitProject> expected, IReadOnlyList<GitProjectRow> rows)
+    {
+        var current = rows.ToDictionary(row => Guid.Parse(row.Id));
+        foreach (var project in expected)
+        {
+            if (!current.TryGetValue(project.Id, out var row))
+            {
+                throw new InvalidOperationException("Git 项目已发生变化，请重新预览。");
+            }
+
+            var actual = SqliteGitProjectRepository.ToProject(row);
+            if (actual.Name != project.Name
+                || actual.RepositoryPath != project.RepositoryPath
+                || actual.AuthorField != project.AuthorField
+                || actual.Author != project.Author)
+            {
+                throw new InvalidOperationException("Git 项目已发生变化，请重新预览。");
+            }
+        }
+    }
+
+    private static void EnsureBaselineUnchanged(
+        IReadOnlyList<GitWorkItemSnapshot> expected, IReadOnlyList<GitWorkItemSnapshot> current)
+    {
+        var byId = current.ToDictionary(item => item.Id);
+        if (expected.Count != current.Count)
+        {
+            throw new InvalidOperationException("Git 工作项已发生变化，请重新预览。");
+        }
+
+        foreach (var item in expected)
+        {
+            if (!byId.TryGetValue(item.Id, out var actual)
+                || item.ProjectId != actual.ProjectId
+                || item.WorkDate != actual.WorkDate
+                || item.Description != actual.Description
+                || item.ConfirmedMinutes != actual.ConfirmedMinutes
+                || item.EstimatedMinutes != actual.EstimatedMinutes
+                || item.IsDeleted != actual.IsDeleted
+                || item.Revision != actual.Revision
+                || !SameCommits(item.Commits, actual.Commits))
+            {
+                throw new InvalidOperationException("Git 工作项已发生变化，请重新预览。");
+            }
+        }
+    }
+
+    private static bool SameCommits(IReadOnlyList<GitCommit> expected, IReadOnlyList<GitCommit> actual)
+    {
+        if (expected.Count != actual.Count)
+        {
+            return false;
+        }
+
+        var byHash = actual.ToDictionary(commit => commit.Hash, StringComparer.Ordinal);
+        return expected.All(commit =>
+            byHash.TryGetValue(commit.Hash, out var stored) && commit.HasSameMetadata(stored));
+    }
+
+    private static async Task<GitSyncApplyResult> ApplyProposalsAsync(
+        SqlSugarClient database,
+        PreparedGitSync sync,
+        IReadOnlyList<GitWorkItemSnapshot> current)
+    {
+        var byDay = current.ToDictionary(item => (item.ProjectId, item.WorkDate));
+        var estimates = sync.Preview.SuggestedHours
+            .SelectMany(day => day.Projects.Select(project => (day.Date, project.ProjectId, project.Minutes)))
+            .ToDictionary(item => (item.ProjectId, item.Date), item => item.Minutes);
+        var updatedIds = new HashSet<Guid>();
+        var created = 0;
+        var updated = 0;
+
+        foreach (var proposal in sync.Preview.Proposals)
+        {
+            var key = (proposal.ProjectId, proposal.WorkDate);
+            if (!estimates.TryGetValue(key, out var estimatedMinutes))
+            {
+                throw new InvalidOperationException("Git 同步预览缺少工时估算，请重新预览。");
+            }
+
+            if (byDay.TryGetValue(key, out var existing))
+            {
+                if (existing.IsDeleted || existing.Id != proposal.WorkItemId)
+                {
+                    throw new InvalidOperationException("Git 工作项已发生变化，请重新预览。");
+                }
+
+                await UpdateEstimateAsync(database, existing, estimatedMinutes);
+                updatedIds.Add(existing.Id);
+                updated++;
+            }
+            else
+            {
+                DbTextLimits.Validate(proposal.SuggestedDescription, "Git 工作项描述");
+                await database.Ado.ExecuteCommandAsync(
+                    "INSERT INTO git_work_items (id, project_id, work_date, description, estimated_minutes, " +
+                    "confirmed_minutes, is_deleted, revision) " +
+                    "VALUES (@id, @projectId, @workDate, @description, @estimatedMinutes, NULL, 0, 0)",
+                    new
+                    {
+                        id = proposal.WorkItemId.ToString("D"),
+                        projectId = proposal.ProjectId.ToString("D"),
+                        workDate = proposal.WorkDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        description = proposal.SuggestedDescription,
+                        estimatedMinutes
+                    });
+                created++;
+            }
+
+            var links = proposal.AddedCommits.Select(commit => ToRow(commit, proposal.WorkItemId)).ToArray();
+            if (links.Length > 0)
+            {
+                await database.Insertable(links).ExecuteCommandAsync();
+            }
+        }
+
+        foreach (var item in current.Where(item => !item.IsDeleted && !updatedIds.Contains(item.Id)))
+        {
+            if (estimates.TryGetValue((item.ProjectId, item.WorkDate), out var minutes)
+                && item.EstimatedMinutes != minutes)
+            {
+                await UpdateEstimateAsync(database, item, minutes);
+            }
+        }
+
+        return new GitSyncApplyResult(created, updated, sync.Preview.DuplicateCount, sync.Preview.DeletedConflicts.Count);
+    }
+
+    private static async Task<int> UpdateEstimateAsync(SqlSugarClient database, GitWorkItemSnapshot item, int? minutes)
+    {
+        var id = item.Id.ToString("D");
+        var revision = item.Revision;
+        var updated = await database.Ado.ExecuteCommandAsync(
+            "UPDATE git_work_items SET estimated_minutes = @minutes, revision = @newRevision " +
+            "WHERE id = @id AND revision = @revision AND is_deleted = 0",
+            new { id, minutes, newRevision = checked(revision + 1), revision });
+        if (updated != 1)
+        {
+            throw new InvalidOperationException("Git 工作项已发生变化，请重新预览。");
+        }
+
+        return updated;
+    }
+
+    private static async Task<int> RecalculateAsync(
+        SqlSugarClient database,
+        IReadOnlyList<GitWorkItemSnapshot> current,
+        DateOnly date,
+        Guid? excludedId)
+    {
+        var remaining = current.Where(value => !value.IsDeleted && value.Id != excludedId && value.WorkDate == date)
+            .ToArray();
+        var hours = new GitHourEstimator().EstimateDated(
+            remaining.SelectMany(value => value.Commits.Select(commit => new DatedGitCommit(commit, value.WorkDate))));
+        var estimates = hours.SelectMany(day => day.Projects)
+            .ToDictionary(project => project.ProjectId, project => project.Minutes);
+        var changed = 0;
+        foreach (var other in remaining)
+        {
+            var minutes = estimates.GetValueOrDefault(other.ProjectId);
+            if (other.EstimatedMinutes != minutes)
+            {
+                await UpdateEstimateAsync(database, other, minutes);
+                changed++;
+            }
+        }
+
+        return changed;
+    }
+
+    private static GitCommitRow ToRow(GitCommit commit, Guid workItemId)
+    {
+        DbTextLimits.Validate(commit.AuthorName, "Git 作者");
+        DbTextLimits.Validate(commit.AuthorEmail, "Git 作者邮箱");
+        DbTextLimits.Validate(commit.Subject, "Git 提交摘要");
+        return new GitCommitRow
+        {
+            ProjectId = commit.ProjectId.ToString("D"),
+            CommitHash = commit.Hash,
+            WorkItemId = workItemId.ToString("D"),
+            AuthorName = commit.AuthorName,
+            AuthorEmail = commit.AuthorEmail,
+            AuthoredAt = commit.AuthoredAt.ToString("O", CultureInfo.InvariantCulture),
+            Subject = commit.Subject
+        };
+    }
+}

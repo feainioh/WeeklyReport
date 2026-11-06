@@ -9,6 +9,8 @@
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="dbup-mysql" Version="6.1.0" />
     <PackageReference Include="MySqlConnector" Version="2.6.2" />
+    <!-- [新增-离线存储] Phase 1 切片 A：SQLite 驱动（ADR-02，与 SqlSugarCore 传递依赖同栈） -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
     <PackageReference Include="SqlSugarCore" Version="5.1.4.221" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
@@ -16,6 +18,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Migrations\*.sql" />
+    <!-- [新增-离线存储] Phase 1 切片 A：SQLite 版本化迁移脚本（独立目录，DbUp 侧已加范围过滤互不干扰） -->
+    <EmbeddedResource Include="Persistence\Sqlite\Migrations\*.sql" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -9,6 +9,39 @@ public static class SpriteMessagePolicy
     private static readonly TimeOnly QuietEnd = new(8, 0);
     private static readonly TimeSpan InteractionCooldown = TimeSpan.FromMinutes(5);
 
+    public static TimeSpan IdleDanceInterval(SpriteBehaviorPreset preset) => preset switch
+    {
+        SpriteBehaviorPreset.Quiet => Timeout.InfiniteTimeSpan,
+        SpriteBehaviorPreset.Lively => TimeSpan.FromMinutes(60),
+        _ => Timeout.InfiniteTimeSpan
+    };
+
+    public static bool CanPlayIdleDance(
+        SpriteBehaviorSettings settings,
+        DateTimeOffset now,
+        TimeSpan sinceLastInteraction,
+        TimeSpan sinceLastDance,
+        bool isVisible,
+        bool isMouseOver,
+        bool hasOpenBubble,
+        bool isMuted,
+        bool isIdle)
+    {
+        var interval = IdleDanceInterval(settings.Preset);
+        return settings.Preset == SpriteBehaviorPreset.Lively
+            && settings.DynamicActions
+            && settings.AutoIdleActions
+            && interval != Timeout.InfiniteTimeSpan
+            && isVisible
+            && !isMouseOver
+            && isIdle
+            && !hasOpenBubble
+            && !isMuted
+            && (!settings.QuietHours || !IsQuietHours(TimeOnly.FromDateTime(now.DateTime)))
+            && sinceLastInteraction >= InteractionCooldown
+            && sinceLastDance >= interval;
+    }
+
     public static bool IsQuietHours(TimeOnly localTime) =>
         localTime >= QuietStart || localTime < QuietEnd;
 
@@ -25,6 +58,42 @@ public static class SpriteMessagePolicy
         SpriteBehaviorPreset.Lively => TimeSpan.FromSeconds(20),
         _ => TimeSpan.FromSeconds(35)
     };
+
+    public static TimeSpan IdleGlanceInterval(SpriteBehaviorPreset preset) => preset switch
+    {
+        SpriteBehaviorPreset.Quiet => Timeout.InfiniteTimeSpan,
+        SpriteBehaviorPreset.Lively => TimeSpan.FromSeconds(90),
+        _ => TimeSpan.FromSeconds(150)
+    };
+
+    public static TimeSpan WeightShiftInterval(SpriteBehaviorPreset preset) => preset switch
+    {
+        SpriteBehaviorPreset.Quiet => Timeout.InfiniteTimeSpan,
+        SpriteBehaviorPreset.Lively => TimeSpan.FromSeconds(60),
+        _ => TimeSpan.FromSeconds(135)
+    };
+
+    public static bool CanPlayAutomaticAmbient(
+        SpriteBehaviorSettings settings,
+        DateTimeOffset now,
+        TimeSpan sinceLastInteraction,
+        TimeSpan sinceLastAmbient,
+        TimeSpan interval,
+        bool isVisible,
+        bool isMouseOver,
+        bool hasOpenBubble,
+        bool isMuted,
+        bool isIdle) =>
+        settings.AutoIdleActions
+        && interval != Timeout.InfiniteTimeSpan
+        && isVisible
+        && !isMouseOver
+        && isIdle
+        && !hasOpenBubble
+        && !isMuted
+        && (!settings.QuietHours || !IsQuietHours(TimeOnly.FromDateTime(now.DateTime)))
+        && sinceLastInteraction >= InteractionCooldown
+        && sinceLastAmbient >= interval;
 
     public static SpriteMessage? CreateStartupGreeting(
         SpriteBehaviorSettings settings, DateTimeOffset now, DateOnly weekStart)

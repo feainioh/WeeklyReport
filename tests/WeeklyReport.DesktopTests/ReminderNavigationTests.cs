@@ -117,6 +117,8 @@ public class ReminderNavigationTests
         public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
     }
 
     private sealed class EmptyGitItems : IGitReportWorkItemSource

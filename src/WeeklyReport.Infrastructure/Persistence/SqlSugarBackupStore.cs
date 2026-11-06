@@ -137,7 +137,8 @@ public sealed class SqlSugarBackupStore(IDatabaseConfigurationStore configuratio
                 }
 
                 var updatedAt = exists
-                    ? NextUpdateTime(existing!.UpdatedAtUtc!.Value, item.CreatedAtUtc!.Value)
+                    ? StorageDateRange.GetNextTimestamp(
+                        existing!.UpdatedAtUtc!.Value, item.CreatedAtUtc!.Value, DateTimeOffset.UtcNow)
                     : item.UpdatedAtUtc!.Value;
                 var row = new WorkEntryRow
                 {
@@ -229,7 +230,9 @@ public sealed class SqlSugarBackupStore(IDatabaseConfigurationStore configuratio
                     continue;
                 }
 
-                var row = ToReportRow(report, existing.Id, NextUpdateTime(existing.UpdatedAtUtc, report.CreatedAtUtc));
+                var updatedAt = StorageDateRange.GetNextTimestamp(
+                    existing.UpdatedAtUtc, report.CreatedAtUtc, DateTimeOffset.UtcNow);
+                var row = ToReportRow(report, existing.Id, updatedAt);
                 await database.Updateable(row)
                     .UpdateColumns(value => new
                     {
@@ -276,18 +279,6 @@ public sealed class SqlSugarBackupStore(IDatabaseConfigurationStore configuratio
         CreatedAtUtc = report.CreatedAtUtc.UtcDateTime,
         UpdatedAtUtc = updatedAt.UtcDateTime
     };
-
-    private static DateTimeOffset NextUpdateTime(DateTimeOffset existing, DateTimeOffset importedCreation)
-    {
-        var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
-        var next = existing.AddTicks(10);
-        if (now < next)
-        {
-            now = next;
-        }
-
-        return now < importedCreation ? importedCreation : now;
-    }
 
     private static bool Equivalent(BackupDocument first, BackupDocument second) =>
         first.FormatVersion == second.FormatVersion

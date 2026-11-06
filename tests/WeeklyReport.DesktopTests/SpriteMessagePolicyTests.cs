@@ -67,6 +67,139 @@ public sealed class SpriteMessagePolicyTests
     }
 
     [Fact]
+    public void IdleDanceIntervals_MatchPresetDefaults()
+    {
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            SpriteMessagePolicy.IdleDanceInterval(SpriteBehaviorPreset.Quiet));
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            SpriteMessagePolicy.IdleDanceInterval(SpriteBehaviorPreset.Gentle));
+        Assert.Equal(TimeSpan.FromMinutes(60),
+            SpriteMessagePolicy.IdleDanceInterval(SpriteBehaviorPreset.Lively));
+    }
+
+    [Fact]
+    public void IdleDanceRequiresEnabledSettingsCooldownAndQuietEligibleWindow()
+    {
+        var settings = SpriteBehaviorSettings.ForPreset(
+            SpriteBehaviorPreset.Lively, SpriteBehaviorSettings.Default);
+
+        Assert.True(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: false, hasOpenBubble: false,
+            isMuted: false, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(4), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: false, hasOpenBubble: false,
+            isMuted: false, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(59),
+            isVisible: true, isMouseOver: false, hasOpenBubble: false,
+            isMuted: false, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: false, hasOpenBubble: true,
+            isMuted: false, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: false, isMouseOver: false, hasOpenBubble: false,
+            isMuted: false, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: false, hasOpenBubble: false,
+            isMuted: true, isIdle: true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: false, hasOpenBubble: false,
+            isMuted: false, isIdle: false));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            isVisible: true, isMouseOver: true, hasOpenBubble: false,
+            isMuted: false, isIdle: true));
+    }
+
+    [Fact]
+    public void IdleDanceRespectsQuietHoursAndBehaviorSwitches()
+    {
+        var lateNight = new DateTimeOffset(2026, 11, 2, 23, 0, 0, TimeSpan.FromHours(8));
+        var quiet = SpriteBehaviorSettings.ForPreset(
+            SpriteBehaviorPreset.Quiet, SpriteBehaviorSettings.Default);
+
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            SpriteBehaviorSettings.ForPreset(SpriteBehaviorPreset.Lively, SpriteBehaviorSettings.Default),
+            lateNight, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60), true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            quiet, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            SpriteBehaviorSettings.Default with { DynamicActions = false },
+            Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            SpriteBehaviorSettings.Default with { AutoIdleActions = false },
+            Morning, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(60),
+            true, false, false, false, true));
+    }
+
+    [Fact]
+    public void GentlePreset_NeverAutoDances()
+    {
+        var settings = SpriteBehaviorSettings.ForPreset(
+            SpriteBehaviorPreset.Gentle, SpriteBehaviorSettings.Default);
+
+        Assert.False(SpriteMessagePolicy.CanPlayIdleDance(
+            settings, Morning, TimeSpan.FromMinutes(10), TimeSpan.FromHours(24),
+            true, false, false, false, true));
+    }
+
+    [Fact]
+    public void AmbientIntervals_MatchPresetDefaults()
+    {
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            SpriteMessagePolicy.IdleGlanceInterval(SpriteBehaviorPreset.Quiet));
+        Assert.Equal(TimeSpan.FromSeconds(150),
+            SpriteMessagePolicy.IdleGlanceInterval(SpriteBehaviorPreset.Gentle));
+        Assert.Equal(TimeSpan.FromSeconds(90),
+            SpriteMessagePolicy.IdleGlanceInterval(SpriteBehaviorPreset.Lively));
+
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            SpriteMessagePolicy.WeightShiftInterval(SpriteBehaviorPreset.Quiet));
+        Assert.Equal(TimeSpan.FromSeconds(135),
+            SpriteMessagePolicy.WeightShiftInterval(SpriteBehaviorPreset.Gentle));
+        Assert.Equal(TimeSpan.FromSeconds(60),
+            SpriteMessagePolicy.WeightShiftInterval(SpriteBehaviorPreset.Lively));
+    }
+
+    [Fact]
+    public void AutomaticAmbient_RequiresQuietEligibleIdleWindow()
+    {
+        var settings = SpriteBehaviorSettings.Default;
+        var interval = TimeSpan.FromSeconds(150);
+
+        Assert.True(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings, Morning, TimeSpan.FromMinutes(5), interval, interval,
+            true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings, Morning, TimeSpan.FromMinutes(4), interval, interval,
+            true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings, Morning, TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(149), interval,
+            true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings, Morning, TimeSpan.FromMinutes(5), interval, interval,
+            true, true, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings, Morning, TimeSpan.FromMinutes(5), interval, interval,
+            true, false, true, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            settings with { AutoIdleActions = false }, Morning, TimeSpan.FromMinutes(5),
+            interval, interval, true, false, false, false, true));
+        Assert.False(SpriteMessagePolicy.CanPlayAutomaticAmbient(
+            SpriteBehaviorSettings.ForPreset(SpriteBehaviorPreset.Quiet, settings),
+            Morning, TimeSpan.FromMinutes(5), interval, interval,
+            true, false, false, false, true));
+    }
+
+    [Fact]
     public void IdleChatter_RequiresInteractionAndChatterCooldowns()
     {
         var settings = SpriteBehaviorSettings.Default;

@@ -647,7 +647,18 @@
             </Setter>
         </Style>
 
-        <!-- [新增-天线状态] 天线语义色：提醒橙、成功绿（固定语义色，不随主题变化） -->
+        <!-- [新增-形象动画2] 精灵调色板浅色设计时回退；ThemeService 在运行时按主题覆盖。 -->
+        <SolidColorBrush x:Key="SpriteBodyBrush" Color="#F1F5FB" />
+        <SolidColorBrush x:Key="SpriteBodyShadeBrush" Color="#DDE6F2" />
+        <SolidColorBrush x:Key="SpriteInkBrush" Color="#2C3646" />
+        <SolidColorBrush x:Key="SpriteDetailBrush" Color="#5A697E" />
+        <SolidColorBrush x:Key="SpriteEyeBrush" Color="#2C3646" />
+        <SolidColorBrush x:Key="SpriteRimBrush" Color="#8CFFFFFF" />
+        <SolidColorBrush x:Key="SpriteHighlightBrush" Color="#73FFFFFF" />
+        <SolidColorBrush x:Key="SpriteShadeBrush" Color="#14000000" />
+        <SolidColorBrush x:Key="SpriteShadowBrush" Color="#29000000" />
+
+        <!-- [新增-天线状态] 天线语义色：提醒橙、成功绿，运行时由主题调色板覆盖。 -->
         <SolidColorBrush x:Key="AntennaAlertBrush" Color="#F7630C" />
         <SolidColorBrush x:Key="AntennaSuccessBrush" Color="#16A34A" />
     </Application.Resources>

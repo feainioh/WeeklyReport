@@ -29,15 +29,19 @@ public partial class FloatingWindow : Window
     private FloatingCard? _card;
     private FloatingSprite? _sprite;
     private SpriteBehaviorSettings _spriteBehavior = SpriteBehaviorSettings.Default;
+    private WorkRhythmReminderSettings _workRhythmSettings = WorkRhythmReminderSettings.Default;
     private string _weeklyProgressStatus = "存储状态：正在读取";
 
     // [新增-悬浮精灵] 精灵形态窗口尺寸（含跳动空间）；卡片形态沿用 320x165
     // [旧代码-机器人化] 原文档精灵尺寸 150x190，机器人化缩小 50% 后改为 75x95
     // private const double SpriteWidth = 150;
     // private const double SpriteHeight = 190;
-    // [新增-机器人化] 机器人精灵窗口尺寸（原尺寸 50%）
+    // [旧代码-舞蹈优化] 原尺寸 75x95，增高后改为 75x115（+20px 跳跃空间）
+    // private const double SpriteWidth = 75;
+    // private const double SpriteHeight = 95;
+    // [新增-舞蹈优化] 精灵窗口尺寸：高度 95→115，给 -20px 大跳 + 天线 14px 空间
     private const double SpriteWidth = 75;
-    private const double SpriteHeight = 95;
+    private const double SpriteHeight = 115;
 
     public FloatingWindow(string positionPath, Action openMain, ILogger<FloatingWindow> logger)
     {
@@ -55,6 +59,7 @@ public partial class FloatingWindow : Window
         var preferences = FloatingWindowPreferencesStore.TryLoad(_positionPath);
         _style = preferences?.Style ?? FloatingStyle.Card;
         _spriteBehavior = preferences?.Sprite ?? SpriteBehaviorSettings.Default;
+        _workRhythmSettings = preferences?.WorkRhythm ?? WorkRhythmReminderSettings.Default;
         BuildContent();
 
         // [新增-机器人交互] 显示/隐藏时启停精灵问候与空闲计时
@@ -131,6 +136,16 @@ public partial class FloatingWindow : Window
         }
     }
 
+    // [新增-定时任务] 定时任务结果路由到主状态文案与悬浮精灵气泡。
+    public void ShowScheduledTaskResult(string message, bool isFailure)
+    {
+        SetReminderStatus(message);
+        if (_style == FloatingStyle.Sprite && IsVisible)
+        {
+            _sprite?.ShowScheduledTaskResult(message, isFailure);
+        }
+    }
+
     public void SetWeeklyProgressContext(WeeklyProgressContext context)
     {
         _weeklyProgressStatus = $"存储状态：{WeeklyProgressStatusFormatter.FormatStorage(context)}";
@@ -152,6 +167,8 @@ public partial class FloatingWindow : Window
     // [新增-机器人交互] 用户点击提醒气泡中的“打开周报”
     public event Action<DateOnly>? OpenWeekRequested;
 
+    public event Action<WorkRhythmReminderAction>? WorkRhythmReminderActionRequested;
+
     public event Action<bool>? WeeklyProgressRequested;
 
     public event Action<WeeklyAdviceAction, DateOnly>? AdviceActionRequested;
@@ -162,6 +179,24 @@ public partial class FloatingWindow : Window
         _spriteBehavior = settings;
         _sprite?.ApplyBehavior(settings);
         SavePosition();
+    }
+
+    public WorkRhythmReminderSettings CurrentWorkRhythmSettings => _workRhythmSettings;
+
+    public void ApplyWorkRhythmSettings(WorkRhythmReminderSettings settings)
+    {
+        _workRhythmSettings = settings;
+        SavePosition();
+    }
+
+    public bool ShowWorkRhythmReminder()
+    {
+        if (_style != FloatingStyle.Sprite || !IsVisible)
+        {
+            return false;
+        }
+
+        return _sprite?.ShowWorkRhythmReminder() == true;
     }
 
     // [新增-机器人交互] 周报提醒路由：精灵走气泡/动画，卡片只更新文本
@@ -230,7 +265,8 @@ public partial class FloatingWindow : Window
 
             // [新增-机器人交互] 同时保存精灵行为设置
             FloatingWindowPreferencesStore.Save(
-                _positionPath, new FloatingWindowPreferences(Left, Top, _style, _spriteBehavior));
+                _positionPath,
+                new FloatingWindowPreferences(Left, Top, _style, _spriteBehavior, _workRhythmSettings));
         }
         catch (Exception exception) when (ErrorMessages.IsExpected(exception))
         {
@@ -375,6 +411,8 @@ public partial class FloatingWindow : Window
             // [新增-机器人交互] 应用当前行为设置并转发气泡“打开周报”动作
             sprite.ApplyBehavior(_spriteBehavior);
             sprite.OpenWeekRequested += week => OpenWeekRequested?.Invoke(week);
+            sprite.WorkRhythmReminderActionRequested += action =>
+                WorkRhythmReminderActionRequested?.Invoke(action);
             sprite.WeeklyProgressRequested += userInitiated =>
                 WeeklyProgressRequested?.Invoke(userInitiated);
             sprite.AdviceActionRequested += (action, week) =>

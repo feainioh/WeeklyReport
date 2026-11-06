@@ -55,6 +55,30 @@ public sealed class FloatingSpriteStateMachineTests
     }
 
     [Fact]
+    public void NotifySoft_RecordsSoftKindAndFallsBackAfterEightSeconds()
+    {
+        var clock = new ManualTimeProvider();
+        using var machine = new FloatingSpriteStateMachine(clock);
+
+        machine.Notify(SpriteAlertKind.Soft);
+
+        Assert.Equal(FloatingSpriteState.Alerted, machine.State);
+        Assert.Equal(SpriteAlertKind.Soft, machine.AlertKind);
+        clock.Advance(TimeSpan.FromSeconds(8));
+        Assert.Equal(FloatingSpriteState.Idle, machine.State);
+    }
+
+    [Fact]
+    public void NotifyDefault_RecordsStrongKind()
+    {
+        using var machine = new FloatingSpriteStateMachine(new ManualTimeProvider());
+
+        machine.Notify();
+
+        Assert.Equal(SpriteAlertKind.Strong, machine.AlertKind);
+    }
+
+    [Fact]
     public void RepeatedNotify_RestartsFallbackTimer()
     {
         var clock = new ManualTimeProvider();

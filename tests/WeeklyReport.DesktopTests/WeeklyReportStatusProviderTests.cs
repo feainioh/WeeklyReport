@@ -60,6 +60,40 @@ public sealed class WeeklyReportStatusProviderTests
     }
 
     [Fact]
+    public async Task GetWeekAsync_RefreshesCache_WhenClockMovesBackward()
+    {
+        var reports = new FakeReports();
+        var clock = new ManualTime();
+        var provider = CreateProvider(reports, clock);
+
+        await provider.GetWeekAsync(WeekStart);
+        clock.Set(new DateTimeOffset(2026, 10, 25, 23, 0, 0, TimeSpan.Zero));
+        await provider.GetWeekAsync(WeekStart);
+
+        Assert.Equal(2, reports.Calls);
+    }
+
+    [Fact]
+    public async Task Invalidate_DuringRefresh_PreventsStaleResultFromBeingCached()
+    {
+        var firstLoad = new TaskCompletionSource<WeeklyReportSnapshot?>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var reports = new FakeReports();
+        reports.Find = _ => reports.Calls == 1
+            ? firstLoad.Task
+            : Task.FromResult<WeeklyReportSnapshot?>(null);
+        var provider = CreateProvider(reports, new ManualTime());
+
+        var firstRequest = provider.GetWeekAsync(WeekStart);
+        provider.Invalidate();
+        firstLoad.SetResult(null);
+        await firstRequest;
+        await provider.GetWeekAsync(WeekStart);
+
+        Assert.Equal(2, reports.Calls);
+    }
+
+    [Fact]
     public async Task Invalidate_ForcesRefresh()
     {
         var reports = new FakeReports();
@@ -114,5 +148,7 @@ public sealed class WeeklyReportStatusProviderTests
         public override DateTimeOffset GetUtcNow() => _now;
 
         public void Advance(TimeSpan duration) => _now += duration;
+
+        public void Set(DateTimeOffset value) => _now = value;
     }
 }

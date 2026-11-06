@@ -144,6 +144,14 @@ public static class WeeklyProgressStatusFormatter
             status += $" · 冲突 {context.ConflictCount}";
         }
 
+        if ((context.Storage is WeeklyStorageStatus.LocalMode
+                or WeeklyStorageStatus.SyncPending
+                or WeeklyStorageStatus.Conflict)
+            && !string.IsNullOrWhiteSpace(context.Error))
+        {
+            status += " · 同步已暂停";
+        }
+
         return status;
     }
 }

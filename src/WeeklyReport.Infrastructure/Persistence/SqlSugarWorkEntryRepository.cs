@@ -57,6 +57,17 @@ public sealed class SqlSugarWorkEntryRepository(IDatabaseConfigurationStore conf
             await database.Deleteable<WorkEntryRow>().Where(row => row.Id == key).ExecuteCommandAsync() > 0);
     }
 
+    // [新增-离线存储] Phase 1 切片 E：全量列举（首次镜像数据源；按工作日期+主键稳定排序）
+    public async Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+        await _executor.ExecuteAsync<IReadOnlyList<WorkEntry>>(async database =>
+        {
+            var rows = await database.Queryable<WorkEntryRow>()
+                .OrderBy(row => row.WorkDate, OrderByType.Asc)
+                .OrderBy(row => row.Id, OrderByType.Asc)
+                .ToListAsync();
+            return rows.Select(ToEntry).ToArray();
+        });
+
     private static WorkEntryRow ToRow(WorkEntry entry) => new()
     {
         Id = entry.Id.ToString("D"),

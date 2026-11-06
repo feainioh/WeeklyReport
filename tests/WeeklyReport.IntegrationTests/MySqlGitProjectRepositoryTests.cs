@@ -5,7 +5,8 @@ namespace WeeklyReport.IntegrationTests;
 
 [Collection("MySqlIntegration")]
 [Trait("Category", "MySql")]
-public class MySqlGitProjectRepositoryTests
+// [新增-离线存储] Phase 1 切片 B：接入 Git 项目仓储共享契约
+public class MySqlGitProjectRepositoryTests : GitProjectRepositoryContract
 {
     [MySqlIntegrationFact]
     public async Task Crud_SupportsBoundAndUnboundProjects()
@@ -44,4 +45,16 @@ public class MySqlGitProjectRepositoryTests
             }
         }
     }
+
+    // [新增-离线存储] Phase 1 切片 B：契约钩子与包装（原有测试保持原样）
+    protected override Task InitializeAsync() =>
+        new MySqlDatabaseInitializer().InitializeAsync(MySqlIntegrationSupport.LoadSettings());
+
+    protected override Task<IGitProjectRepository> CreateRepositoryAsync() => Task.FromResult<IGitProjectRepository>(
+        new SqlSugarGitProjectRepository(new MySqlIntegrationSupport.FixedConfigurationStore(
+            MySqlIntegrationSupport.LoadSettings())));
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Crud_SupportsBoundAndUnboundProjects() =>
+        await Crud_SupportsBoundAndUnboundProjectsAsync();
 }

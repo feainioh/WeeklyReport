@@ -242,6 +242,30 @@
                             <TextBlock x:Name="WeeklyStorageStatusText" Text="周报数据状态：尚未读取"
                                        Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
                             <Separator Margin="0,20,0,16" />
+                            <!-- [新增-离线存储] Phase 1 切片 F：离线可用（本地优先存储）小节——状态显示与启用/停用入口；
+                                 SQLite 与 MySQL 同机同盘，不构成异地备份（README 口径一致） -->
+                            <TextBlock Text="离线可用（本地优先存储）" Style="{StaticResource SectionTitleText}" />
+                            <TextBlock x:Name="LocalStoreStatusText" Text="本地存储状态：尚未读取"
+                                       Style="{StaticResource CaptionText}" Margin="0,10,0,8" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                <Button x:Name="BuildLocalMirrorButton" Content="从 MySQL 建立本地镜像"
+                                        Click="BuildLocalMirror_Click" />
+                                <Button x:Name="StartEmptyLocalButton" Content="建立空工作区"
+                                        Click="StartEmptyLocal_Click" Margin="0" />
+                                <Button x:Name="DisableLocalFirstButton" Content="停用并回退 MySQL"
+                                        Click="DisableLocalFirst_Click" Margin="0"
+                                        Style="{StaticResource SecondaryButton}" />
+                                <!-- [新增-离线存储] G2：手动立即同步（仅本地优先模式有效） -->
+                                <Button x:Name="SyncNowButton" Content="立即同步到 MySQL"
+                                        Click="SyncNow_Click" Margin="0"
+                                        Background="{DynamicResource AccentBrush}"
+                                        Foreground="{DynamicResource AccentTextBrush}" />
+                            </StackPanel>
+                            <TextBlock Text="本地镜像包含明文业务数据与本机 Git 绑定；MySQL 不可用时仍可完整录入，"
+                                       Style="{StaticResource CaptionText}" Margin="0,10,0,0" />
+                            <TextBlock Text="身份与协议校验通过后仅自动同步安全新增；更新、删除和备份导入会保留为冲突，当前版本尚无冲突解决入口。"
+                                       Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                            <Separator Margin="0,20,0,16" />
                             <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
                             <TextBlock Text="启动方式" Style="{StaticResource SectionTitleText}" />
                             <CheckBox x:Name="AutoStartCheck" Content="登录 Windows 时启动周报" Margin="0,12,0,0"
@@ -267,6 +291,11 @@
                                        Style="{StaticResource CaptionText}" Margin="0,12,0,8" />
 
                             <!-- [新增-机器人交互] 精灵性格与行为开关 -->
+                            <CheckBox x:Name="WorkRhythmReminderCheck"
+                                      Content="工作日喝水与休息提醒（10:00、11:00、14:00、15:00、16:00、17:00）"
+                                      Margin="0,10,0,0" Click="WorkRhythmReminder_Click" />
+                            <TextBlock Text="工作时间为 09:00–12:00、13:00–18:00；休眠或应用关闭期间错过的提醒不会补发。"
+                                       Style="{StaticResource CaptionText}" Margin="0,6,0,8" />
                             <TextBlock Text="精灵性格" Margin="0,16,0,8" />
                             <Border Background="{DynamicResource HoverBrush}"
                                     BorderBrush="{DynamicResource CardBorderBrush}"
@@ -300,10 +329,71 @@
                                       Margin="0,6,0,0" Click="SpriteToggle_Click" />
                             <CheckBox x:Name="SpriteDataAdviceCheck" Content="低频本周进展建议（每天最多一次）"
                                       Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteDynamicActionsCheck" Content="动态动作（形变、挥手和小步舞）"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
+                            <CheckBox x:Name="SpriteAutoIdleActionsCheck" Content="低频空闲时自动环境动作"
+                                      Margin="0,6,0,0" Click="SpriteToggle_Click" />
                             <Button Content="打个招呼" Click="SpriteGreet_Click"
                                     HorizontalAlignment="Left" Margin="0,10,0,0" />
                             <TextBlock Text="仅悬浮精灵样式生效；切换性格会恢复该档位的默认开关，之后可继续微调。"
                                        Style="{StaticResource CaptionText}" Margin="0,8,0,0" />
+                            <Separator Margin="0,20,0,16" />
+                            <TextBlock Text="定时任务" Style="{StaticResource SectionTitleText}" />
+                            <TextBlock Text="应用需保持运行；错过的任务不会补跑。开启 Git 同步即授权按时读取绑定仓库并写入工作项，删除冲突会跳过，浅克隆不会自动应用。"
+                                       Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="0,8,0,12" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <CheckBox x:Name="ScheduledGitEnabledCheck"
+                                              Content="工作日自动同步当日 Git 工作项"
+                                              Click="ScheduledTaskSettingChanged" />
+                                    <TextBlock x:Name="ScheduledGitLastResultText"
+                                               Text="尚未执行" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <TextBox x:Name="ScheduledGitTimeText" Grid.Column="1"
+                                         AutomationProperties.Name="Git 工作项同步时间"
+                                         Text="17:30" LostFocus="ScheduledTaskTime_LostFocus"
+                                         VerticalAlignment="Center" Margin="4,0,8,0" />
+                                <Button Grid.Column="2" Content="立即执行" Tag="GitDailyItems"
+                                        Click="RunScheduledTask_Click" Style="{StaticResource SecondaryButton}" />
+                            </Grid>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="96" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <CheckBox x:Name="ScheduledWeeklyEnabledCheck"
+                                              Content="自动生成周报草稿"
+                                              Click="ScheduledTaskSettingChanged" />
+                                    <TextBlock x:Name="ScheduledWeeklyLastResultText"
+                                               Text="尚未执行" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <ComboBox x:Name="ScheduledWeeklyDayCombo" Grid.Column="1"
+                                          AutomationProperties.Name="自动生成周报星期"
+                                          VerticalAlignment="Center" Margin="4,0,8,0"
+                                          SelectionChanged="ScheduledTaskSettingChanged">
+                                    <ComboBoxItem Content="周一" Tag="Monday" />
+                                    <ComboBoxItem Content="周二" Tag="Tuesday" />
+                                    <ComboBoxItem Content="周三" Tag="Wednesday" />
+                                    <ComboBoxItem Content="周四" Tag="Thursday" />
+                                    <ComboBoxItem Content="周五" Tag="Friday" />
+                                    <ComboBoxItem Content="周六" Tag="Saturday" />
+                                    <ComboBoxItem Content="周日" Tag="Sunday" />
+                                </ComboBox>
+                                <TextBox x:Name="ScheduledWeeklyTimeText" Grid.Column="2"
+                                         AutomationProperties.Name="周报生成时间"
+                                         Text="16:00" LostFocus="ScheduledTaskTime_LostFocus"
+                                         VerticalAlignment="Center" Margin="4,0,8,0" />
+                                <Button Grid.Column="3" Content="立即执行" Tag="WeeklyDraft"
+                                        Click="RunScheduledTask_Click" Style="{StaticResource SecondaryButton}" />
+                            </Grid>
                             <Separator Margin="0,20,0,16" />
                             <StackPanel x:Name="AiSettingsRoot" IsEnabled="{Binding CanInteract}">
                                 <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->

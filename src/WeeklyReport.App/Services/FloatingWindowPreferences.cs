@@ -19,7 +19,8 @@ public sealed record FloatingWindowPreferences(
     double Left,
     double Top,
     FloatingStyle Style = FloatingStyle.Card,
-    SpriteBehaviorSettings? Sprite = null);
+    SpriteBehaviorSettings? Sprite = null,
+    WorkRhythmReminderSettings? WorkRhythm = null);
 
 public static class FloatingWindowPreferencesStore
 {
@@ -57,7 +58,19 @@ public static class FloatingWindowPreferencesStore
                 sprite = sprite with { DataAdvice = sprite.Preset != SpriteBehaviorPreset.Quiet };
             }
 
-            return preferences with { Sprite = sprite };
+            if (!HasSpriteSetting(json, nameof(SpriteBehaviorSettings.AutoIdleActions)))
+            {
+                sprite = sprite with
+                {
+                    AutoIdleActions = sprite.Preset != SpriteBehaviorPreset.Quiet
+                };
+            }
+
+            return preferences with
+            {
+                Sprite = sprite,
+                WorkRhythm = preferences.WorkRhythm ?? WorkRhythmReminderSettings.Default
+            };
         }
         catch (JsonException)
         {
@@ -74,11 +87,14 @@ public static class FloatingWindowPreferencesStore
     }
 
     private static bool HasDataAdviceSetting(string json)
+        => HasSpriteSetting(json, nameof(SpriteBehaviorSettings.DataAdvice));
+
+    private static bool HasSpriteSetting(string json, string settingName)
     {
         using var document = JsonDocument.Parse(json);
         return document.RootElement.TryGetProperty(nameof(FloatingWindowPreferences.Sprite), out var sprite)
             && sprite.ValueKind == JsonValueKind.Object
-            && sprite.TryGetProperty(nameof(SpriteBehaviorSettings.DataAdvice), out _);
+            && sprite.TryGetProperty(settingName, out _);
     }
 
     /// <summary>原子写入偏好；失败时抛出，由调用方按原有方式提示。</summary>

@@ -11,7 +11,8 @@ public sealed class WeeklyProgressContextProvider(
     IWeeklyReportRepository reports,
     WeeklyReportDraftBuilder draftBuilder,
     TimeProvider timeProvider,
-    ILogger<WeeklyProgressContextProvider> logger) : IWeeklyProgressContextProvider
+    ILogger<WeeklyProgressContextProvider> logger,
+    ILocalStorageStateProvider? localStorage = null) : IWeeklyProgressContextProvider
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(45);
 
@@ -87,21 +88,43 @@ public sealed class WeeklyProgressContextProvider(
 
     private async Task<WeeklyProgressContext> LoadAsync(DateOnly weekStart)
     {
-        DatabaseConnectionSettings? settings;
-        try
+        LocalStorageState? localState = null;
+        if (localStorage is not null)
         {
-            settings = await configurationStore.LoadAsync();
+            try
+            {
+                localState = await localStorage.GetStateAsync();
+                if (localState.Status is not (LocalStorageStatus.Ready or LocalStorageStatus.Suspended))
+                {
+                    return Unavailable(weekStart, WeeklyStorageStatus.LocalUnreadable,
+                        new InvalidOperationException("本地存储尚未就绪。"));
+                }
+            }
+            catch (DatabaseAccessException exception)
+            {
+                logger.LogWarning("Weekly progress local storage state failed: {ErrorType}",
+                    exception.GetType().Name);
+                return Unavailable(weekStart, WeeklyStorageStatus.LocalUnreadable, exception);
+            }
         }
-        catch (Exception exception)
+        else
         {
-            logger.LogWarning("Weekly progress configuration failed: {ErrorType}",
-                exception.GetType().Name);
-            return Unavailable(weekStart, WeeklyStorageStatus.Unknown, exception);
-        }
+            DatabaseConnectionSettings? settings;
+            try
+            {
+                settings = await configurationStore.LoadAsync();
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning("Weekly progress configuration failed: {ErrorType}",
+                    exception.GetType().Name);
+                return Unavailable(weekStart, WeeklyStorageStatus.Unknown, exception);
+            }
 
-        if (settings is null)
-        {
-            return Unavailable(weekStart, WeeklyStorageStatus.MySqlNotConfigured);
+            if (settings is null)
+            {
+                return Unavailable(weekStart, WeeklyStorageStatus.MySqlNotConfigured);
+            }
         }
 
         var week = new WeekPeriod(weekStart);
@@ -113,7 +136,9 @@ public sealed class WeeklyProgressContextProvider(
         var manual = await manualTask;
         var git = await gitTask;
         var report = await reportTask;
-        var storage = GetStorageStatus(manual.Error, git.Error, report.Error);
+        var storage = localState is null
+            ? GetStorageStatus(manual.Error, git.Error, report.Error)
+            : GetLocalStorageStatus(localState, manual.Error, git.Error, report.Error);
 
         int? unknownHours = null;
         Exception? aggregationError = null;
@@ -145,10 +170,12 @@ public sealed class WeeklyProgressContextProvider(
             report.Error is null ? report.Value is not null : null,
             unknownHours,
             storage,
-            0,
-            0,
-            null,
-            errors.Length == 0 ? null : string.Join(", ", errors));
+            localState is null ? 0 : localState.PendingCount + localState.AwaitingConfirmationCount,
+            localState?.ConflictCount ?? 0,
+            localState?.LastSyncAtUtc,
+            localState?.Status == LocalStorageStatus.Suspended
+                ? localState.StatusReason ?? "本地同步已暂停。"
+                : errors.Length == 0 ? null : string.Join(", ", errors));
     }
 
     private async Task<QueryResult<T>> ReadAsync<T>(Func<Task<T>> query, string subject)
@@ -175,6 +202,25 @@ public sealed class WeeklyProgressContextProvider(
         return errors.Any(static error => error is DatabaseAccessException or InvalidOperationException)
             ? WeeklyStorageStatus.MySqlUnavailable
             : WeeklyStorageStatus.Unknown;
+    }
+
+    private static WeeklyStorageStatus GetLocalStorageStatus(
+        LocalStorageState state,
+        params Exception?[] errors)
+    {
+        if (errors.Any(static error => error is not null))
+        {
+            return WeeklyStorageStatus.LocalUnreadable;
+        }
+
+        if (state.ConflictCount > 0 || state.FailedCount > 0)
+        {
+            return WeeklyStorageStatus.Conflict;
+        }
+
+        return state.PendingCount > 0 || state.AwaitingConfirmationCount > 0
+            ? WeeklyStorageStatus.SyncPending
+            : WeeklyStorageStatus.LocalMode;
     }
 
     private static WeeklyProgressContext Unavailable(

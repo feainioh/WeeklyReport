@@ -484,13 +484,21 @@ public partial class GitProjectsViewModel : ObservableObject
             return false;
         }
 
+        var previousWeek = WorkWeek;
+        var loaded = false;
         WorkWeek = weekStart.ToDateTime(TimeOnly.MinValue);
         await RunAsync(async () =>
         {
             await LoadWorkItemsAsync();
             ResetWorkEditor();
+            loaded = true;
         });
-        return true;
+        if (!loaded)
+        {
+            WorkWeek = previousWeek;
+        }
+
+        return loaded;
     }
 
     public void InvalidateForExternalChange() => InvalidatePreview();
@@ -518,7 +526,7 @@ public partial class GitProjectsViewModel : ObservableObject
             + git.Where(other => other.WorkDate == item.WorkDate && other.Id != item.Id)
                 .Sum(other => (long)(other.ConfirmedMinutes ?? other.EstimatedMinutes ?? 0))
             + minutes;
-        return total <= 8 * 60
+        return total <= WorkHourLimits.DailyLimitMinutes
             || _dialogs.Confirm("当天已填写或估算的工时合计超过 8 小时，仍要保存吗？", "工时提示");
     }
 
@@ -620,7 +628,7 @@ public partial class GitProjectsViewModel : ObservableObject
                     .Sum(entry => (long)(entry.ConfirmedMinutes ?? 0))
                 + day.Projects.Sum(project =>
                     (long)(confirmedByProject.GetValueOrDefault(project.ProjectId) ?? project.Minutes ?? 0));
-            if (knownTotal > 8 * 60)
+            if (knownTotal > WorkHourLimits.DailyLimitMinutes)
             {
                 text.AppendLine("提示：当天已确认和预计工时合计超过 8 小时，请核对后确认。");
             }

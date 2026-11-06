@@ -76,16 +76,7 @@ public sealed class WeeklyReportService(
         string risks)
     {
         ArgumentNullException.ThrowIfNull(existing);
-        var now = StorageDateRange.NormalizeUtcTimestamp(timeProvider.GetUtcNow());
-        if (now < existing.UpdatedAtUtc)
-        {
-            throw new InvalidOperationException("系统时间早于周报更新时间，请检查系统时钟。");
-        }
-
-        if (now == existing.UpdatedAtUtc)
-        {
-            now = now.AddTicks(10);
-        }
+        var now = StorageDateRange.GetUpdateTimestamp(existing.UpdatedAtUtc, timeProvider.GetUtcNow(), "周报");
 
         var updated = new WeeklyReportSnapshot(
             existing.Id, existing.Week, workSummary, nextWeekPlan, risks,

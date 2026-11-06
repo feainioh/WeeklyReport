@@ -212,6 +212,13 @@ public sealed class SqlSugarGitSyncStore(IDatabaseConfigurationStore configurati
             links = await database.Queryable<GitCommitRow>().ToListAsync();
         }
 
+        return MapSnapshots(items, links);
+    }
+
+    internal static IReadOnlyList<GitWorkItemSnapshot> MapSnapshots(
+        IReadOnlyList<GitWorkItemRow> items,
+        IReadOnlyList<GitCommitRow> links)
+    {
         var itemIds = items.Select(item => item.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (links.Any(link => !itemIds.Contains(link.WorkItemId)))
         {

@@ -33,7 +33,20 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
             resources["AccentBrush"] = SystemColors.HighlightBrush;
             resources["AccentTextBrush"] = SystemColors.HighlightTextBrush;
 
-            // [新增-悬浮精灵] 高对比度下精灵身体使用系统窗口色，保证与文字对比可读
+            resources["SpriteBodyShadeBrush"] = SystemColors.WindowBrush;
+            resources["SpriteInkBrush"] = SystemColors.WindowTextBrush;
+            resources["SpriteDetailBrush"] = SystemColors.WindowTextBrush;
+            resources["SpriteEyeBrush"] = SystemColors.HighlightTextBrush;
+            resources["SpriteRimBrush"] = Brushes.Transparent;
+            resources["SpriteHighlightBrush"] = Brushes.Transparent;
+            resources["SpriteShadeBrush"] = Brushes.Transparent;
+            resources["SpriteShadowBrush"] = Brushes.Transparent;
+            resources["AntennaAlertBrush"] = SystemColors.WindowTextBrush;
+            resources["AntennaSuccessBrush"] = SystemColors.WindowTextBrush;
+
+            // [旧代码-形象动画2] 原高对比度仅替换机身色。
+            // resources["SpriteBodyBrush"] = SystemColors.WindowBrush;
+            // [新增-形象动画2] 高对比度细节统一走系统颜色。
             resources["SpriteBodyBrush"] = SystemColors.WindowBrush;
 
             // [新增-样式现代化] 高对比度悬停底色
@@ -56,8 +69,8 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
         resources["TextBrush"] = light ? Brush(0x1B, 0x1B, 0x1B) : Brush(0xF4, 0xF4, 0xF4);
         resources["MutedBrush"] = light ? Brush(0x55, 0x55, 0x55) : Brush(0xC5, 0xC5, 0xC5);
 
-        // [新增-悬浮精灵] 精灵身体专用色：浅色近白、深色微降亮度，避免深色主题下纯白刺眼
-        resources["SpriteBodyBrush"] = light ? Brush(0xF6, 0xF8, 0xFB) : Brush(0xE8, 0xEC, 0xF2);
+        // [旧代码-形象动画2] 原浅色/深色精灵机身配色。
+        // resources["SpriteBodyBrush"] = light ? Brush(0xF6, 0xF8, 0xFB) : Brush(0xE8, 0xEC, 0xF2);
 
         // [新增-样式现代化] 悬停底色：浅色 8% 黑、深色 8% 白的半透明叠加，任何表面色上都自然
         var hoverChannel = (byte)(light ? 0x00 : 0xFF);
@@ -66,8 +79,19 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
         var accent = SystemParameters.WindowGlassColor;
         accent.A = byte.MaxValue;
         resources["AccentBrush"] = new SolidColorBrush(accent);
-        var luminance = (0.2126 * Linear(accent.R) + 0.7152 * Linear(accent.G) + 0.0722 * Linear(accent.B));
-        resources["AccentTextBrush"] = luminance > 0.179 ? Brushes.Black : Brushes.White;
+        resources["AccentTextBrush"] = new SolidColorBrush(SpritePalette.AccentTextFor(accent));
+        var palette = SpritePalette.For(light ? SpriteTheme.Light : SpriteTheme.Dark);
+        resources["SpriteBodyBrush"] = Brush(palette.Body);
+        resources["SpriteBodyShadeBrush"] = Brush(palette.BodyShade);
+        resources["SpriteInkBrush"] = Brush(palette.Ink);
+        resources["SpriteDetailBrush"] = Brush(palette.Detail);
+        resources["SpriteRimBrush"] = Brush(palette.Rim);
+        resources["SpriteHighlightBrush"] = Brush(palette.Highlight);
+        resources["SpriteShadeBrush"] = Brush(palette.Shade);
+        resources["SpriteShadowBrush"] = Brush(palette.Shadow);
+        resources["SpriteEyeBrush"] = new SolidColorBrush(SpritePalette.AccentTextFor(accent));
+        resources["AntennaAlertBrush"] = Brush(palette.Alert);
+        resources["AntennaSuccessBrush"] = Brush(palette.Success);
 
         // [新增-界面现代化2] 卡片弱边框：浅色 8% 黑、深色 12% 白，替代 1px 实色
         resources["CardBorderBrush"] = new SolidColorBrush(light
@@ -87,6 +111,8 @@ public sealed class ThemeService(ResourceDictionary resources, Dispatcher dispat
 
     private static SolidColorBrush Brush(byte red, byte green, byte blue) =>
         new(Color.FromRgb(red, green, blue));
+
+    private static SolidColorBrush Brush(Color color) => new(color);
 
     private static double Linear(byte value)
     {

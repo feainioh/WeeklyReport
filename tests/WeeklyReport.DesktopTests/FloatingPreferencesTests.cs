@@ -93,7 +93,9 @@ public sealed class FloatingPreferencesTests : IDisposable
             GuideShown = true,
             LastGreetingDate = new DateOnly(2026, 11, 2),
             DataAdvice = false,
-            LastAdviceDate = new DateOnly(2026, 11, 1)
+            LastAdviceDate = new DateOnly(2026, 11, 1),
+            DynamicActions = false,
+            AutoIdleActions = false
         };
 
         FloatingWindowPreferencesStore.Save(_path,
@@ -103,6 +105,35 @@ public sealed class FloatingPreferencesTests : IDisposable
 
         Assert.NotNull(loaded);
         Assert.Equal(behavior, loaded!.Sprite);
+    }
+
+    [Fact]
+    public void SaveThenLoad_RoundTripsWorkRhythmSettings()
+    {
+        var settings = new WorkRhythmReminderSettings
+        {
+            Enabled = true,
+            SnoozedUntil = new DateTimeOffset(2026, 11, 2, 10, 10, 0, TimeSpan.FromHours(8)),
+            LastReminderAt = new DateTimeOffset(2026, 11, 2, 10, 0, 0, TimeSpan.FromHours(8))
+        };
+        FloatingWindowPreferencesStore.Save(_path,
+            new FloatingWindowPreferences(12.5, -30, FloatingStyle.Sprite, WorkRhythm: settings));
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(settings, loaded!.WorkRhythm);
+    }
+
+    [Fact]
+    public void LegacyFileWithoutWorkRhythmSettings_DisablesNewReminder()
+    {
+        File.WriteAllText(_path, """{"Left":100,"Top":200,"Style":1}""");
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(WorkRhythmReminderSettings.Default, loaded!.WorkRhythm);
     }
 
     [Theory]
@@ -118,6 +149,23 @@ public sealed class FloatingPreferencesTests : IDisposable
 
         Assert.NotNull(loaded);
         Assert.Equal(expected, loaded!.Sprite!.DataAdvice);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public void LegacySpriteSettingsWithoutAnimationOptionsUsePresetDefaults(
+        int preset, bool expectedAutoIdleActions)
+    {
+        File.WriteAllText(_path,
+            "{\"Left\":1,\"Top\":2,\"Style\":1,\"Sprite\":{\"Preset\":" + preset + "}}");
+
+        var loaded = FloatingWindowPreferencesStore.TryLoad(_path);
+
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.Sprite!.DynamicActions);
+        Assert.Equal(expectedAutoIdleActions, loaded.Sprite.AutoIdleActions);
     }
 
     // [新增-机器人交互] 未知档位值回退默认行为，不丢失位置/样式

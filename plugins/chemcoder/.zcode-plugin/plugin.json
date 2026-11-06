@@ -1,0 +1,7 @@
+{
+  "name": "chemcoder",
+  "version": "0.1.0",
+  "description": "chem 公司（Chemlex 上位机）代码编辑规范：开发规范与代码 Review 规范",
+  "author": { "name": "feainioh" },
+  "skills": "./skills"
+}

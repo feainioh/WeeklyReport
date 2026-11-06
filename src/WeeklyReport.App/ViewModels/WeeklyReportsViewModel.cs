@@ -82,7 +82,11 @@ public partial class WeeklyReportsViewModel(
             return;
         }
 
-        await OpenOrCreateCoreAsync();
+        var editorWeek = _existing?.Week.Start ?? _draft?.Week.Start;
+        if (!await OpenOrCreateCoreAsync() && editorWeek is DateOnly weekStart)
+        {
+            SelectedDate = weekStart.ToDateTime(TimeOnly.MinValue);
+        }
     }
 
     public async Task OpenWeekAsync(DateOnly weekStart)
@@ -93,8 +97,13 @@ public partial class WeeklyReportsViewModel(
             return;
         }
 
+        var previousDate = (_existing?.Week.Start ?? _draft?.Week.Start)?
+            .ToDateTime(TimeOnly.MinValue) ?? SelectedDate;
         SelectedDate = weekStart.ToDateTime(TimeOnly.MinValue);
-        await OpenOrCreateCoreAsync();
+        if (!await OpenOrCreateCoreAsync())
+        {
+            SelectedDate = previousDate;
+        }
     }
 
     public bool SelectDateForNavigation(DateOnly weekStart)
@@ -115,7 +124,9 @@ public partial class WeeklyReportsViewModel(
         return true;
     }
 
-    private async Task OpenOrCreateCoreAsync() =>
+    private async Task<bool> OpenOrCreateCoreAsync()
+    {
+        var opened = false;
         await RunAsync(async () =>
         {
             if (SelectedDate is not DateTime selected)
@@ -128,17 +139,21 @@ public partial class WeeklyReportsViewModel(
             {
                 LoadExisting(result.Existing);
                 StatusMessage = "已打开已有周报，未重新生成或覆盖。";
+                opened = true;
             }
             else if (result.Draft is not null)
             {
                 LoadDraft(result.Draft);
                 StatusMessage = "草稿已生成，请编辑后保存。";
+                opened = true;
             }
             else
             {
                 throw new InvalidOperationException("周报结果无效。");
             }
         });
+        return opened;
+    }
 
     [RelayCommand]
     private async Task SaveAsync()

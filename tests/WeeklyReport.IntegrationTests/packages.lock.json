@@ -477,6 +477,7 @@
         "type": "Project",
         "dependencies": {
           "ClosedXML": "[0.105.1, )",
+          "Microsoft.Data.Sqlite": "[10.0.11, )",
           "MySqlConnector": "[2.6.2, )",
           "SqlSugarCore": "[5.1.4.221, )",
           "System.Security.Cryptography.Pkcs": "[10.0.14, )",

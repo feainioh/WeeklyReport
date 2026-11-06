@@ -16,6 +16,8 @@ public sealed class WindowsReminderNotifier(ILogger<WindowsReminderNotifier> log
 
     public event Action<DateOnly>? Activated;
 
+    public event Action<WorkRhythmReminderAction>? WorkRhythmActivated;
+
     public void Register()
     {
         try
@@ -90,6 +92,50 @@ public sealed class WindowsReminderNotifier(ILogger<WindowsReminderNotifier> log
     public Task SendTestAsync(DateOnly date, CancellationToken cancellationToken = default) =>
         ShowAsync(WeekPeriod.FromDate(date), isTest: true, cancellationToken);
 
+    public Task SendWorkRhythmReminderAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var manager = _manager
+                ?? throw new ReminderNotificationException("系统通知尚未注册。");
+            if (manager.Setting != AppNotificationSetting.Enabled)
+            {
+                throw new ReminderNotificationException("系统通知已关闭，请在 Windows 设置中启用。");
+            }
+
+            var notification = new AppNotificationBuilder()
+                .AddArgument("action", "work-rhythm")
+                .AddArgument("intent", "acknowledge")
+                .AddText("该休息一下了")
+                .AddText("喝点水、起来活动一下吧。")
+                .AddButton(new AppNotificationButton("知道了")
+                    .AddArgument("action", "work-rhythm")
+                    .AddArgument("intent", "acknowledge"))
+                .AddButton(new AppNotificationButton("10 分钟后")
+                    .AddArgument("action", "work-rhythm")
+                    .AddArgument("intent", "snooze"))
+                .BuildNotification();
+            var arguments = XDocument.Parse(notification.Payload).Root?.Attribute("launch")?.Value;
+            if (!WorkRhythmReminderActivation.TryParse(arguments, out var action)
+                || action != WorkRhythmReminderAction.Acknowledge)
+            {
+                throw new ReminderNotificationException("工作节律提醒参数无效，未发送通知。");
+            }
+
+            manager.Show(notification);
+            return Task.CompletedTask;
+        }
+        catch (Exception exception) when (IsNotificationFailure(exception))
+        {
+            throw new ReminderNotificationException("无法发送系统通知，请检查 Windows 通知设置。", exception);
+        }
+        catch (XmlException exception)
+        {
+            throw new ReminderNotificationException("工作节律提醒内容无效，未发送通知。", exception);
+        }
+    }
+
     private Task ShowAsync(WeekPeriod week, bool isTest, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -133,7 +179,11 @@ public sealed class WindowsReminderNotifier(ILogger<WindowsReminderNotifier> log
     {
         try
         {
-            if (ReminderActivation.TryParse(args.Argument, out var week)
+            if (WorkRhythmReminderActivation.TryParse(args.Argument, out var workRhythmAction))
+            {
+                WorkRhythmActivated?.Invoke(workRhythmAction);
+            }
+            else if (ReminderActivation.TryParse(args.Argument, out var week)
                 && ReminderActivation.TryParseValues(args.Arguments, out var parsedWeek)
                 && week == parsedWeek)
             {

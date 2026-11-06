@@ -1,3 +1,5 @@
+using System.IO;
+
 // [新增-天线状态] 周报保存事件测试：验证保存成功才触发 ReportSaved（悬浮精灵庆祝态的唯一真实触发源），
 // 失败路径不得触发。构造方式沿用 BackupViewModelTests 的假仓储 + NullLogger 模式。
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,6 +42,36 @@ public sealed class WeeklyReportsViewModelTests
         Assert.False(viewModel.IsBusy);
     }
 
+    [Fact]
+    public async Task OpenWeek_Fails_RestoresSelectedDateAndKeepsCurrentReport()
+    {
+        var existing = CreateReport(new DateOnly(2026, 10, 26));
+        var failedWeek = new DateOnly(2026, 11, 2);
+        var viewModel = CreateViewModel(new FakeReports(existing, failingWeek: failedWeek));
+
+        await viewModel.OpenWeekAsync(existing.Week.Start);
+        await viewModel.OpenWeekAsync(failedWeek);
+
+        Assert.Equal(existing.Week.Start.ToDateTime(TimeOnly.MinValue), viewModel.SelectedDate);
+        Assert.Equal(existing.WorkSummary, viewModel.WorkSummary);
+        Assert.Contains("失败", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task OpenOrCreate_Fails_RestoresDateToCurrentReport()
+    {
+        var existing = CreateReport(new DateOnly(2026, 10, 26));
+        var viewModel = CreateViewModel(
+            new FakeReports(existing, failingWeek: new DateOnly(2026, 11, 2)));
+        await viewModel.OpenWeekAsync(existing.Week.Start);
+        viewModel.SelectedDate = new DateOnly(2026, 11, 2).ToDateTime(TimeOnly.MinValue);
+
+        await viewModel.OpenOrCreateCommand.ExecuteAsync(null);
+
+        Assert.Equal(existing.Week.Start.ToDateTime(TimeOnly.MinValue), viewModel.SelectedDate);
+        Assert.Equal(existing.WorkSummary, viewModel.WorkSummary);
+    }
+
     private static WeeklyReportsViewModel CreateViewModel(FakeReports reports) =>
         new(new WeeklyReportService(reports, new EmptyWorkEntries(), new EmptyGitItems(),
                 new WeeklyReportDraftBuilder(), TimeProvider.System),
@@ -54,7 +86,10 @@ public sealed class WeeklyReportsViewModelTests
     }
 
     /// <summary>只实现周报读取与更新：打开已有周报后保存，走 UpdateAsync 路径。</summary>
-    private sealed class FakeReports(WeeklyReportSnapshot? existing, bool updateSucceeds = true)
+    private sealed class FakeReports(
+        WeeklyReportSnapshot? existing,
+        bool updateSucceeds = true,
+        DateOnly? failingWeek = null)
         : IWeeklyReportRepository
     {
         private WeeklyReportSnapshot? _existing = existing;
@@ -62,8 +97,15 @@ public sealed class WeeklyReportsViewModelTests
         public Task<IReadOnlyList<WeeklyReportSnapshot>> ListAsync() =>
             Task.FromResult<IReadOnlyList<WeeklyReportSnapshot>>([]);
 
-        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week) =>
-            Task.FromResult(_existing is not null && _existing.Week == week ? _existing : null);
+        public Task<WeeklyReportSnapshot?> FindByWeekAsync(WeekPeriod week)
+        {
+            if (week.Start == failingWeek)
+            {
+                return Task.FromException<WeeklyReportSnapshot?>(new IOException("synthetic failure"));
+            }
+
+            return Task.FromResult(_existing is not null && _existing.Week == week ? _existing : null);
+        }
 
         public Task AddAsync(WeeklyReportSnapshot report) => throw new NotSupportedException();
 
@@ -91,6 +133,8 @@ public sealed class WeeklyReportsViewModelTests
         public Task AddAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> UpdateAsync(WorkEntry entry) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id) => throw new NotSupportedException();
+        public Task<IReadOnlyList<WorkEntry>> ListAllAsync() =>
+            Task.FromResult<IReadOnlyList<WorkEntry>>([]);
     }
 
     private sealed class EmptyGitItems : IGitReportWorkItemSource

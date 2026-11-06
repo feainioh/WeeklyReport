@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using WeeklyReport.Application;
 using WeeklyReport.Domain;
 using WeeklyReport.Infrastructure.Persistence;
@@ -7,7 +6,8 @@ namespace WeeklyReport.IntegrationTests;
 
 [Collection("MySqlIntegration")]
 [Trait("Category", "MySql")]
-public class MySqlWeeklyReportRepositoryTests
+// [新增-离线存储] Phase 1 切片 C：接入周报仓储共享契约
+public class MySqlWeeklyReportRepositoryTests : WeeklyReportRepositoryContract
 {
     [MySqlIntegrationFact]
     public async Task Crud_PreservesSnapshotAndEnforcesOneReportPerWeek()
@@ -64,17 +64,15 @@ public class MySqlWeeklyReportRepositoryTests
         }
     }
 
-    private static async Task<WeekPeriod> FindUnusedWeekAsync(IWeeklyReportRepository repository)
-    {
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            var week = new WeekPeriod(new DateOnly(2000, 1, 3).AddDays(RandomNumberGenerator.GetInt32(0, 5000) * 7));
-            if (await repository.FindByWeekAsync(week) is null)
-            {
-                return week;
-            }
-        }
+    // [新增-离线存储] Phase 1 切片 C：契约钩子与包装（原有测试保持原样）
+    protected override Task InitializeAsync() =>
+        new MySqlDatabaseInitializer().InitializeAsync(MySqlIntegrationSupport.LoadSettings());
 
-        throw new InvalidOperationException("无法在隔离测试库中找到空闲周。");
-    }
+    protected override Task<IWeeklyReportRepository> CreateRepositoryAsync() =>
+        Task.FromResult<IWeeklyReportRepository>(new SqlSugarWeeklyReportRepository(
+            new MySqlIntegrationSupport.FixedConfigurationStore(MySqlIntegrationSupport.LoadSettings())));
+
+    [MySqlIntegrationFact]
+    public async Task Contract_Crud_PreservesSnapshotAndEnforcesOneReportPerWeek() =>
+        await Crud_PreservesSnapshotAndEnforcesOneReportPerWeekAsync();
 }
