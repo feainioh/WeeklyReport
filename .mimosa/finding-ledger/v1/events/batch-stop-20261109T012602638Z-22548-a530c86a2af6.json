@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261109T012602638Z-22548-a530c86a2af6",
+  "runId": "20261109T012602638Z-22548-a530c86a2af6",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "candidate_limit_exceeded",
+        "stage": "candidate-select",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "8 changed reviewable file(s) were not scanned because the limit is 20",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "stop_budget_exhausted",
+        "stage": "supply-chain-check",
+        "target": ".",
+        "detail": "focused supply-chain check was not run before the gate budget",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+        "detail": "candidate_limit_exceeded: 8 changed reviewable file(s) were not scanned because the limit is 20",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "supply-chain-check",
+        "target": ".",
+        "detail": "stop_budget_exhausted: focused supply-chain check was not run before the gate budget",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "11de8e73ec846eca496972902c8066d6dfaf0b84",
+  "diffHash": "0580884a95ebe89fa062e6fdd341fcca95fd0ab59a2f0cf6b946f90bc8adb250",
+  "rulesVersion": "unavailable",
+  "sessionHash": "6402dd6854f902481a967ee1375c518dd0932473f52e9073e2a8e161892e67d7",
+  "reportRef": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T012602638Z-22548-a530c86a2af6.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-09T01:26:02.972Z"
+}

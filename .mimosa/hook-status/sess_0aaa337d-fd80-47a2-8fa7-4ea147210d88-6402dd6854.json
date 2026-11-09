@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-11-09T01:25:51.889Z",
+  "sessionId": "sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "C:/Users/linqiuzhao-AU/.zcode/cli/memories/projects/weeklyreport-754e7642a6814db3/memory/weeklyreport-acceptance-status.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 4,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

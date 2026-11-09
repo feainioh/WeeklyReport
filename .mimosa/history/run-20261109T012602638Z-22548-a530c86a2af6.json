@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261109T012602638Z-22548-a530c86a2af6",
+  "runStatus": "inconclusive",
+  "errors": [
+    "candidate-select:src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs: candidate_limit_exceeded: 8 changed reviewable file(s) were not scanned because the limit is 20",
+    "baseline-read:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "supply-chain-check:.: stop_budget_exhausted: focused supply-chain check was not run before the gate budget"
+  ],
+  "target": ".",
+  "revision": "11de8e73ec846eca496972902c8066d6dfaf0b84",
+  "diffHash": "0580884a95ebe89fa062e6fdd341fcca95fd0ab59a2f0cf6b946f90bc8adb250",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-11-09T01:26:02.638Z",
+  "timing": {
+    "startedAt": "2026-11-09T01:26:00.205Z",
+    "completedAt": "2026-11-09T01:26:02.638Z",
+    "durationMs": 2433
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "candidate_limit_exceeded": 1,
+      "baseline_snapshot_unreadable": 3,
+      "stop_budget_exhausted": 1,
+      "project_check_failed": 5
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T012602638Z-22548-a530c86a2af6.json"
+}
