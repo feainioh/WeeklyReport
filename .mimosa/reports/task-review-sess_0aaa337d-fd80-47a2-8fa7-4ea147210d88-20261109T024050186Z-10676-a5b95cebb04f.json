@@ -1,0 +1,469 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261109T024050186Z-10676-a5b95cebb04f",
+  "run_status": "completed",
+  "errors": [],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "complete",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 518,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 17
+    },
+    "change_tracking": {
+      "touched_observed": 17,
+      "touched_retained": 17,
+      "truncated": false,
+      "bash_mutation": false,
+      "bash_discovered": 0,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 17,
+      "selected_files": 17,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 17,
+      "scanned_files": 17,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {},
+    "reasons": [],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-09T02:40:50.186Z",
+  "session_id": "sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88",
+  "target": ".",
+  "revision": "6bd2224a047356ee6556ef1a6d090d52e3b1227c",
+  "rules_version": "unavailable",
+  "diff_hash": "1146d5171bbf0c7d62f16a306814ae4693baf1dabdbe9b398ba076c46010785e",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 17,
+    "changed_files": [
+      {
+        "file": "src/WeeklyReport.App/App.xaml.cs",
+        "ranges": [
+          {
+            "start": 98,
+            "end": 159
+          },
+          {
+            "start": 163,
+            "end": 164
+          },
+          {
+            "start": 166,
+            "end": 166
+          },
+          {
+            "start": 168,
+            "end": 172
+          },
+          {
+            "start": 182,
+            "end": 186
+          },
+          {
+            "start": 198,
+            "end": 205
+          },
+          {
+            "start": 208,
+            "end": 209
+          },
+          {
+            "start": 215,
+            "end": 231
+          },
+          {
+            "start": 256,
+            "end": 264
+          },
+          {
+            "start": 268,
+            "end": 275
+          },
+          {
+            "start": 281,
+            "end": 282
+          },
+          {
+            "start": 319,
+            "end": 320
+          },
+          {
+            "start": 368,
+            "end": 368
+          },
+          {
+            "start": 379,
+            "end": 397
+          },
+          {
+            "start": 402,
+            "end": 402
+          },
+          {
+            "start": 405,
+            "end": 411
+          },
+          {
+            "start": 652,
+            "end": 652
+          },
+          {
+            "start": 655,
+            "end": 687
+          },
+          {
+            "start": 697,
+            "end": 707
+          }
+        ],
+        "before_hash": "b08c11fcb28ae8a4118d3fb30de82ef27e5de477d60e724e2a48aa426faa7c2f",
+        "after_hash": "63857f71cd0d59db38aea2fe930dbe538b9788686b2b103724d474adcc11cb8d"
+      },
+      {
+        "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 15,
+            "end": 16
+          },
+          {
+            "start": 37,
+            "end": 38
+          },
+          {
+            "start": 53,
+            "end": 54
+          },
+          {
+            "start": 67,
+            "end": 68
+          },
+          {
+            "start": 123,
+            "end": 128
+          },
+          {
+            "start": 152,
+            "end": 153
+          },
+          {
+            "start": 327,
+            "end": 343
+          },
+          {
+            "start": 347,
+            "end": 348
+          },
+          {
+            "start": 672,
+            "end": 673
+          },
+          {
+            "start": 687,
+            "end": 688
+          },
+          {
+            "start": 692,
+            "end": 693
+          },
+          {
+            "start": 695,
+            "end": 695
+          },
+          {
+            "start": 697,
+            "end": 699
+          },
+          {
+            "start": 702,
+            "end": 840
+          }
+        ],
+        "before_hash": "be74a5c5b8edecea045208c972694370a9254393cd3c75da8cf1199f48485130",
+        "after_hash": "889028b2d536529dcaa688f3b92d80739a97ca326ffc81b06fd509587c1a8248"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/SqliteOnlyStorageGate.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 93
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "6fb3152a1728783dc4e6e9312182771964af492355346c539b27c164b6815b3e"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteOperationQueue.cs",
+        "ranges": [
+          {
+            "start": 5,
+            "end": 8
+          },
+          {
+            "start": 12,
+            "end": 12
+          },
+          {
+            "start": 51,
+            "end": 73
+          },
+          {
+            "start": 106,
+            "end": 109
+          }
+        ],
+        "before_hash": "c56a9c1c5a5524595a4bed32063bc88ad40a9ee710c5c01d01cfb215dd99bfb6",
+        "after_hash": "5452185d005cf39a95e5be8236a6c9d4723520053cca40931496939f4cc81837"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkLibraryBackup.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 225
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e8ec50f0042abef99fc7700fc557fdd7450d7eeae49810febcdb6bf6885aaf05"
+      },
+      {
+        "file": "tests/WeeklyReport.DesktopTests/SqliteOnlyStorageGateTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 125
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "09e793f65e1af68f8a5e00ab16bb9b156dee0bc4e75d02f769a19b792612e2c4"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteBackupStoreTests.cs",
+        "ranges": [
+          {
+            "start": 92,
+            "end": 93
+          }
+        ],
+        "before_hash": "9aa85d425211a07c803a5752216789a32cdb4c14a8d410ed72dfd8b4481aa128",
+        "after_hash": "c7f5892aa0300906d137c52507e55ffedd7e6f918ac97bfe64d45b59046b2a2d"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteGitProjectRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 26,
+            "end": 27
+          }
+        ],
+        "before_hash": "55eec6ba060934fd25b6c7de9499be63f6c54f0265f3191cb72dbb325690061e",
+        "after_hash": "a440d2198b99844f29e43f808387c71b9f76f925eee0b234844ef465d7413a1d"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteGitSyncStoreTests.cs",
+        "ranges": [
+          {
+            "start": 54,
+            "end": 55
+          }
+        ],
+        "before_hash": "cdd4d65a58f95844fdd33956284d8eec99ff7c03293ae17ac9c33e6b2a1206b8",
+        "after_hash": "8cbfdbeb91de6e68843ebe52b0d110b50dd00e1214aba55ce46ffa28778ebd08"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+        "ranges": [
+          {
+            "start": 118,
+            "end": 119
+          }
+        ],
+        "before_hash": "1fd9c147976026b900b4769d28ee915c1e498fe1865cb35ba755e0823cfbcb59",
+        "after_hash": "af944ffedda41c671e19203f8131a15244da5a27068f702933739da64132aba9"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteOperationQueueTests.cs",
+        "ranges": [
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 62,
+            "end": 74
+          },
+          {
+            "start": 120,
+            "end": 136
+          },
+          {
+            "start": 138,
+            "end": 145
+          },
+          {
+            "start": 147,
+            "end": 147
+          },
+          {
+            "start": 186,
+            "end": 187
+          },
+          {
+            "start": 190,
+            "end": 190
+          },
+          {
+            "start": 196,
+            "end": 196
+          },
+          {
+            "start": 201,
+            "end": 213
+          }
+        ],
+        "before_hash": "499f5cdf224da6a08fb4ee7e3929446497099ab6c49de7ad030bcc6f6f3caf5e",
+        "after_hash": "09f123f4ceff7bb40abbf43a229ef01a81d01aac5e5672907329e3ded7c7e312"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncApplierTests.cs",
+        "ranges": [
+          {
+            "start": 18,
+            "end": 24
+          }
+        ],
+        "before_hash": "c70b7843a0ebd97aad436d20df110632bf3cc843645a1444657522e0bec9bca7",
+        "after_hash": "14bd9d4d0a6f579cb52dc547267a80aee8fe8ab179201ee7d1671b1a4339421d"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncCoordinatorTests.cs",
+        "ranges": [
+          {
+            "start": 23,
+            "end": 24
+          }
+        ],
+        "before_hash": "b44c9394138442a904347be6901ba5354ebedadfe82733f63107152cf2bd6b49",
+        "after_hash": "45998dd389e739cf134223cf98ddbf837d1016f00c0ffce98e2ba51a20cd7e74"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncSafetyTests.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 21
+          }
+        ],
+        "before_hash": "1b957d6766b3f9c5224ceb6cfd6451dd3fb43d8e2fc0c2ba1a216a02b7b34efa",
+        "after_hash": "eee70ed15c78c710559dcda62bd51c095288799c0983a98ab05ae480223610b7"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWeeklyReportRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 28,
+            "end": 29
+          }
+        ],
+        "before_hash": "d9ac19b7bf6c2ea2305f552a266d73d58c2057a2d9dd9ba9fb4e53e7160df5e3",
+        "after_hash": "c927bda5fe3ba6b9c8d6409b170b8b6fe0ecc02b27c4c954a37b149a51511fda"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 47,
+            "end": 48
+          }
+        ],
+        "before_hash": "67eb73ff42795c1ed8e8c9ddb05c7d7db1d51473648f45ad2ee18769e0261d58",
+        "after_hash": "100b43816f1afd882541f07595bc755d5045d2b7bb5c59cb2e4bc06542cd76ba"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkLibraryBackupTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 157
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "fe518e63ed155e337e74fcab64f7b758eb32eeb3ffa5991afa9f4e073813ef4a"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-09T02:40:47.812Z",
+    "completed_at": "2026-11-09T02:40:50.186Z",
+    "duration_ms": 2374,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "complete",
+    "latencyMs": 2374,
+    "peakMemoryBytes": 147902464,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 17,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T024050186Z-10676-a5b95cebb04f.json",
+    "latest_report": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88.json",
+    "history_summary": ".mimosa/history/run-20261109T024050186Z-10676-a5b95cebb04f.json"
+  }
+}

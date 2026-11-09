@@ -115,6 +115,8 @@ public sealed class SqliteLocalStoreTests : IDisposable
     [Fact]
     public async Task InitializeMirror_IsRejectedWhenQueueHasPendingOperations()
     {
+        // [新增-SQLite单机] 覆盖保留镜像防护语义：按路径注册入队以播种待同步操作（生产默认不入队）
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
         var queue = new SqliteOperationQueue(_databasePath);
         var entryId = Guid.NewGuid();
         await queue.RunInOperationAsync("work-entry.save", async session =>

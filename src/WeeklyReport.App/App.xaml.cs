@@ -79,6 +79,13 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (e.Args.Length > 0 && (e.Args[0] == "--backup-work-library"
+            || e.Args[0] == "--restore-work-library"))
+        {
+            await RunWorkLibraryMaintenanceAsync(e.Args);
+            return;
+        }
+
         try
         {
             var dataDirectory = Path.Combine(
@@ -95,23 +102,83 @@ public partial class App : System.Windows.Application
             var services = new ServiceCollection();
             services.AddLogging(builder => builder.ClearProviders().AddSerilog(Log.Logger));
 
-            // [新增-离线存储] Phase 1 切片 F：启动探测本地存储状态（local_meta 为事实来源），按模式路由仓储注册。
-            // 损坏文件明确提示并以 MySQL 模式继续（数据仍在 MySQL，不伪装正常）。
-            LocalStorageState? localState = null;
-            if (File.Exists(LocalDatabasePath))
+            // [旧代码-SQLite单机] 原启动探测：SQLite 不可用时以 MySQL 模式继续（回退路径）。
+            // LocalStorageState? localState = null;
+            // if (File.Exists(LocalDatabasePath))
+            // {
+            //     try
+            //     {
+            //         localState = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
+            //     }
+            //     catch (DatabaseAccessException)
+            //     {
+            //         MessageBox.Show("本地离线存储文件不可用（可能损坏），本次以 MySQL 模式运行；可在设置中重建镜像。",
+            //             "周报", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            //     }
+            // }
+            //
+            // var localFirst = localState is { Status: LocalStorageStatus.Ready or LocalStorageStatus.Suspended };
+
+            // [新增-SQLite单机] 计划阶段 1：SQLite 唯一启动路由——由 SqliteOnlyStorageGate 区分
+            // 已有工作库 / 只有 MySQL 数据 / 新安装三种情形（§3.1）；损坏、未初始化与 MysqlOnly
+            // 明确报错退出：不回退 MySQL、不覆盖原库、不创建空库掩盖（§1）。
+            var configurationStore = new DatabaseConfigurationStore(Path.Combine(dataDirectory, "database.json"));
+            var decision = await new SqliteOnlyStorageGate(LocalDatabasePath, configurationStore).EvaluateAsync();
+            if (decision.IsBlocked)
             {
-                try
+                Log.Error("SQLite-only startup blocked: {Kind} ({Detail})", decision.Kind, decision.Detail ?? "-");
+                var blockedMessage = decision.Kind switch
                 {
-                    localState = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
-                }
-                catch (DatabaseAccessException)
+                    SqliteOnlyStartupDecisionKind.CorruptedLibrary =>
+                        "本地 SQLite 工作库不可用（可能损坏或不可读写）。\n本版本不再连接 MySQL，也不会覆盖或重建该文件；" +
+                        "请先在独立位置备份该库文件后修复，或恢复旧版本处理。",
+                    SqliteOnlyStartupDecisionKind.UninitializedLibrary =>
+                        "本地 SQLite 文件存在但尚未完成初始化（可能是迁移中断）。\n" +
+                        "请恢复旧版本完成镜像建立或使用业务备份导入；不会自动创建空库替代。",
+                    _ =>
+                        "本地优先此前已被停用，权威数据在本机 MySQL。\n" +
+                        "请先在旧版本中重新启用本地优先并核对数据后再升级；本版本不连接 MySQL，" +
+                        "也不会以可能过期的本地镜像替代。"
+                };
+                MessageBox.Show(blockedMessage, "周报",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _floatingWindow?.PrepareForApplicationShutdown();
+                Shutdown(1);
+                return;
+            }
+
+            if (decision.Kind == SqliteOnlyStartupDecisionKind.MysqlDataWithoutLocalLibrary)
+            {
+                // [新增-SQLite单机] 只有 MySQL 数据的用户：不静默以空库替代，是否建空库由用户明确选择（§3.1）
+                var choice = MessageBox.Show(
+                    "尚未建立本地 SQLite 工作库，且此前可能使用过 MySQL（或无法读取旧配置）。\n" +
+                    "本版本不再连接 MySQL。建议先恢复旧版本，在设置中「从 MySQL 建立本地镜像」完成迁移后再升级。\n\n" +
+                    "也可以现在建立空白的本地工作库（不包含 MySQL 中的任何历史数据）。要建立空库并继续吗？",
+                    "周报", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                if (choice != System.Windows.MessageBoxResult.Yes)
                 {
-                    MessageBox.Show("本地离线存储文件不可用（可能损坏），本次以 MySQL 模式运行；可在设置中重建镜像。",
-                        "周报", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    Shutdown(1);
+                    return;
                 }
             }
 
-            var localFirst = localState is { Status: LocalStorageStatus.Ready or LocalStorageStatus.Suspended };
+            // [新增-SQLite单机] 新安装（从未配置 MySQL）或用户明确选择空库：创建空 SQLite 工作库（§1 允许）
+            if (!File.Exists(LocalDatabasePath))
+            {
+                try
+                {
+                    await new SqliteLocalStore(LocalDatabasePath).StartEmptyWorkspaceAsync();
+                    Log.Information("SQLite empty workspace created on first launch");
+                }
+                catch (DatabaseAccessException exception)
+                {
+                    Log.Error("SQLite workspace creation failed: {ErrorType}", exception.GetType().Name);
+                    MessageBox.Show("本地 SQLite 工作库创建失败，请检查本地数据目录与磁盘状态。", "周报",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    Shutdown(1);
+                    return;
+                }
+            }
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IReminderStateStore>(
                 new ProtectedReminderStateStore(Path.Combine(dataDirectory, "reminders.json")));
@@ -119,8 +186,11 @@ public partial class App : System.Windows.Application
             services.AddSingleton<WindowsReminderNotifier>();
             services.AddSingleton<IReminderNotifier>(provider => provider.GetRequiredService<WindowsReminderNotifier>());
             services.AddSingleton<ReminderEngine>();
-            services.AddSingleton<IDatabaseConfigurationStore>(
-                new DatabaseConfigurationStore(Path.Combine(dataDirectory, "database.json")));
+            // [旧代码-SQLite单机] 原直接 new 的配置存储注册（现复用启动路由已创建的实例）
+            // services.AddSingleton<IDatabaseConfigurationStore>(
+            //     new DatabaseConfigurationStore(Path.Combine(dataDirectory, "database.json")));
+            // [新增-SQLite单机] database.json 仅供启动判定"MySQL 是否配置过"与历史留存，不再用于连接
+            services.AddSingleton<IDatabaseConfigurationStore>(configurationStore);
             services.AddSingleton<IAiSettingsStore>(
                 new AiSettingsStore(Path.Combine(dataDirectory, "deepseek.json")));
             services.AddSingleton<IAiDraftService>(_ => new DeepSeekClient());
@@ -132,34 +202,40 @@ public partial class App : System.Windows.Application
             services.AddSingleton<BackupFileService>();
             // [旧代码-备份离线化] 原固定 MySQL 备份实现（本地优先启用时由 SQLite 实现替代）
             // services.AddSingleton<IBackupStore, SqlSugarBackupStore>();
-            // [新增-备份离线化] 切片 2：备份捕获/导入按模式路由——导入导出切到当前有效数据源
-            services.AddSingleton<IBackupStore>(localFirst
-                ? new SqliteBackupStore(LocalDatabasePath)
-                : new SqlSugarBackupStore(new DatabaseConfigurationStore(Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "WeeklyReport", "database.json"))));
+            // [旧代码-SQLite单机] 切片 2 原按模式路由：MySQL 模式回退 SqlSugarBackupStore
+            // services.AddSingleton<IBackupStore>(localFirst
+            //     ? new SqliteBackupStore(LocalDatabasePath)
+            //     : new SqlSugarBackupStore(new DatabaseConfigurationStore(Path.Combine(
+            //         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            //         "WeeklyReport", "database.json"))));
+            // [新增-SQLite单机] 计划阶段 1：SQLite 唯一数据源——备份固定走 SQLite 业务备份
+            services.AddSingleton<IBackupStore>(new SqliteBackupStore(LocalDatabasePath));
             services.AddSingleton<BackupImportPlanner>();
             services.AddSingleton<BackupService>();
-            services.AddSingleton<IDatabaseInitializer, MySqlDatabaseInitializer>();
+            // [旧代码-SQLite单机] MySQL 初始化器注册（设置页"测试连接/初始化"入口已随阶段 3 移除）
+            // services.AddSingleton<IDatabaseInitializer, MySqlDatabaseInitializer>();
 
             // [旧代码-离线存储] 原固定 MySQL 仓储注册（本地优先启用时由 SQLite 实现替代）
             // services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
             // services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
             // services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
-            if (localFirst)
-            {
-                // [新增-离线存储] 本地优先模式：业务读写走 SQLite 有效视图（写路径自动入队，见各 SQLite 仓储）
-                services.AddSingleton<IWorkEntryRepository>(_ => new SqliteWorkEntryRepository(LocalDatabasePath));
-                services.AddSingleton<IGitProjectRepository>(_ => new SqliteGitProjectRepository(LocalDatabasePath));
-                services.AddSingleton<IGitSyncStore>(_ => new SqliteGitSyncStore(LocalDatabasePath));
-            }
-            else
-            {
-                // [新增-离线存储] MySQL 模式（未启用本地优先或本地存储不可用）
-                services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
-                services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
-                services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
-            }
+            // [旧代码-SQLite单机] 原按 localFirst 模式路由的仓储注册（MySQL 模式回退 SqlSugar 实现）
+            // if (localFirst)
+            // {
+            //     services.AddSingleton<IWorkEntryRepository>(_ => new SqliteWorkEntryRepository(LocalDatabasePath));
+            //     services.AddSingleton<IGitProjectRepository>(_ => new SqliteGitProjectRepository(LocalDatabasePath));
+            //     services.AddSingleton<IGitSyncStore>(_ => new SqliteGitSyncStore(LocalDatabasePath));
+            // }
+            // else
+            // {
+            //     services.AddSingleton<IWorkEntryRepository, SqlSugarWorkEntryRepository>();
+            //     services.AddSingleton<IGitProjectRepository, SqlSugarGitProjectRepository>();
+            //     services.AddSingleton<IGitSyncStore, SqlSugarGitSyncStore>();
+            // }
+            // [新增-SQLite单机] 计划阶段 1：SQLite 唯一仓储注册（不再按模式路由，无 MySQL 回退）
+            services.AddSingleton<IWorkEntryRepository>(_ => new SqliteWorkEntryRepository(LocalDatabasePath));
+            services.AddSingleton<IGitProjectRepository>(_ => new SqliteGitProjectRepository(LocalDatabasePath));
+            services.AddSingleton<IGitSyncStore>(_ => new SqliteGitSyncStore(LocalDatabasePath));
 
             services.AddSingleton<IGitReportWorkItemSource>(provider => provider.GetRequiredService<IGitSyncStore>());
             services.AddSingleton<IGitCommitReader>(_ => new GitCliCommitReader());
@@ -184,27 +260,33 @@ public partial class App : System.Windows.Application
             services.AddSingleton<WorkEntryService>();
             // [旧代码-离线存储] 原固定 MySQL 周报仓储注册（本地优先启用时由 SQLite 实现替代）
             // services.AddSingleton<IWeeklyReportRepository, SqlSugarWeeklyReportRepository>();
-            // [新增-离线存储] Phase 1 切片 F：按模式路由（周选择列表与周报编辑同视图）
-            services.AddSingleton<IWeeklyReportRepository>(localFirst
-                ? new SqliteWeeklyReportRepository(LocalDatabasePath)
-                : new SqlSugarWeeklyReportRepository(
-                    new DatabaseConfigurationStore(Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "WeeklyReport", "database.json"))));
+            // [旧代码-SQLite单机] 原按 localFirst 模式路由的周报仓储注册（MySQL 模式回退 SqlSugar 实现）
+            // services.AddSingleton<IWeeklyReportRepository>(localFirst
+            //     ? new SqliteWeeklyReportRepository(LocalDatabasePath)
+            //     : new SqlSugarWeeklyReportRepository(
+            //         new DatabaseConfigurationStore(Path.Combine(
+            //             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            //             "WeeklyReport", "database.json"))));
+            // [新增-SQLite单机] 计划阶段 1：SQLite 唯一周报仓储（无 MySQL 回退）
+            services.AddSingleton<IWeeklyReportRepository>(new SqliteWeeklyReportRepository(LocalDatabasePath));
             // [新增-机器人交互] 本周周报保存状态查询（提醒文案区分已保存/未保存）
             services.AddSingleton<WeeklyReportStatusProvider>();
             services.AddSingleton<WeeklyReportDraftBuilder>();
-            if (localFirst)
-            {
-                services.AddSingleton<ILocalStorageStateProvider>(
-                    _ => new SqliteLocalStore(LocalDatabasePath));
-            }
+            // [旧代码-SQLite单机] 原仅本地优先模式注册本地状态提供者
+            // if (localFirst)
+            // {
+            //     services.AddSingleton<ILocalStorageStateProvider>(
+            //         _ => new SqliteLocalStore(LocalDatabasePath));
+            // }
+            // [新增-SQLite单机] SQLite-only：始终注册本地状态提供者（周进度与设置页显示本地库状态）
+            services.AddSingleton<ILocalStorageStateProvider>(_ => new SqliteLocalStore(LocalDatabasePath));
 
             services.AddSingleton<IWeeklyProgressContextProvider, WeeklyProgressContextProvider>();
             services.AddSingleton<WeeklyReportService>();
             services.AddSingleton<IUserDialogs, UserDialogs>();
             services.AddSingleton<WorkEntriesViewModel>();
-            services.AddSingleton<DatabaseSettingsViewModel>();
+            // [旧代码-SQLite单机] MySQL 设置页 ViewModel 注册（设置页 MySQL 配置入口已随阶段 3 移除）
+            // services.AddSingleton<DatabaseSettingsViewModel>();
             services.AddSingleton<GitProjectsViewModel>();
             services.AddSingleton<AiSettingsViewModel>();
             services.AddSingleton<WeeklyReportsViewModel>();
@@ -241,8 +323,8 @@ public partial class App : System.Windows.Application
             _floatingWindow.Show();
             StartReminders();
             StartWorkRhythmReminders();
-            // [新增-离线存储] G2：本地优先模式启动后台同步协调器
-            await StartLocalSyncAsync();
+            // [旧代码-SQLite单机] G2：本地优先模式启动后台同步协调器（SQLite-only 停用，见 §4 阶段 2）
+            // await StartLocalSyncAsync();
             await mainWindow.InitializeAsync();
             await RefreshWeeklyProgressStatusAsync();
             _scheduledTaskMonitor = _services.GetRequiredService<ScheduledTaskMonitor>();
@@ -255,6 +337,52 @@ public partial class App : System.Windows.Application
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             _floatingWindow?.PrepareForApplicationShutdown();
             Shutdown();
+        }
+    }
+
+    private async Task RunWorkLibraryMaintenanceAsync(string[] args)
+    {
+        if (args.Length != 2 || string.IsNullOrWhiteSpace(args[1]))
+        {
+            MessageBox.Show("用法：--backup-work-library <备份文件> 或 --restore-work-library <备份文件>。",
+                "本地工作库维护", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+
+        var restoring = args[0] == "--restore-work-library";
+        if (restoring && MessageBox.Show(
+                "恢复会替换当前工作库内容。请确认已退出所有其他 SQLite 工具并停止访问此数据库。\n" +
+                "系统会先保留恢复前的完整工作库副本。是否继续？",
+                "恢复本地工作库", System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+        {
+            Shutdown(1);
+            return;
+        }
+
+        try
+        {
+            var backup = new SqliteWorkLibraryBackup();
+            if (restoring)
+            {
+                var previous = await backup.RestoreAsync(args[1], LocalDatabasePath);
+                MessageBox.Show($"工作库恢复完成。\n恢复前副本：{previous}", "本地工作库维护");
+            }
+            else
+            {
+                await backup.CreateBackupAsync(LocalDatabasePath, args[1]);
+                MessageBox.Show($"工作库备份完成：{Path.GetFullPath(args[1])}", "本地工作库维护");
+            }
+
+            Shutdown(0);
+        }
+        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+        {
+            var detail = exception is InvalidOperationException ? exception.Message : ErrorMessages.Describe(exception);
+            MessageBox.Show($"工作库维护失败：{detail}",
+                "本地工作库维护", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            Shutdown(1);
         }
     }
 
@@ -290,6 +418,7 @@ public partial class App : System.Windows.Application
 
     // [新增-离线存储] Phase 1 切片 F：设置页"离线可用"操作入口——查询状态 / 建立镜像 / 空工作区 / 停用。
     // 镜像读取 MySQL 侧经现有 MySQL 仓储（不走当前模式路由，避免本地优先已启用时读到 SQLite 自身）。
+    // [新增-SQLite单机] 计划阶段 3：镜像/停用入口已移除（UI 按钮一并注释），仅保留状态查询。
     public static async Task<LocalStorageState> GetLocalStoreStateAsync()
     {
         if (!File.Exists(LocalDatabasePath))
@@ -300,35 +429,39 @@ public partial class App : System.Windows.Application
         return await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
     }
 
-    public static async Task<string> BuildLocalMirrorAsync()
-    {
-        var configuration = new DatabaseConfigurationStore(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "WeeklyReport", "database.json"));
-        var settings = await configuration.LoadAsync()
-            ?? throw new InvalidOperationException("尚未配置 MySQL，请先在设置中完成连接配置。");
-        var snapshot = await new MySqlLocalMirrorSnapshotReader().ReadAsync(settings);
-        var store = new SqliteLocalStore(LocalDatabasePath);
-        await store.InitializeMirrorAsync(
-            snapshot.Projects,
-            snapshot.WorkItems,
-            snapshot.WorkEntries,
-            snapshot.Reports,
-            mirrorIdentity: snapshot.Identity.DatabaseId);
-        return "镜像建立完成，重启应用后以本地优先模式运行。";
-    }
+    // [旧代码-SQLite单机] 设置页"从 MySQL 建立本地镜像"入口：全量读取 MySQL 写入 SQLite。
+    // SQLite-only 版本运行期零 MySQL 访问（计划 §1），镜像迁移是升级前操作（旧版本完成），入口移除。
+    // public static async Task<string> BuildLocalMirrorAsync()
+    // {
+    //     var configuration = new DatabaseConfigurationStore(Path.Combine(
+    //         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    //         "WeeklyReport", "database.json"));
+    //     var settings = await configuration.LoadAsync()
+    //         ?? throw new InvalidOperationException("尚未配置 MySQL，请先在设置中完成连接配置。");
+    //     var snapshot = await new MySqlLocalMirrorSnapshotReader().ReadAsync(settings);
+    //     var store = new SqliteLocalStore(LocalDatabasePath);
+    //     await store.InitializeMirrorAsync(
+    //         snapshot.Projects,
+    //         snapshot.WorkItems,
+    //         snapshot.WorkEntries,
+    //         snapshot.Reports,
+    //         mirrorIdentity: snapshot.Identity.DatabaseId);
+    //     return "镜像建立完成，重启应用后以本地优先模式运行。";
+    // }
 
     public static async Task<string> StartEmptyLocalWorkspaceAsync()
     {
         await new SqliteLocalStore(LocalDatabasePath).StartEmptyWorkspaceAsync();
-        return "空工作区已建立（无已验证基线），重启应用后以本地优先模式运行。";
+        return "空工作区已建立（无已验证基线）。";
     }
 
-    public static async Task<string> DisableLocalFirstAsync()
-    {
-        await new SqliteLocalStore(LocalDatabasePath).DisableLocalFirstAsync();
-        return "已停用本地优先，重启应用后以 MySQL 模式运行。";
-    }
+    // [旧代码-SQLite单机] 设置页"停用并回退 MySQL"入口：写 MysqlOnly 状态后旧版可回退 MySQL 模式。
+    // SQLite-only 版本下 MysqlOnly 状态会阻止启动（SqliteOnlyStorageGate），入口随之移除以防自锁。
+    // public static async Task<string> DisableLocalFirstAsync()
+    // {
+    //     await new SqliteLocalStore(LocalDatabasePath).DisableLocalFirstAsync();
+    //     return "已停用本地优先，重启应用后以 MySQL 模式运行。";
+    // }
 
     // [新增-天线状态] 周报保存成功：请求悬浮精灵进入庆祝态（卡片态由 FloatingWindow 自行忽略）
     public void RequestFloatingCelebration()
@@ -569,39 +702,42 @@ public partial class App : System.Windows.Application
     }
 
     // [新增-离线存储] G2：启动后台同步协调器（仅本地优先模式）
+    // [新增-SQLite单机] 计划阶段 2：协调器不再创建或启动（保留字段供退出释放路径判空，恒为 null）
     private SqliteSyncCoordinator? _syncCoordinator;
 
-    private async Task StartLocalSyncAsync()
-    {
-        if (!File.Exists(LocalDatabasePath))
-        {
-            return;
-        }
-
-        try
-        {
-            var state = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
-            if (state.Status is not (LocalStorageStatus.Ready or LocalStorageStatus.Suspended))
-            {
-                return;
-            }
-
-            _syncCoordinator = new SqliteSyncCoordinator(
-                LocalDatabasePath,
-                new DatabaseConfigurationStore(Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "WeeklyReport", "database.json")),
-                TimeProvider.System,
-                ReportLocalSyncStatus,
-                _services?.GetRequiredService<ILogger<SqliteSyncCoordinator>>());
-            _syncCoordinator.Start();
-            Log.Information("Local sync coordinator started (pending: {Pending})", state.PendingCount);
-        }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException or DatabaseAccessException)
-        {
-            Log.Warning("Local sync coordinator failed to start: {ErrorType}", exception.GetType().Name);
-        }
-    }
+    // [旧代码-SQLite单机] 原启动后台同步协调器：本地优先模式下每 10 秒轮询待同步队列并连 MySQL。
+    // SQLite-only 版本停用同步（计划 §4 阶段 2），历史队列原样保留、不再消费也不再新增。
+    // private async Task StartLocalSyncAsync()
+    // {
+    //     if (!File.Exists(LocalDatabasePath))
+    //     {
+    //         return;
+    //     }
+    //
+    //     try
+    //     {
+    //         var state = await new SqliteLocalStore(LocalDatabasePath).GetStateAsync();
+    //         if (state.Status is not (LocalStorageStatus.Ready or LocalStorageStatus.Suspended))
+    //         {
+    //             return;
+    //         }
+    //
+    //         _syncCoordinator = new SqliteSyncCoordinator(
+    //             LocalDatabasePath,
+    //             new DatabaseConfigurationStore(Path.Combine(
+    //                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    //                 "WeeklyReport", "database.json")),
+    //             TimeProvider.System,
+    //             ReportLocalSyncStatus,
+    //             _services?.GetRequiredService<ILogger<SqliteSyncCoordinator>>());
+    //         _syncCoordinator.Start();
+    //         Log.Information("Local sync coordinator started (pending: {Pending})", state.PendingCount);
+    //     }
+    //     catch (Exception exception) when (exception is IOException or InvalidOperationException or DatabaseAccessException)
+    //     {
+    //         Log.Warning("Local sync coordinator failed to start: {ErrorType}", exception.GetType().Name);
+    //     }
+    // }
 
     private void ReportLocalSyncStatus(string message)
     {
@@ -611,12 +747,17 @@ public partial class App : System.Windows.Application
     /// <summary>手动"立即同步"（设置页按钮）。</summary>
     public async Task<SyncOutcome> SyncNowAsync()
     {
-        if (_syncCoordinator is null)
-        {
-            return new SyncOutcome(0, 0, 0, "本地优先未启用或协调器未运行。");
-        }
+        // [旧代码-SQLite单机] 原经后台协调器立即同步到 MySQL
+        // if (_syncCoordinator is null)
+        // {
+        //     return new SyncOutcome(0, 0, 0, "本地优先未启用或协调器未运行。");
+        // }
+        //
+        // return await _syncCoordinator.SyncNowAsync();
 
-        return await _syncCoordinator.SyncNowAsync();
+        // [新增-SQLite单机] 计划阶段 2：同步已停用，恒返回停用提示（调用入口已随设置页按钮移除）
+        await Task.CompletedTask;
+        return new SyncOutcome(0, 0, 0, "MySQL 同步已在本版本停用，数据仅保存在本机 SQLite。");
     }
 
     private void StartReminders()

@@ -1,5 +1,7 @@
 // [新增-离线存储] Phase 1 切片 D：本地操作队列测试（回调式会话）——业务写入与入队同事务：
 // 提交后同存、回调失败同灭、入队失败业务同灭、依赖链与哈希稳定、嵌套拒绝。
+// [新增-SQLite单机] 计划《SQLite单机存储改造计划》阶段 2 起：outbox 已解耦——业务写入仍原子提交，
+// 但不再新增 sync_operation 行（历史断言以 [旧代码-SQLite单机] 注释保留，新断言验证零入队）。
 using System.IO;
 using System.Text.Json;
 using WeeklyReport.Application;
@@ -57,15 +59,19 @@ public sealed class SqliteOperationQueueTests : IDisposable
         Assert.Equal("done", returned);
         Assert.NotNull(await repository.FindAsync(entry.Id)); // 业务写入已提交
 
-        var row = await ReadSingleOperationRowAsync();
-        Assert.NotNull(row);
-        Assert.Equal("work-entry.save", row!.OperationKind);
-        Assert.Equal("Pending", row.Status);
-        Assert.False(string.IsNullOrEmpty(row.ContentHash));
-        var changes = JsonSerializer.Deserialize<LocalOperationChange[]>(row.ChangesJson);
-        var change = Assert.Single(changes!);
-        Assert.Equal("work_entries", change.Table);
-        Assert.Equal(LocalObjectChange.Add, change.Change);
+        // [旧代码-SQLite单机] 原断言：入队行与业务写入同事务提交（outbox 尚未解耦）
+        // var row = await ReadSingleOperationRowAsync();
+        // Assert.NotNull(row);
+        // Assert.Equal("work-entry.save", row!.OperationKind);
+        // Assert.Equal("Pending", row.Status);
+        // Assert.False(string.IsNullOrEmpty(row.ContentHash));
+        // var changes = JsonSerializer.Deserialize<LocalOperationChange[]>(row.ChangesJson);
+        // var change = Assert.Single(changes!);
+        // Assert.Equal("work_entries", change.Table);
+        // Assert.Equal(LocalObjectChange.Add, change.Change);
+
+        // [新增-SQLite单机] 计划阶段 2：outbox 解耦后 Record 变更不再入队——业务提交成功但 sync_operation 零新增
+        Assert.Null(await ReadSingleOperationRowAsync());
     }
 
     [Fact]
@@ -111,19 +117,34 @@ public sealed class SqliteOperationQueueTests : IDisposable
             await drop.ExecuteNonQueryAsync();
         }
 
-        var repository = Repository;
-        var entry = NewEntry("入队失败回滚");
-        var exception = await Assert.ThrowsAsync<DatabaseAccessException>(() =>
-            Queue.RunInOperationAsync<object?>("work-entry.save", async session =>
-            {
-                await WriteEntryAsync(session, entry);
-                session.Record(new LocalOperationChange(
-                    "work_entries", entry.Id.ToString("D"), "2026-11-03", LocalObjectChange.Add));
-                return null;
-            }));
+        // [旧代码-SQLite单机] 原断言：入队失败 → 业务写入一并回滚（outbox 与业务同生共死）
+        // var repository = Repository;
+        // var entry = NewEntry("入队失败回滚");
+        // var exception = await Assert.ThrowsAsync<DatabaseAccessException>(() =>
+        //     Queue.RunInOperationAsync<object?>("work-entry.save", async session =>
+        //     {
+        //         await WriteEntryAsync(session, entry);
+        //         session.Record(new LocalOperationChange(
+        //             "work_entries", entry.Id.ToString("D"), "2026-11-03", LocalObjectChange.Add));
+        //         return null;
+        //     }));
+        //
+        // Assert.Contains("本地存储操作失败", exception.Message);
+        // Assert.Null(await repository.FindAsync(entry.Id)); // 入队失败 → 业务写入一并回滚
 
-        Assert.Contains("本地存储操作失败", exception.Message);
-        Assert.Null(await repository.FindAsync(entry.Id)); // 入队失败 → 业务写入一并回滚
+        // [新增-SQLite单机] 计划阶段 2：outbox 解耦后业务事务不再触碰 sync_operation——
+        // 队列表缺失不影响业务写入提交（解耦的直接证据）
+        var repository = Repository;
+        var entry = NewEntry("无队列表业务提交");
+        await Queue.RunInOperationAsync<object?>("work-entry.save", async session =>
+        {
+            await WriteEntryAsync(session, entry);
+            session.Record(new LocalOperationChange(
+                "work_entries", entry.Id.ToString("D"), "2026-11-03", LocalObjectChange.Add));
+            return null;
+        });
+
+        Assert.NotNull(await repository.FindAsync(entry.Id)); // 业务写入已提交
     }
 
     [Fact]
@@ -162,26 +183,34 @@ public sealed class SqliteOperationQueueTests : IDisposable
     {
         await SqliteDatabase.EnsureInitializedAsync(_databasePath);
         var repository = Repository;
-
+        var firstEntry = NewEntry("第一组");
+        var secondEntry = NewEntry("第二组");
         var first = await Queue.RunInOperationAsync("work-entry.save", async session =>
         {
-            await WriteEntryAsync(session, NewEntry("第一组"));
+            await WriteEntryAsync(session, firstEntry);
             session.Record(new LocalOperationChange("work_entries", "a", "2026-11-03", LocalObjectChange.Add));
             return session.GroupId;
         });
         var second = await Queue.RunInOperationAsync("work-entry.save", async session =>
         {
-            await WriteEntryAsync(session, NewEntry("第二组"));
+            await WriteEntryAsync(session, secondEntry);
             session.Record(new LocalOperationChange("work_entries", "a", "2026-11-03", LocalObjectChange.Add)); // 相同变更集合
             return session.GroupId;
         }, dependsOn: first);
 
-        var rows = await ReadAllOperationRowsAsync();
-        Assert.Equal(2, rows.Count);
-        Assert.Equal(first.ToString("D"), rows.Single(row => row.OpGroupId == second.ToString("D")).DependsOn);
-        Assert.Equal(
-            rows.Single(row => row.OpGroupId == first.ToString("D")).ContentHash,
-            rows.Single(row => row.OpGroupId == second.ToString("D")).ContentHash); // 幂等回执基础
+        // [旧代码-SQLite单机] 原断言：两组各留一行且 depends_on 成链、内容哈希一致（同步幂等回执基础）
+        // var rows = await ReadAllOperationRowsAsync();
+        // Assert.Equal(2, rows.Count);
+        // Assert.Equal(first.ToString("D"), rows.Single(row => row.OpGroupId == second.ToString("D")).DependsOn);
+        // Assert.Equal(
+        //     rows.Single(row => row.OpGroupId == first.ToString("D")).ContentHash,
+        //     rows.Single(row => row.OpGroupId == second.ToString("D")).ContentHash); // 幂等回执基础
+
+        // [新增-SQLite单机] 计划阶段 2：顺序操作各自独立提交（组 ID 仍生成、依赖参数仍接受），但零入队
+        Assert.NotEqual(first, second);
+        Assert.Empty(await ReadAllOperationRowsAsync());
+        Assert.NotNull(await repository.FindAsync(firstEntry.Id));
+        Assert.NotNull(await repository.FindAsync(secondEntry.Id));
     }
 
     [Fact]

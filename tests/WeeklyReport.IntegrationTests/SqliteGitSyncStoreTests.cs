@@ -51,6 +51,8 @@ public sealed class SqliteGitSyncStoreTests : GitSyncStoreContract, IDisposable
     [Fact]
     public async Task Apply_QueuesGitWorkItemSnapshotBeforeCheckingRemoteConfiguration()
     {
+        // [新增-SQLite单机] 覆盖保留同步机械的载荷快照语义：按路径注册入队（生产默认不入队）
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
         await InitializeAsync();
         var projects = await CreateProjectsRepositoryAsync();
         var store = await CreateSyncStoreAsync();

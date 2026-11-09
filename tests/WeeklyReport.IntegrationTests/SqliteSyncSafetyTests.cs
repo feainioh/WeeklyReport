@@ -13,6 +13,12 @@ public sealed class SqliteSyncSafetyTests : IDisposable
     private readonly string _databasePath =
         Path.Combine(Path.GetTempPath(), "WeeklyReport.SqliteTests", $"sync-safety-{Guid.NewGuid():N}.db");
 
+    // [新增-SQLite单机] 本类覆盖"保留但停用"的同步机械：按路径注册入队，使播种与旧版一致（生产默认不入队）
+    public SqliteSyncSafetyTests()
+    {
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
+    }
+
     /// <summary>未知表操作必须作为可见冲突保存，且不读取数据库配置或写入 MySQL 回执。</summary>
     [Fact]
     public async Task Sync_UnsupportedOperation_PreservesConflictWithoutConnectingToMySql()

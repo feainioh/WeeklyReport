@@ -138,7 +138,7 @@ public sealed class WeeklyProgressContextProvider(
         var report = await reportTask;
         var storage = localState is null
             ? GetStorageStatus(manual.Error, git.Error, report.Error)
-            : GetLocalStorageStatus(localState, manual.Error, git.Error, report.Error);
+            : GetLocalStorageStatus(manual.Error, git.Error, report.Error);
 
         int? unknownHours = null;
         Exception? aggregationError = null;
@@ -170,12 +170,10 @@ public sealed class WeeklyProgressContextProvider(
             report.Error is null ? report.Value is not null : null,
             unknownHours,
             storage,
-            localState is null ? 0 : localState.PendingCount + localState.AwaitingConfirmationCount,
-            localState?.ConflictCount ?? 0,
-            localState?.LastSyncAtUtc,
-            localState?.Status == LocalStorageStatus.Suspended
-                ? localState.StatusReason ?? "本地同步已暂停。"
-                : errors.Length == 0 ? null : string.Join(", ", errors));
+            0,
+            0,
+            null,
+            errors.Length == 0 ? null : string.Join(", ", errors));
     }
 
     private async Task<QueryResult<T>> ReadAsync<T>(Func<Task<T>> query, string subject)
@@ -204,23 +202,14 @@ public sealed class WeeklyProgressContextProvider(
             : WeeklyStorageStatus.Unknown;
     }
 
-    private static WeeklyStorageStatus GetLocalStorageStatus(
-        LocalStorageState state,
-        params Exception?[] errors)
+    private static WeeklyStorageStatus GetLocalStorageStatus(params Exception?[] errors)
     {
         if (errors.Any(static error => error is not null))
         {
             return WeeklyStorageStatus.LocalUnreadable;
         }
 
-        if (state.ConflictCount > 0 || state.FailedCount > 0)
-        {
-            return WeeklyStorageStatus.Conflict;
-        }
-
-        return state.PendingCount > 0 || state.AwaitingConfirmationCount > 0
-            ? WeeklyStorageStatus.SyncPending
-            : WeeklyStorageStatus.LocalMode;
+        return WeeklyStorageStatus.LocalMode;
     }
 
     private static WeeklyProgressContext Unavailable(

@@ -47,12 +47,31 @@ public sealed class WeeklyProgressContextProviderTests
 
         var context = await provider.GetCurrentWeekAsync();
 
-        Assert.Equal(WeeklyStorageStatus.SyncPending, context.Storage);
-        Assert.Equal(3, context.PendingSyncCount);
+        Assert.Equal(WeeklyStorageStatus.LocalMode, context.Storage);
+        Assert.Equal(0, context.PendingSyncCount);
         Assert.Equal(1, context.ManualEntryCount);
         Assert.Equal(0, context.GitWorkItemCount);
         Assert.False(context.HasSavedReport);
         Assert.True(context.IsBusinessDataComplete);
+    }
+
+    [Theory]
+    [InlineData(LocalStorageStatus.Ready)]
+    [InlineData(LocalStorageStatus.Suspended)]
+    public async Task GetCurrentWeekAsync_HistoricalSyncState_DoesNotProduceSyncAdvice(LocalStorageStatus status)
+    {
+        var provider = CreateProvider(new FakeConfigurationStore(), new FakeEntries(), new FakeGitItems(),
+            new FakeReports(), new ManualTime(), new FakeLocalStorageStateProvider(new LocalStorageState(
+                status, false, 2, 1, 3, null, null, 1, "历史暂停")));
+
+        var context = await provider.GetCurrentWeekAsync();
+
+        Assert.Equal(WeeklyStorageStatus.LocalMode, context.Storage);
+        Assert.Equal(0, context.PendingSyncCount);
+        Assert.Equal(0, context.ConflictCount);
+        Assert.Null(context.Error);
+        Assert.NotEqual(WeeklyAdviceKind.ConflictPending, WeeklyAdvicePolicy.Create(context).Kind);
+        Assert.NotEqual(WeeklyAdviceKind.SyncPending, WeeklyAdvicePolicy.Create(context).Kind);
     }
 
     [Fact]

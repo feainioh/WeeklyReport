@@ -89,6 +89,8 @@ public sealed class SqliteBackupStoreTests : BackupStoreContract, IDisposable
     [Fact]
     public async Task Import_AutoEnqueuesAsSingleOperation()
     {
+        // [新增-SQLite单机] 验证保留同步机械的入队语义：按路径注册后导入仍单操作组入队（生产默认不入队）
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
         var service = await CreateServiceAsync();
         var source = CreateBackup(FindUnusedWeek(await service.CaptureAsync()));
         var projectId = source.Projects[0].Id;

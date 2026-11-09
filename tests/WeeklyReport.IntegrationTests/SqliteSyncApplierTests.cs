@@ -15,6 +15,13 @@ public sealed class SqliteSyncApplierTests : IDisposable
     private readonly string _databasePath =
         Path.Combine(Path.GetTempPath(), "WeeklyReport.SqliteTests", $"sync-{Guid.NewGuid():N}.db");
 
+    // [新增-SQLite单机] 本类覆盖"保留但停用"的同步闭环（SQLite→MySQL）：按路径注册入队，
+    // 使仓储写入像旧版一样自动入队（生产路径不注册、不入队；本类属 MySQL 集成门禁，仅验证保留代码）
+    public SqliteSyncApplierTests()
+    {
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
+    }
+
     private async Task<(SqliteWorkEntryRepository Repository, DatabaseConnectionSettings Settings)> SetupAsync()
     {
         await SqliteDatabase.EnsureInitializedAsync(_databasePath);

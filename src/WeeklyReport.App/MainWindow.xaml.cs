@@ -12,7 +12,8 @@ namespace WeeklyReport.App;
 public partial class MainWindow : Window
 {
     private readonly WorkEntriesViewModel _entries;
-    private readonly DatabaseSettingsViewModel _settings;
+    // [旧代码-SQLite单机] MySQL 设置页 ViewModel 字段（设置区已移除，随 DI 注册一并停用）
+    // private readonly DatabaseSettingsViewModel _settings;
     private readonly GitProjectsViewModel _gitProjects;
     private readonly GitProjectsView _gitView;
     private readonly AiSettingsViewModel _aiSettings;
@@ -33,7 +34,8 @@ public partial class MainWindow : Window
 
     public MainWindow(
         WorkEntriesViewModel entries,
-        DatabaseSettingsViewModel settings,
+        // [旧代码-SQLite单机] MySQL 设置页 ViewModel 构造注入（设置区已移除）
+        // DatabaseSettingsViewModel settings,
         GitProjectsViewModel gitProjects,
         AiSettingsViewModel aiSettings,
         WeeklyReportsViewModel weeklyReports,
@@ -48,7 +50,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _entries = entries;
-        _settings = settings;
+        // [旧代码-SQLite单机] MySQL 设置页 ViewModel 注入与 DataContext 绑定（设置区已移除）
+        // _settings = settings;
         _gitProjects = gitProjects;
         _weeklyProgress = weeklyProgress;
         _aiSettings = aiSettings;
@@ -61,7 +64,8 @@ public partial class MainWindow : Window
         _dialogs = dialogs;
         _logger = logger;
         DataContext = entries;
-        SettingsRoot.DataContext = settings;
+        // [旧代码-SQLite单机] SettingsRoot 原绑定 MySQL 设置 ViewModel（该小节已注释，主 DataContext 承接）
+        // SettingsRoot.DataContext = settings;
         AiSettingsRoot.DataContext = aiSettings;
         _gitView = new GitProjectsView(gitProjects);
         GitContent.Content = _gitView;
@@ -116,11 +120,12 @@ public partial class MainWindow : Window
         await _scheduledTasks.InitializeAsync();
         InitializeScheduledTaskControls(_scheduledTasks.Settings);
 
-        var password = await _settings.LoadAsync();
-        if (password is not null)
-        {
-            DatabasePassword.Password = password;
-        }
+        // [旧代码-SQLite单机] 原回填 MySQL 连接密码（设置区 PasswordBox 已移除）
+        // var password = await _settings.LoadAsync();
+        // if (password is not null)
+        // {
+        //     DatabasePassword.Password = password;
+        // }
 
         var apiKey = await _aiSettings.LoadAsync();
         if (apiKey is not null)
@@ -144,7 +149,8 @@ public partial class MainWindow : Window
 
     public bool CanExit()
     {
-        if (_entries.IsBusy || _settings.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
+        // [旧代码-SQLite单机] 原含 _settings.IsBusy 的忙碌检查（MySQL 设置 VM 已移除）
+        if (_entries.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
             || _weeklyReports.IsBusy || _backup.IsBusy || _scheduledTasks.IsExecuting)
         {
             _dialogs.Error("数据库操作进行中，请等待完成后再退出。", "周报");
@@ -318,25 +324,28 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void TestConnection_Click(object sender, RoutedEventArgs e) =>
-        await _settings.TestAsync(DatabasePassword.Password);
-
-    private async void InitializeDatabase_Click(object sender, RoutedEventArgs e)
-    {
-        if (await _settings.InitializeAndSaveAsync(DatabasePassword.Password))
-        {
-            ((App)System.Windows.Application.Current).InvalidateWeeklyProgressContext();
-            await _entries.RefreshAsync();
-            await _gitProjects.RefreshAsync();
-            await _weeklyReports.RefreshHistoryAsync();
-            await _backup.RefreshWeeksAsync();
-            await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
-        }
-    }
+    // [旧代码-SQLite单机] MySQL 设置页"测试连接/初始化并保存"处理器（按钮已随设置区移除；
+    // 二者均直连 MySQL，SQLite-only 版本不提供该入口）
+    // private async void TestConnection_Click(object sender, RoutedEventArgs e) =>
+    //     await _settings.TestAsync(DatabasePassword.Password);
+    //
+    // private async void InitializeDatabase_Click(object sender, RoutedEventArgs e)
+    // {
+    //     if (await _settings.InitializeAndSaveAsync(DatabasePassword.Password))
+    //     {
+    //         ((App)System.Windows.Application.Current).InvalidateWeeklyProgressContext();
+    //         await _entries.RefreshAsync();
+    //         await _gitProjects.RefreshAsync();
+    //         await _weeklyReports.RefreshHistoryAsync();
+    //         await _backup.RefreshWeeksAsync();
+    //         await ((App)System.Windows.Application.Current).RefreshWeeklyProgressStatusAsync();
+    //     }
+    // }
 
     private bool CanStartImport()
     {
-        if (_entries.IsBusy || _settings.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
+        // [旧代码-SQLite单机] 原含 _settings.IsBusy 的忙碌检查（MySQL 设置 VM 已移除）
+        if (_entries.IsBusy || _gitProjects.IsBusy || _aiSettings.IsBusy
             || _weeklyReports.IsBusy || _backup.IsBusy)
         {
             _dialogs.Error("其他操作进行中，请等待完成后再导入。", "导入备份");
@@ -660,132 +669,173 @@ public partial class MainWindow : Window
         }
     }
 
-    // [新增-离线存储] Phase 1 切片 F：设置页"离线可用"小节——状态刷新与三个操作入口。
-    // 操作在 UI 线程外执行；完成/失败均更新状态行；成功后提示重启生效（DI 按启动时模式注册）。
+    // [新增-SQLite单机] 计划阶段 3：设置页"本地存储（SQLite）"小节——只读状态显示
+    // （原镜像/空工作区/停用/立即同步四个操作入口已随按钮移除，处理器见下方 [旧代码-SQLite单机] 注释）。
     private async void RefreshLocalStoreStatus()
     {
         try
         {
             var state = await App.GetLocalStoreStateAsync();
             LocalStoreStatusText.Text = DescribeLocalState(state);
-            var localFirst = state.Status is LocalStorageStatus.Ready or LocalStorageStatus.Suspended;
-            BuildLocalMirrorButton.IsEnabled = !localFirst
-                || (state.Status == LocalStorageStatus.Suspended
-                    && state.PendingCount == 0
-                    && state.AwaitingConfirmationCount == 0
-                    && state.ConflictCount == 0
-                    && state.FailedCount == 0);
-            StartEmptyLocalButton.IsEnabled = !localFirst;
-            DisableLocalFirstButton.IsEnabled = localFirst;
         }
         catch (Exception exception) when (ErrorMessages.IsExpected(exception))
         {
             LocalStoreStatusText.Text = $"本地存储状态读取失败：{ErrorMessages.Describe(exception)}";
-            BuildLocalMirrorButton.IsEnabled = false;
-            StartEmptyLocalButton.IsEnabled = false;
-            DisableLocalFirstButton.IsEnabled = false;
         }
     }
 
+    // [新增-SQLite单机] SQLite-only 状态口径：不把历史队列描述为正在同步（计划 §4 阶段 2），
+    // 历史待同步/冲突计数如实展示为"停用前遗留"，数据位置明确为本机。
     private static string DescribeLocalState(LocalStorageState state) => state.Status switch
     {
         LocalStorageStatus.Ready when state.HasVerifiedBaseline =>
-            $"本地优先已启用（已验证基线，镜像于 {state.LastMirrorAtUtc:yyyy-MM-dd HH:mm}）；" +
-            $"待同步 {state.PendingCount} 项，待确认 {state.AwaitingConfirmationCount} 项，" +
-            $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+            $"本地 SQLite 工作库运行中（建立于 {state.LastMirrorAtUtc:yyyy-MM-dd HH:mm}）。" +
+            HistoricalQueueSummary(state),
         LocalStorageStatus.Ready =>
-            $"本地优先已启用（空工作区，无已验证基线）；待同步 {state.PendingCount} 项，" +
-            $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+            "本地 SQLite 工作库运行中（空工作区，无已验证基线）。" + HistoricalQueueSummary(state),
         LocalStorageStatus.Suspended =>
-            $"本地优先已暂停：{state.StatusReason ?? "请检查数据库配置后手动重新同步，或在无待处理操作时重建镜像。"}",
-        _ => "未启用本地优先：当前业务数据读写直接走本机 MySQL。"
+            $"本地 SQLite 工作库运行中（同步停用前曾暂停：{state.StatusReason ?? "原因未记录"}）。" +
+            HistoricalQueueSummary(state),
+        _ => "本地 SQLite 工作库状态未识别，请检查数据目录。"
     };
 
-    private async void BuildLocalMirror_Click(object sender, RoutedEventArgs e)
+    // [新增-SQLite单机] 历史队列摘要：停用同步后这些计数不再变化，也不再会被消费
+    private static string HistoricalQueueSummary(LocalStorageState state)
     {
-        if (!_dialogs.Confirm(
-                "将从本机 MySQL 读取全部业务数据（含 Git 绑定）写入本地 SQLite 镜像。镜像包含明文业务数据；"
-                + "存在待同步变更时会被拒绝。继续吗？", "建立本地镜像"))
-        {
-            return;
-        }
-
-        await RunLocalOperationAsync(App.BuildLocalMirrorAsync);
+        var total = state.PendingCount + state.AwaitingConfirmationCount + state.ConflictCount + state.FailedCount;
+        return total == 0
+            ? "无停用前遗留的未同步操作。"
+            : $"历史遗留未同步操作 {total} 项（待同步 {state.PendingCount}、待确认 {state.AwaitingConfirmationCount}" +
+               $"、冲突 {state.ConflictCount}、失败 {state.FailedCount}），仅作记录展示，不再自动处理。";
     }
 
-    private async void StartEmptyLocal_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_dialogs.Confirm(
-                "将建立不含任何数据的本地空工作区（无已验证基线）：MySQL 不可用时仍可录入，"
-                + "恢复后无法自动同步；当前没有冲突解决入口，待同步操作会保留且需先导出保护数据。继续吗？",
-                "建立空工作区"))
-        {
-            return;
-        }
+    // [旧代码-SQLite单机] 原状态刷新（按钮可用性路由随四按钮一起移除）
+    // private async void RefreshLocalStoreStatus()
+    // {
+    //     try
+    //     {
+    //         var state = await App.GetLocalStoreStateAsync();
+    //         LocalStoreStatusText.Text = DescribeLocalState(state);
+    //         var localFirst = state.Status is LocalStorageStatus.Ready or LocalStorageStatus.Suspended;
+    //         BuildLocalMirrorButton.IsEnabled = !localFirst
+    //             || (state.Status == LocalStorageStatus.Suspended
+    //                 && state.PendingCount == 0
+    //                 && state.AwaitingConfirmationCount == 0
+    //                 && state.ConflictCount == 0
+    //                 && state.FailedCount == 0);
+    //         StartEmptyLocalButton.IsEnabled = !localFirst;
+    //         DisableLocalFirstButton.IsEnabled = localFirst;
+    //     }
+    //     catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+    //     {
+    //         LocalStoreStatusText.Text = $"本地存储状态读取失败：{ErrorMessages.Describe(exception)}";
+    //         BuildLocalMirrorButton.IsEnabled = false;
+    //         StartEmptyLocalButton.IsEnabled = false;
+    //         DisableLocalFirstButton.IsEnabled = false;
+    //     }
+    // }
 
-        await RunLocalOperationAsync(App.StartEmptyLocalWorkspaceAsync);
-    }
+    // [旧代码-SQLite单机] 原状态文案（本地优先/MySQL 模式口径）
+    // private static string DescribeLocalState(LocalStorageState state) => state.Status switch
+    // {
+    //     LocalStorageStatus.Ready when state.HasVerifiedBaseline =>
+    //         $"本地优先已启用（已验证基线，镜像于 {state.LastMirrorAtUtc:yyyy-MM-dd HH:mm}）；" +
+    //         $"待同步 {state.PendingCount} 项，待确认 {state.AwaitingConfirmationCount} 项，" +
+    //         $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+    //     LocalStorageStatus.Ready =>
+    //         $"本地优先已启用（空工作区，无已验证基线）；待同步 {state.PendingCount} 项，" +
+    //         $"冲突 {state.ConflictCount} 项，失败 {state.FailedCount} 项。",
+    //     LocalStorageStatus.Suspended =>
+    //         $"本地优先已暂停：{state.StatusReason ?? "请检查数据库配置后手动重新同步，或在无待处理操作时重建镜像。"}",
+    //     _ => "未启用本地优先：当前业务数据读写直接走本机 MySQL。"
+    // };
 
-    private async void DisableLocalFirst_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_dialogs.Confirm(
-                "将停用本地优先并回退 MySQL 模式（需重启生效）。仅当没有待同步或冲突变更时允许；"
-                + "本地镜像数据会保留。继续吗？", "停用本地优先"))
-        {
-            return;
-        }
-
-        await RunLocalOperationAsync(App.DisableLocalFirstAsync);
-    }
-
-    // [新增-离线存储] G2：手动立即同步
-    private async void SyncNow_Click(object sender, RoutedEventArgs e)
-    {
-        SyncNowButton.IsEnabled = false;
-        LocalStoreStatusText.Text = "同步进行中，请稍候……";
-        try
-        {
-            var outcome = await Task.Run(async () => await ((App)System.Windows.Application.Current).SyncNowAsync());
-            LocalStoreStatusText.Text = outcome.Failed > 0
-                ? $"同步失败（{outcome.Failed} 项）：{outcome.Error}"
-                : $"同步完成：已应用 {outcome.Applied} 项，冲突 {outcome.Conflicted} 项。";
-            if (outcome.Failed > 0)
-            {
-                _dialogs.Error($"同步失败：{outcome.Error}", "立即同步");
-            }
-        }
-        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
-        {
-            LocalStoreStatusText.Text = $"同步异常：{ErrorMessages.Describe(exception)}";
-        }
-        finally
-        {
-            SyncNowButton.IsEnabled = true;
-            RefreshLocalStoreStatus();
-        }
-    }
-
-    private async Task RunLocalOperationAsync(Func<Task<string>> operation)
-    {
-        BuildLocalMirrorButton.IsEnabled = false;
-        StartEmptyLocalButton.IsEnabled = false;
-        DisableLocalFirstButton.IsEnabled = false;
-        LocalStoreStatusText.Text = "操作进行中，请稍候……";
-        try
-        {
-            var result = await Task.Run(operation);
-            LocalStoreStatusText.Text = result;
-            _dialogs.Error(result, "离线可用");
-        }
-        catch (Exception exception) when (ErrorMessages.IsExpected(exception))
-        {
-            _logger.LogWarning("Local store operation failed: {ErrorType}", exception.GetType().Name);
-            LocalStoreStatusText.Text = $"操作失败：{ErrorMessages.Describe(exception)}";
-            _dialogs.Error(ErrorMessages.Describe(exception), "离线可用");
-        }
-        finally
-        {
-            RefreshLocalStoreStatus();
-        }
-    }
+    // [旧代码-SQLite单机] 原四个操作入口处理器：建立镜像（读 MySQL）/ 空工作区 / 停用回退 MySQL / 立即同步
+    // （按钮已移除；镜像与同步触达 MySQL，停用会写入阻止 SQLite-only 启动的 MysqlOnly 状态）
+    // private async void BuildLocalMirror_Click(object sender, RoutedEventArgs e)
+    // {
+    //     if (!_dialogs.Confirm(
+    //             "将从本机 MySQL 读取全部业务数据（含 Git 绑定）写入本地 SQLite 镜像。镜像包含明文业务数据；"
+    //             + "存在待同步变更时会被拒绝。继续吗？", "建立本地镜像"))
+    //     {
+    //         return;
+    //     }
+    //
+    //     await RunLocalOperationAsync(App.BuildLocalMirrorAsync);
+    // }
+    //
+    // private async void StartEmptyLocal_Click(object sender, RoutedEventArgs e)
+    // {
+    //     if (!_dialogs.Confirm(
+    //             "将建立不含任何数据的本地空工作区（无已验证基线）：MySQL 不可用时仍可录入，"
+    //             + "恢复后无法自动同步；当前没有冲突解决入口，待同步操作会保留且需先导出保护数据。继续吗？",
+    //             "建立空工作区"))
+    //     {
+    //         return;
+    //     }
+    //
+    //     await RunLocalOperationAsync(App.StartEmptyLocalWorkspaceAsync);
+    // }
+    //
+    // private async void DisableLocalFirst_Click(object sender, RoutedEventArgs e)
+    // {
+    //     if (!_dialogs.Confirm(
+    //             "将停用本地优先并回退 MySQL 模式（需重启生效）。仅当没有待同步或冲突变更时允许；"
+    //             + "本地镜像数据会保留。继续吗？", "停用本地优先"))
+    //     {
+    //         return;
+    //     }
+    //
+    //     await RunLocalOperationAsync(App.DisableLocalFirstAsync);
+    // }
+    //
+    // private async void SyncNow_Click(object sender, RoutedEventArgs e)
+    // {
+    //     SyncNowButton.IsEnabled = false;
+    //     LocalStoreStatusText.Text = "同步进行中，请稍候……";
+    //     try
+    //     {
+    //         var outcome = await Task.Run(async () => await ((App)System.Windows.Application.Current).SyncNowAsync());
+    //         LocalStoreStatusText.Text = outcome.Failed > 0
+    //             ? $"同步失败（{outcome.Failed} 项）：{outcome.Error}"
+    //             : $"同步完成：已应用 {outcome.Applied} 项，冲突 {outcome.Conflicted} 项。";
+    //         if (outcome.Failed > 0)
+    //         {
+    //             _dialogs.Error($"同步失败：{outcome.Error}", "立即同步");
+    //         }
+    //     }
+    //     catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+    //     {
+    //         LocalStoreStatusText.Text = $"同步异常：{ErrorMessages.Describe(exception)}";
+    //     }
+    //     finally
+    //     {
+    //         SyncNowButton.IsEnabled = true;
+    //         RefreshLocalStoreStatus();
+    //     }
+    // }
+    //
+    // private async Task RunLocalOperationAsync(Func<Task<string>> operation)
+    // {
+    //     BuildLocalMirrorButton.IsEnabled = false;
+    //     StartEmptyLocalButton.IsEnabled = false;
+    //     DisableLocalFirstButton.IsEnabled = false;
+    //     LocalStoreStatusText.Text = "操作进行中，请稍候……";
+    //     try
+    //     {
+    //         var result = await Task.Run(operation);
+    //         LocalStoreStatusText.Text = result;
+    //         _dialogs.Error(result, "离线可用");
+    //     }
+    //     catch (Exception exception) when (ErrorMessages.IsExpected(exception))
+    //     {
+    //         _logger.LogWarning("Local store operation failed: {ErrorType}", exception.GetType().Name);
+    //         LocalStoreStatusText.Text = $"操作失败：{ErrorMessages.Describe(exception)}";
+    //         _dialogs.Error(ErrorMessages.Describe(exception), "离线可用");
+    //     }
+    //     finally
+    //     {
+    //         RefreshLocalStoreStatus();
+    //     }
+    // }
 }

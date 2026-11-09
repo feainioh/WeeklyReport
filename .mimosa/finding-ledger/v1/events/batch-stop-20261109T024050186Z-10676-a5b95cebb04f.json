@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261109T024050186Z-10676-a5b95cebb04f",
+  "runId": "20261109T024050186Z-10676-a5b95cebb04f",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "6bd2224a047356ee6556ef1a6d090d52e3b1227c",
+  "diffHash": "1146d5171bbf0c7d62f16a306814ae4693baf1dabdbe9b398ba076c46010785e",
+  "rulesVersion": "unavailable",
+  "sessionHash": "6402dd6854f902481a967ee1375c518dd0932473f52e9073e2a8e161892e67d7",
+  "reportRef": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T024050186Z-10676-a5b95cebb04f.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteOperationQueue.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteOperationQueueTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/Services/SqliteOnlyStorageGate.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/App.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkLibraryBackup.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkLibraryBackupTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.DesktopTests/SqliteOnlyStorageGateTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteBackupStoreTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteGitProjectRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteWeeklyReportRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncSafetyTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncCoordinatorTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncApplierTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/WeeklyReport.IntegrationTests/SqliteGitSyncStoreTests.cs",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-09T02:40:50.493Z"
+}

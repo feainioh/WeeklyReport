@@ -210,10 +210,12 @@
                          Padding="20" Margin="0,14,0,0" -->
                     <Border x:Name="SettingsRoot" Style="{StaticResource ModernCard}"
                             Margin="0,20,20,24" HorizontalAlignment="Left" Width="560">
-                        <StackPanel IsEnabled="{Binding CanInteract}">
-                            <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
-                            <TextBlock Text="本地 MySQL" Style="{StaticResource SectionTitleText}" />
-                            <!-- [旧代码-界面现代化2] 原说明行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
+                        <!-- [旧代码-SQLite单机] 原绑定 DatabaseSettingsViewModel.CanInteract 的启用开关（VM 已随 MySQL 设置区移除） -->
+                        <!-- <StackPanel IsEnabled="{Binding CanInteract}"> -->
+                        <StackPanel>
+                            <!-- [旧代码-SQLite单机] 计划阶段 3：本机 MySQL 配置区整体移除（测试连接/初始化均触达 MySQL，
+                                 SQLite-only 版本不再提供 MySQL 配置入口；原样注释保留，含 PasswordBox 与两按钮） -->
+                            <!-- <TextBlock Text="本地 MySQL" Style="{StaticResource SectionTitleText}" />
                             <TextBlock Text="请先创建周报专用数据库。初始化会执行数据库迁移，不会安装或升级 MySQL。"
                                        Style="{StaticResource CaptionText}" Margin="0,8,0,16" />
                             <TextBlock Text="主机（仅限本机）" />
@@ -236,18 +238,17 @@
                                 <Button Content="初始化并保存" Click="InitializeDatabase_Click"
                                         Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" />
                             </StackPanel>
-                            <!-- [旧代码-界面现代化2] 原状态行 TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" -->
                             <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionText}"
-                                       Margin="0,12,0,0" />
-                            <TextBlock x:Name="WeeklyStorageStatusText" Text="周报数据状态：尚未读取"
-                                       Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
-                            <Separator Margin="0,20,0,16" />
-                            <!-- [新增-离线存储] Phase 1 切片 F：离线可用（本地优先存储）小节——状态显示与启用/停用入口；
-                                 SQLite 与 MySQL 同机同盘，不构成异地备份（README 口径一致） -->
-                            <TextBlock Text="离线可用（本地优先存储）" Style="{StaticResource SectionTitleText}" />
+                                       Margin="0,12,0,0" /> -->
+                            <!-- [新增-SQLite单机] 计划阶段 3：存储状态显示本地 SQLite（MySQL 状态行由本地存储小节承担） -->
+                            <TextBlock Text="本地存储（SQLite）" Style="{StaticResource SectionTitleText}" />
                             <TextBlock x:Name="LocalStoreStatusText" Text="本地存储状态：尚未读取"
                                        Style="{StaticResource CaptionText}" Margin="0,10,0,8" TextWrapping="Wrap" />
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                            <TextBlock x:Name="WeeklyStorageStatusText" Text="周报数据状态：尚未读取"
+                                       Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
+                            <!-- [旧代码-SQLite单机] 计划阶段 3：镜像/空工作区/停用/立即同步四按钮整体移除
+                                （镜像与同步触达 MySQL；停用会产生阻止启动的 MysqlOnly 状态；空工作区改由启动路由决策） -->
+                            <!-- <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                                 <Button x:Name="BuildLocalMirrorButton" Content="从 MySQL 建立本地镜像"
                                         Click="BuildLocalMirror_Click" />
                                 <Button x:Name="StartEmptyLocalButton" Content="建立空工作区"
@@ -255,16 +256,17 @@
                                 <Button x:Name="DisableLocalFirstButton" Content="停用并回退 MySQL"
                                         Click="DisableLocalFirst_Click" Margin="0"
                                         Style="{StaticResource SecondaryButton}" />
-                                <!-- [新增-离线存储] G2：手动立即同步（仅本地优先模式有效） -->
                                 <Button x:Name="SyncNowButton" Content="立即同步到 MySQL"
                                         Click="SyncNow_Click" Margin="0"
                                         Background="{DynamicResource AccentBrush}"
                                         Foreground="{DynamicResource AccentTextBrush}" />
-                            </StackPanel>
-                            <TextBlock Text="本地镜像包含明文业务数据与本机 Git 绑定；MySQL 不可用时仍可完整录入，"
-                                       Style="{StaticResource CaptionText}" Margin="0,10,0,0" />
-                            <TextBlock Text="身份与协议校验通过后仅自动同步安全新增；更新、删除和备份导入会保留为冲突，当前版本尚无冲突解决入口。"
-                                       Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                            </StackPanel> -->
+                            <!-- [新增-SQLite单机] 计划阶段 3：说明数据保存在本机、不自动跨设备同步、
+                                 业务导出与完整备份的区别（计划 §4 阶段 3 要求的口径） -->
+                            <TextBlock Text="业务数据保存在本机 SQLite 工作库中；本版本不连接 MySQL，也不会自动跨设备同步，请自行备份。"
+                                       Style="{StaticResource CaptionText}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <TextBlock Text="「导入导出」页的 JSON/Excel 不含 Git 本机绑定与历史同步记录；完整工作库备份和恢复请参阅切换指南中的维护命令。"
+                                       Style="{StaticResource CaptionText}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             <Separator Margin="0,20,0,16" />
                             <!-- [旧代码-界面现代化2] 原分区标题 FontSize="18" FontWeight="SemiBold" -->
                             <TextBlock Text="启动方式" Style="{StaticResource SectionTitleText}" />

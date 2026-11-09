@@ -20,6 +20,8 @@ public sealed class SqliteSyncCoordinatorTests
 
         try
         {
+            // [新增-SQLite单机] 覆盖保留协调器机械：按路径注册入队以播种待同步操作（生产默认不入队）
+            SqliteOperationQueue.SetEnqueueEnabled(databasePath, true);
             await new SqliteLocalStore(databasePath).StartEmptyWorkspaceAsync();
             var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
             await new SqliteWorkEntryRepository(databasePath).AddAsync(

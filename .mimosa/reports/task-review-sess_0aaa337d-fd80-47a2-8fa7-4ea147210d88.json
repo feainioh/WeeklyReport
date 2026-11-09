@@ -1,68 +1,42 @@
 {
   "schema_version": "mimosa-task-review/v2",
-  "run_id": "20261109T012602638Z-22548-a530c86a2af6",
-  "run_status": "inconclusive",
-  "errors": [
-    {
-      "stage": "candidate-select",
-      "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
-      "reason": "candidate_limit_exceeded: 8 changed reviewable file(s) were not scanned because the limit is 20"
-    },
-    {
-      "stage": "baseline-read",
-      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
-      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
-    },
-    {
-      "stage": "baseline-read",
-      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
-      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
-    },
-    {
-      "stage": "baseline-read",
-      "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
-      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
-    },
-    {
-      "stage": "supply-chain-check",
-      "target": ".",
-      "reason": "stop_budget_exhausted: focused supply-chain check was not run before the gate budget"
-    }
-  ],
+  "run_id": "20261109T024050186Z-10676-a5b95cebb04f",
+  "run_status": "completed",
+  "errors": [],
   "coverage": {
     "schema_version": "mimosa-hook-coverage/v1",
-    "status": "partial",
+    "status": "complete",
     "scope": "hook_observed_diff",
     "baseline": {
       "complete": true,
-      "captured_files": 511,
+      "captured_files": 518,
       "candidate_limit": 5000,
       "truncated": false,
       "enumeration_error_count": 0,
       "snapshot_error_count": 0,
-      "compensated_target_count": 25
+      "compensated_target_count": 17
     },
     "change_tracking": {
-      "touched_observed": 0,
-      "touched_retained": 0,
+      "touched_observed": 17,
+      "touched_retained": 17,
       "truncated": false,
-      "bash_mutation": true,
-      "bash_discovered": 28,
+      "bash_mutation": false,
+      "bash_discovered": 0,
       "bash_discovery_limit": 80,
       "bash_discovery_truncated": false
     },
     "candidates": {
-      "eligible_files": 28,
-      "selected_files": 20,
+      "eligible_files": 17,
+      "selected_files": 17,
       "limit": 20,
-      "truncated": true
+      "truncated": false
     },
     "scanning": {
       "required_files": 17,
       "scanned_files": 17,
       "skipped_files": 0,
       "failed_files": 0,
-      "project_checks_required": 1,
+      "project_checks_required": 0,
       "project_checks_completed": 0
     },
     "notification": {
@@ -71,642 +45,381 @@
       "detail_limit": 3,
       "truncated": false
     },
-    "reason_counts": {
-      "candidate_limit_exceeded": 1,
-      "baseline_snapshot_unreadable": 3,
-      "stop_budget_exhausted": 1,
-      "project_check_failed": 5
-    },
-    "reasons": [
-      {
-        "code": "candidate_limit_exceeded",
-        "stage": "candidate-select",
-        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
-        "detail": "8 changed reviewable file(s) were not scanned because the limit is 20",
-        "affects_completion": true
-      },
-      {
-        "code": "baseline_snapshot_unreadable",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
-        "detail": "file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "baseline_snapshot_unreadable",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
-        "detail": "file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "baseline_snapshot_unreadable",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
-        "detail": "file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "stop_budget_exhausted",
-        "stage": "supply-chain-check",
-        "target": ".",
-        "detail": "focused supply-chain check was not run before the gate budget",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "candidate-select",
-        "target": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
-        "detail": "candidate_limit_exceeded: 8 changed reviewable file(s) were not scanned because the limit is 20",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
-        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
-        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "baseline-read",
-        "target": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
-        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "supply-chain-check",
-        "target": ".",
-        "detail": "stop_budget_exhausted: focused supply-chain check was not run before the gate budget",
-        "affects_completion": true
-      }
-    ],
+    "reason_counts": {},
+    "reasons": [],
     "reasons_truncated": false
   },
-  "generated_at": "2026-11-09T01:26:02.638Z",
+  "generated_at": "2026-11-09T02:40:50.186Z",
   "session_id": "sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88",
   "target": ".",
-  "revision": "11de8e73ec846eca496972902c8066d6dfaf0b84",
+  "revision": "6bd2224a047356ee6556ef1a6d090d52e3b1227c",
   "rules_version": "unavailable",
-  "diff_hash": "0580884a95ebe89fa062e6fdd341fcca95fd0ab59a2f0cf6b946f90bc8adb250",
+  "diff_hash": "1146d5171bbf0c7d62f16a306814ae4693baf1dabdbe9b398ba076c46010785e",
   "diff": {
     "algorithm": "sha256",
-    "changed_file_count": 20,
+    "changed_file_count": 17,
     "changed_files": [
       {
-        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
+        "file": "src/WeeklyReport.App/App.xaml.cs",
         "ranges": [
           {
-            "start": 56,
-            "end": 56
-          }
-        ],
-        "before_hash": "627a618a10a0f7942ac7c08fab66d45fc074efd4fe207644f9917460c0adb502",
-        "after_hash": "af5d2a477c5f4d394c62ec0c836b5de3bbf7bf1aaa86851edfbe8a7527b0e06f"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/FloatingWindow.g.cs",
-        "ranges": [
-          {
-            "start": 63,
-            "end": 63
-          }
-        ],
-        "before_hash": "4446f6a9df80abe717f98ba112142dd0d935fdceec359b3af392ecaa49c27951",
-        "after_hash": "b59cadf439de7d8aa31f3673285c11770cb6a00e115816259a90f4124453d51f"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Debug/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 60
-          }
-        ],
-        "before_hash": "60116575bb1b6772ed22ba93bfa53bef0a772667da1812c1c3fc0a46cd93bc3e",
-        "after_hash": "2ffc54da7204b21e9fabe9c22ecd7985d868637bd18beef2f2f476b4d690cb48"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/App.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
+            "start": 98,
+            "end": 159
           },
           {
-            "start": 33,
-            "end": 33
-          }
-        ],
-        "before_hash": "2c9266d854fb769caff98dbbfb06b9e437bf0a5a83899823a008a8fcdff0c606",
-        "after_hash": "627a618a10a0f7942ac7c08fab66d45fc074efd4fe207644f9917460c0adb502"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingCard.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
+            "start": 163,
+            "end": 164
           },
           {
-            "start": 52,
-            "end": 52
+            "start": 166,
+            "end": 166
           },
           {
-            "start": 59,
-            "end": 66
-          },
-          {
-            "start": 112,
-            "end": 114
-          },
-          {
-            "start": 116,
-            "end": 116
-          },
-          {
-            "start": 122,
-            "end": 130
-          },
-          {
-            "start": 132,
-            "end": 132
-          }
-        ],
-        "before_hash": "cd012dc15aaa9f3dda68cee5e0c76d7cea24ad983ff3903a7673b33cfe835e28",
-        "after_hash": "a1818175e1e73434e7625a1a9dfb4b12ca8b49bbf42ea9a28ad8328f118a87d8"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Controls/FloatingSprite.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
-          },
-          {
-            "start": 44,
-            "end": 44
-          },
-          {
-            "start": 46,
-            "end": 46
-          },
-          {
-            "start": 52,
-            "end": 124
-          },
-          {
-            "start": 132,
-            "end": 140
-          },
-          {
-            "start": 148,
-            "end": 292
-          },
-          {
-            "start": 300,
-            "end": 316
-          },
-          {
-            "start": 324,
-            "end": 404
-          },
-          {
-            "start": 406,
-            "end": 406
-          },
-          {
-            "start": 412,
-            "end": 524
-          },
-          {
-            "start": 532,
-            "end": 532
-          },
-          {
-            "start": 539,
-            "end": 554
-          },
-          {
-            "start": 587,
-            "end": 587
-          },
-          {
-            "start": 595,
-            "end": 596
-          },
-          {
-            "start": 602,
-            "end": 608
-          },
-          {
-            "start": 611,
-            "end": 617
-          },
-          {
-            "start": 620,
-            "end": 625
-          },
-          {
-            "start": 628,
-            "end": 634
-          },
-          {
-            "start": 637,
-            "end": 642
-          },
-          {
-            "start": 645,
-            "end": 645
-          },
-          {
-            "start": 648,
-            "end": 648
-          },
-          {
-            "start": 651,
-            "end": 818
-          },
-          {
-            "start": 821,
-            "end": 838
-          }
-        ],
-        "before_hash": "1900eeb01ec1c88484edcab00a148fdd227cec5f986f2f575ae87aada1dc5555",
-        "after_hash": "8aed57b74b682b9247dad9ac2b79e69077cf3cb7d4a730edd3823b2bc4a2bf01"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/GeneratedInternalTypeHelper.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 2
-          }
-        ],
-        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "60116575bb1b6772ed22ba93bfa53bef0a772667da1812c1c3fc0a46cd93bc3e"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/MainWindow.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
-          },
-          {
-            "start": 44,
-            "end": 44
-          },
-          {
-            "start": 52,
-            "end": 52
-          },
-          {
-            "start": 60,
-            "end": 68
-          },
-          {
-            "start": 76,
-            "end": 76
-          },
-          {
-            "start": 84,
-            "end": 84
-          },
-          {
-            "start": 92,
-            "end": 92
-          },
-          {
-            "start": 100,
-            "end": 108
-          },
-          {
-            "start": 116,
-            "end": 116
-          },
-          {
-            "start": 124,
+            "start": 168,
             "end": 172
           },
           {
-            "start": 180,
-            "end": 180
+            "start": 182,
+            "end": 186
           },
           {
-            "start": 188,
-            "end": 188
+            "start": 198,
+            "end": 205
+          },
+          {
+            "start": 208,
+            "end": 209
+          },
+          {
+            "start": 215,
+            "end": 231
+          },
+          {
+            "start": 256,
+            "end": 264
+          },
+          {
+            "start": 268,
+            "end": 275
+          },
+          {
+            "start": 281,
+            "end": 282
+          },
+          {
+            "start": 319,
+            "end": 320
+          },
+          {
+            "start": 368,
+            "end": 368
+          },
+          {
+            "start": 379,
+            "end": 397
+          },
+          {
+            "start": 402,
+            "end": 402
+          },
+          {
+            "start": 405,
+            "end": 411
+          },
+          {
+            "start": 652,
+            "end": 652
+          },
+          {
+            "start": 655,
+            "end": 687
+          },
+          {
+            "start": 697,
+            "end": 707
+          }
+        ],
+        "before_hash": "b08c11fcb28ae8a4118d3fb30de82ef27e5de477d60e724e2a48aa426faa7c2f",
+        "after_hash": "63857f71cd0d59db38aea2fe930dbe538b9788686b2b103724d474adcc11cb8d"
+      },
+      {
+        "file": "src/WeeklyReport.App/MainWindow.xaml.cs",
+        "ranges": [
+          {
+            "start": 15,
+            "end": 16
+          },
+          {
+            "start": 37,
+            "end": 38
+          },
+          {
+            "start": 53,
+            "end": 54
+          },
+          {
+            "start": 67,
+            "end": 68
+          },
+          {
+            "start": 123,
+            "end": 128
+          },
+          {
+            "start": 152,
+            "end": 153
+          },
+          {
+            "start": 327,
+            "end": 343
+          },
+          {
+            "start": 347,
+            "end": 348
+          },
+          {
+            "start": 672,
+            "end": 673
+          },
+          {
+            "start": 687,
+            "end": 688
+          },
+          {
+            "start": 692,
+            "end": 693
+          },
+          {
+            "start": 695,
+            "end": 695
+          },
+          {
+            "start": 697,
+            "end": 699
+          },
+          {
+            "start": 702,
+            "end": 840
+          }
+        ],
+        "before_hash": "be74a5c5b8edecea045208c972694370a9254393cd3c75da8cf1199f48485130",
+        "after_hash": "889028b2d536529dcaa688f3b92d80739a97ca326ffc81b06fd509587c1a8248"
+      },
+      {
+        "file": "src/WeeklyReport.App/Services/SqliteOnlyStorageGate.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 93
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "6fb3152a1728783dc4e6e9312182771964af492355346c539b27c164b6815b3e"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteOperationQueue.cs",
+        "ranges": [
+          {
+            "start": 5,
+            "end": 8
+          },
+          {
+            "start": 12,
+            "end": 12
+          },
+          {
+            "start": 51,
+            "end": 73
+          },
+          {
+            "start": 106,
+            "end": 109
+          }
+        ],
+        "before_hash": "c56a9c1c5a5524595a4bed32063bc88ad40a9ee710c5c01d01cfb215dd99bfb6",
+        "after_hash": "5452185d005cf39a95e5be8236a6c9d4723520053cca40931496939f4cc81837"
+      },
+      {
+        "file": "src/WeeklyReport.Infrastructure/Persistence/Sqlite/SqliteWorkLibraryBackup.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 225
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e8ec50f0042abef99fc7700fc557fdd7450d7eeae49810febcdb6bf6885aaf05"
+      },
+      {
+        "file": "tests/WeeklyReport.DesktopTests/SqliteOnlyStorageGateTests.cs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 125
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "09e793f65e1af68f8a5e00ab16bb9b156dee0bc4e75d02f769a19b792612e2c4"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteBackupStoreTests.cs",
+        "ranges": [
+          {
+            "start": 92,
+            "end": 93
+          }
+        ],
+        "before_hash": "9aa85d425211a07c803a5752216789a32cdb4c14a8d410ed72dfd8b4481aa128",
+        "after_hash": "c7f5892aa0300906d137c52507e55ffedd7e6f918ac97bfe64d45b59046b2a2d"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteGitProjectRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 26,
+            "end": 27
+          }
+        ],
+        "before_hash": "55eec6ba060934fd25b6c7de9499be63f6c54f0265f3191cb72dbb325690061e",
+        "after_hash": "a440d2198b99844f29e43f808387c71b9f76f925eee0b234844ef465d7413a1d"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteGitSyncStoreTests.cs",
+        "ranges": [
+          {
+            "start": 54,
+            "end": 55
+          }
+        ],
+        "before_hash": "cdd4d65a58f95844fdd33956284d8eec99ff7c03293ae17ac9c33e6b2a1206b8",
+        "after_hash": "8cbfdbeb91de6e68843ebe52b0d110b50dd00e1214aba55ce46ffa28778ebd08"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteLocalStoreTests.cs",
+        "ranges": [
+          {
+            "start": 118,
+            "end": 119
+          }
+        ],
+        "before_hash": "1fd9c147976026b900b4769d28ee915c1e498fe1865cb35ba755e0823cfbcb59",
+        "after_hash": "af944ffedda41c671e19203f8131a15244da5a27068f702933739da64132aba9"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteOperationQueueTests.cs",
+        "ranges": [
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 62,
+            "end": 74
+          },
+          {
+            "start": 120,
+            "end": 136
+          },
+          {
+            "start": 138,
+            "end": 145
+          },
+          {
+            "start": 147,
+            "end": 147
+          },
+          {
+            "start": 186,
+            "end": 187
+          },
+          {
+            "start": 190,
+            "end": 190
           },
           {
             "start": 196,
             "end": 196
           },
           {
-            "start": 204,
-            "end": 364
-          },
-          {
-            "start": 372,
-            "end": 372
-          },
-          {
-            "start": 411,
-            "end": 412
-          },
-          {
-            "start": 419,
-            "end": 420
-          },
-          {
-            "start": 432,
-            "end": 432
-          },
-          {
-            "start": 435,
-            "end": 435
-          },
-          {
-            "start": 438,
-            "end": 438
-          },
-          {
-            "start": 441,
-            "end": 441
-          },
-          {
-            "start": 444,
-            "end": 444
-          },
-          {
-            "start": 447,
-            "end": 447
-          },
-          {
-            "start": 450,
-            "end": 455
-          },
-          {
-            "start": 457,
-            "end": 457
-          },
-          {
-            "start": 463,
-            "end": 463
-          },
-          {
-            "start": 465,
-            "end": 465
-          },
-          {
-            "start": 471,
-            "end": 513
-          },
-          {
-            "start": 516,
-            "end": 516
-          },
-          {
-            "start": 522,
-            "end": 522
-          },
-          {
-            "start": 525,
-            "end": 525
-          },
-          {
-            "start": 531,
-            "end": 531
-          },
-          {
-            "start": 534,
-            "end": 534
-          },
-          {
-            "start": 540,
-            "end": 540
-          },
-          {
-            "start": 543,
-            "end": 543
-          },
-          {
-            "start": 549,
-            "end": 741
-          },
-          {
-            "start": 744,
-            "end": 744
-          },
-          {
-            "start": 747,
-            "end": 747
-          },
-          {
-            "start": 749,
-            "end": 749
-          },
-          {
-            "start": 755,
-            "end": 755
-          },
-          {
-            "start": 757,
-            "end": 757
-          },
-          {
-            "start": 763,
-            "end": 763
-          },
-          {
-            "start": 765,
-            "end": 765
+            "start": 201,
+            "end": 213
           }
         ],
-        "before_hash": "7f7a55eb70783f512908a41546d4dde627c51e06bf32c2cd995524505721d0c3",
-        "after_hash": "dadda4f9d40a35935d7a79221e19316a1e314d0d955d74a02728198cf7912652"
+        "before_hash": "499f5cdf224da6a08fb4ee7e3929446497099ab6c49de7ad030bcc6f6f3caf5e",
+        "after_hash": "09f123f4ceff7bb40abbf43a229ef01a81d01aac5e5672907329e3ded7c7e312"
       },
       {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/BackupView.g.cs",
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncApplierTests.cs",
         "ranges": [
           {
-            "start": 1,
-            "end": 1
-          },
-          {
-            "start": 75,
-            "end": 75
-          },
-          {
-            "start": 83,
-            "end": 83
-          },
-          {
-            "start": 91,
-            "end": 91
-          },
-          {
-            "start": 99,
-            "end": 99
-          }
-        ],
-        "before_hash": "6d75ff92358f3af5219086d286a53ae065580122840017915faa6a571a588335",
-        "after_hash": "6febcec2108d86a2205c63a1d177d97f25f3b6188cbfe8384ed92128a36dccfb"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/GitProjectsView.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
-          },
-          {
-            "start": 43,
-            "end": 58
-          },
-          {
-            "start": 90,
-            "end": 95
-          },
-          {
-            "start": 97,
-            "end": 97
-          }
-        ],
-        "before_hash": "2699866a40d7079a2fef6f66f1f7d7027bbd764a719824bd6e6b666552e372af",
-        "after_hash": "3471be920ad4d1ee38828eb60194c3844e18a2d1d6d49f8318d35f1918cc6986"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/Views/WeeklyReportsView.g.cs",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 1
-          },
-          {
-            "start": 43,
-            "end": 58
-          },
-          {
-            "start": 87,
-            "end": 95
-          }
-        ],
-        "before_hash": "8242d84d6eef3dbba89ac03c6d1c7ecccec6259d297ab6ab5b9d8fc0e77985b4",
-        "after_hash": "836931f88a0157137bee201b9ab59d50b6b44b15f74a36adce7061f76cae8547"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.AssemblyInfo.cs",
-        "ranges": [
-          {
-            "start": 1,
+            "start": 18,
             "end": 24
           }
         ],
-        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "fd55c91238c9088129e1b6fd641fc67cef2476914da5cb974cfa8b72538a6d8b"
+        "before_hash": "c70b7843a0ebd97aad436d20df110632bf3cc843645a1444657522e0bec9bca7",
+        "after_hash": "14bd9d4d0a6f579cb52dc547267a80aee8fe8ab179201ee7d1671b1a4339421d"
       },
       {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App_yrjgm0as_wpftmp.GlobalUsings.g.cs",
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncCoordinatorTests.cs",
+        "ranges": [
+          {
+            "start": 23,
+            "end": 24
+          }
+        ],
+        "before_hash": "b44c9394138442a904347be6901ba5354ebedadfe82733f63107152cf2bd6b49",
+        "after_hash": "45998dd389e739cf134223cf98ddbf837d1016f00c0ffce98e2ba51a20cd7e74"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteSyncSafetyTests.cs",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 21
+          }
+        ],
+        "before_hash": "1b957d6766b3f9c5224ceb6cfd6451dd3fb43d8e2fc0c2ba1a216a02b7b34efa",
+        "after_hash": "eee70ed15c78c710559dcda62bd51c095288799c0983a98ab05ae480223610b7"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWeeklyReportRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 28,
+            "end": 29
+          }
+        ],
+        "before_hash": "d9ac19b7bf6c2ea2305f552a266d73d58c2057a2d9dd9ba9fb4e53e7160df5e3",
+        "after_hash": "c927bda5fe3ba6b9c8d6409b170b8b6fe0ecc02b27c4c954a37b149a51511fda"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkEntryRepositoryTests.cs",
+        "ranges": [
+          {
+            "start": 47,
+            "end": 48
+          }
+        ],
+        "before_hash": "67eb73ff42795c1ed8e8c9ddb05c7d7db1d51473648f45ad2ee18769e0261d58",
+        "after_hash": "100b43816f1afd882541f07595bc755d5045d2b7bb5c59cb2e4bc06542cd76ba"
+      },
+      {
+        "file": "tests/WeeklyReport.IntegrationTests/SqliteWorkLibraryBackupTests.cs",
         "ranges": [
           {
             "start": 1,
-            "end": 8
+            "end": 157
           }
         ],
         "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "d3a5d602eb6c59425412b82def49d310ff096d51902ddd730baf10631ebcd2de"
-      },
-      {
-        "file": "src/WeeklyReport.App/obj/Release/net10.0-windows10.0.19041.0/win-x64/WeeklyReport.App.AssemblyInfo.cs",
-        "ranges": [
-          {
-            "start": 16,
-            "end": 16
-          }
-        ],
-        "before_hash": "ed9b425d1138f2f444cd32629e73be5bf7ca3306fe9ce7a94c2377702694469f",
-        "after_hash": "fd55c91238c9088129e1b6fd641fc67cef2476914da5cb974cfa8b72538a6d8b"
-      },
-      {
-        "file": "src/WeeklyReport.Application/obj/Release/net10.0/WeeklyReport.Application.AssemblyInfo.cs",
-        "ranges": [
-          {
-            "start": 16,
-            "end": 16
-          }
-        ],
-        "before_hash": "4fe7d1427d8b3d8122bf5ae1dfa34547312b89c06228cca224b359f277692c8b",
-        "after_hash": "6ec9acae5596d51bafe0612893e8cfd898b578067bd004b794a6f62dacad3cfb"
-      },
-      {
-        "file": "src/WeeklyReport.Application/packages.lock.json",
-        "ranges": [
-          {
-            "start": 8,
-            "end": 9
-          }
-        ],
-        "before_hash": "739ddb46b8ceba34a6267ab52c39278391c27c26e42c9a7719c3e62877040d89",
-        "after_hash": "04d62d7d36431264837d1e102e3f0b907f79a7e4c9abe0485bfefb1305dd614d"
-      },
-      {
-        "file": "src/WeeklyReport.Domain/obj/Release/net10.0/WeeklyReport.Domain.AssemblyInfo.cs",
-        "ranges": [
-          {
-            "start": 16,
-            "end": 16
-          }
-        ],
-        "before_hash": "45ae90b98ad1bce76078cf60bef55575791121da9ab88890723fb699a73a8456",
-        "after_hash": "75c06ff43c898338ff9081dd03082c8e03aefbdc2163f7795bdd3d8a92e3bd32"
-      },
-      {
-        "file": "src/WeeklyReport.Domain/packages.lock.json",
-        "ranges": [
-          {
-            "start": 4,
-            "end": 5
-          }
-        ],
-        "before_hash": "a4364d81a6de2707d66fbced18fbbc926c882ab96e1d1aebbb17e871285b9d75",
-        "after_hash": "cd97f644c24bb2cd8c96d92c519036a65133ab22cafc294d07b527626ad20e84"
-      },
-      {
-        "file": "src/WeeklyReport.Infrastructure/obj/Release/net10.0/WeeklyReport.Infrastructure.AssemblyInfo.cs",
-        "ranges": [
-          {
-            "start": 16,
-            "end": 16
-          }
-        ],
-        "before_hash": "2da9e144ba406cbc2d137d22ed9796c7e017c7a56f29f102ac057b3d72940f45",
-        "after_hash": "4fa2acc4a1325b78f5355088afb94cff30c05bbdd1ff78cc12d1e054f741da19"
-      },
-      {
-        "file": "src/WeeklyReport.Infrastructure/packages.lock.json",
-        "ranges": [
-          {
-            "start": 391,
-            "end": 449
-          }
-        ],
-        "before_hash": "5788a091c9d48c70281aca04666a94ff8ab1232bfb49d258a65c422ef406b7b3",
-        "after_hash": "7dcbaed4e42f4ae31ee5671dd70a8066bedbb26bf75e69144592b238a8c3becc"
+        "after_hash": "fe518e63ed155e337e74fcab64f7b758eb32eeb3ffa5991afa9f4e073813ef4a"
       }
     ]
   },
   "timing": {
-    "started_at": "2026-11-09T01:26:00.205Z",
-    "completed_at": "2026-11-09T01:26:02.638Z",
-    "duration_ms": 2433,
+    "started_at": "2026-11-09T02:40:47.812Z",
+    "completed_at": "2026-11-09T02:40:50.186Z",
+    "duration_ms": 2374,
     "measurement": "hook_wall_clock"
   },
   "tokens": {
@@ -720,9 +433,9 @@
     "schemaVersion": "mimosa-gate-telemetry/v1",
     "profile": "gate",
     "operation": "Stop",
-    "outcome": "partial/INCONCLUSIVE",
-    "latencyMs": 2433,
-    "peakMemoryBytes": 148193280,
+    "outcome": "complete",
+    "latencyMs": 2374,
+    "peakMemoryBytes": 147902464,
     "memoryMeasurement": "max-observed-process-rss",
     "scannedFiles": 17,
     "cache": {
@@ -749,8 +462,8 @@
   "finding_events": [],
   "findings": [],
   "artifacts": {
-    "immutable_report": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T012602638Z-22548-a530c86a2af6.json",
+    "immutable_report": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88-20261109T024050186Z-10676-a5b95cebb04f.json",
     "latest_report": ".mimosa/reports/task-review-sess_0aaa337d-fd80-47a2-8fa7-4ea147210d88.json",
-    "history_summary": ".mimosa/history/run-20261109T012602638Z-22548-a530c86a2af6.json"
+    "history_summary": ".mimosa/history/run-20261109T024050186Z-10676-a5b95cebb04f.json"
   }
 }

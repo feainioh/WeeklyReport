@@ -25,6 +25,8 @@ public sealed class SqliteWeeklyReportRepositoryTests : WeeklyReportRepositoryCo
     [Fact]
     public async Task Save_QueuesImmutableBeforeAndAfterSnapshots()
     {
+        // [新增-SQLite单机] 验证保留同步机械的载荷快照语义：按路径注册入队（生产默认不入队）
+        SqliteOperationQueue.SetEnqueueEnabled(_databasePath, true);
         await InitializeAsync();
         var repository = new SqliteWeeklyReportRepository(_databasePath);
         var now = StorageDateRange.NormalizeUtcTimestamp(DateTimeOffset.UtcNow);
